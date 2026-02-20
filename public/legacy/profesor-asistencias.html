@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>JAGUARES - Tomar Asistencia</title>
+    <link rel="icon" type="image/x-icon" href="/assets/logo.ico"/>
+    <link rel="apple-touch-icon" href="/assets/logo.ico"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#C59D5F', dark: '#B08546', light: '#E3C58E' },
+                        'background-light': '#FFFFFF',
+                        'background-dark': '#0A0A0A',
+                        'surface-light': '#F9F9F9',
+                        'surface-dark': '#1A1A1A',
+                        'text-main': '#1A1A1A',
+                        'text-muted': '#6B6B6B',
+                        'border-color': '#E5E5E5'
+                    },
+                    fontFamily: {
+                        display: ['Lexend', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen flex flex-col">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-50 border-b border-solid border-border-color bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm shadow-sm">
+        <div class="px-4 py-4 lg:px-10">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center gap-3 text-text-main dark:text-white">
+                    <img src="/assets/logo.ico" alt="Logo Jaguares" class="h-10 w-auto object-contain">
+                    <h2 class="text-xl lg:text-2xl font-black italic uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
+                </div>
+                
+                <div class="flex items-center gap-4 flex-wrap justify-end w-full sm:w-auto">
+                    <a href="/profesor-dashboard" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        <span class="hidden sm:inline">Volver</span>
+                    </a>
+                    <div class="text-right hidden lg:block">
+                        <p class="text-xs text-text-muted dark:text-gray-400 uppercase tracking-wide">Profesor</p>
+                        <p id="profesorNombre" class="text-sm font-semibold text-black dark:text-white"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow px-4 sm:px-6 lg:px-10 py-8">
+        <div class="max-w-screen-2xl mx-auto">
+            
+            <!-- Título -->
+            <div class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tight text-black dark:text-white">
+                    Tomar <span class="text-primary">Asistencia</span>
+                </h1>
+                <p class="text-text-muted dark:text-gray-400 mt-2" id="fechaActual"></p>
+            </div>
+
+            <!-- Filtros -->
+            <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md mb-8">
+                <h2 class="text-xl font-bold text-black dark:text-white mb-4 flex items-center gap-2">
+                    <span class="material-symbols-outlined">filter_list</span>
+                    Seleccionar Clase
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Deporte
+                        </label>
+                        <select id="filtroDeporte" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+                            <option value="">Seleccione un deporte...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Categoría
+                        </label>
+                        <select id="filtroCategoria" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary" disabled>
+                            <option value="">Primero seleccione deporte</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Día
+                        </label>
+                        <select id="filtroDia" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary" disabled>
+                            <option value="">Primero seleccione categoría</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Horario
+                        </label>
+                        <select id="filtroHorario" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary" disabled>
+                            <option value="">Primero seleccione día</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="btnCargarAlumnos" class="mt-4 w-full md:w-auto px-8 py-3 bg-primary hover:bg-primary-dark text-white font-bold uppercase tracking-wide rounded-lg transition-all shadow-lg flex items-center justify-center gap-2" disabled>
+                    <span class="material-symbols-outlined">groups</span>
+                    Cargar Alumnos
+                </button>
+            </div>
+
+            <!-- Info de la clase seleccionada -->
+            <div id="infoClase" class="hidden bg-gradient-to-r from-primary to-primary-dark p-6 rounded-xl shadow-lg mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-white">
+                    <div>
+                        <p class="text-sm font-semibold opacity-90">Clase Seleccionada:</p>
+                        <h3 class="text-2xl font-black uppercase" id="claseNombre"></h3>
+                        <p class="text-sm opacity-90 mt-1" id="claseDetalle"></p>
+                    </div>
+                    <span class="material-symbols-outlined text-6xl opacity-50">school</span>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingContainer" class="hidden text-center py-20">
+                <span class="material-symbols-outlined animate-spin text-6xl text-primary">progress_activity</span>
+                <p class="text-text-muted mt-4">Cargando alumnos...</p>
+            </div>
+
+            <!-- Banner asistencia ya registrada -->
+            <div id="bannerYaRegistrada" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl px-5 py-4 mb-4 flex items-center gap-3">
+                <span class="material-symbols-outlined text-amber-600 text-2xl">event_available</span>
+                <div>
+                    <p class="font-bold text-amber-800 dark:text-amber-300 text-sm">Asistencia ya registrada para hoy</p>
+                    <p class="text-amber-700 dark:text-amber-400 text-xs mt-0.5">Puedes modificar el estado de cada alumno y guardar los cambios.</p>
+                </div>
+            </div>
+
+            <!-- Lista de alumnos -->
+            <div id="alumnosContainer" class="hidden">
+                <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+                        <h2 class="text-xl font-bold text-black dark:text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined">how_to_reg</span>
+                            Lista de Alumnos
+                            <span id="contadorAlumnos" class="text-primary"></span>
+                        </h2>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <button id="btnMarcarTodos" class="w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-sm">done_all</span>
+                                Marcar Todos
+                            </button>
+                            <button id="btnDesmarcarTodos" class="w-full sm:w-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-sm">remove_done</span>
+                                Desmarcar Todos
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="listaAlumnos" class="space-y-3"></div>
+
+                    <button id="btnGuardarAsistencia" class="mt-6 w-full px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-black uppercase tracking-wide rounded-xl transition-all shadow-lg transform hover:scale-105 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-2xl">save</span>
+                        Guardar Asistencia
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sin alumnos -->
+            <div id="sinAlumnos" class="hidden bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-8 text-center">
+                <span class="material-symbols-outlined text-6xl text-yellow-600 mb-4">person_off</span>
+                <p class="text-yellow-800 dark:text-yellow-300 font-semibold">No hay alumnos inscritos en esta clase</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-border-color bg-surface-light dark:bg-surface-dark py-6 mt-8">
+        <div class="px-4 sm:px-6 lg:px-10">
+            <p class="text-center text-sm text-text-muted dark:text-gray-400">
+                © 2026 JAGUARES - Sistema de Gestión Deportiva
+            </p>
+        </div>
+    </footer>
+
+    <!-- Modal de confirmación -->
+    <div id="modalConfirmacion" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-xl p-8 max-w-md w-full shadow-2xl">
+            <div class="text-center">
+                <span class="material-symbols-outlined text-6xl text-green-500 mb-4">check_circle</span>
+                <h3 id="modalConfirmacionTitulo" class="text-2xl font-bold text-black dark:text-white mb-2">¡Asistencia Guardada!</h3>
+                <p id="modalConfirmacionSubtitulo" class="text-text-muted dark:text-gray-400 mb-6">La asistencia se ha registrado correctamente</p>
+                <button id="btnCerrarModal" class="px-6 py-3 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-colors">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Asignar Puntaje -->
+    <div id="modalPuntaje" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-black dark:text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">star</span>
+                    Asignar Puntaje
+                </h3>
+                <button onclick="cerrarModalPuntaje()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <p class="text-sm text-text-muted">Alumno:</p>
+                <p id="puntaje-alumno-nombre" class="font-bold text-lg text-black dark:text-white"></p>
+            </div>
+            
+            <input type="hidden" id="puntaje-alumno-id">
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                    Puntaje (0-100)
+                </label>
+                <input type="number" id="puntaje-valor" min="0" max="100" placeholder="Ej: 85"
+                    class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-lg font-bold text-center focus:ring-2 focus:ring-primary">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                    Motivo (opcional)
+                </label>
+                <select id="puntaje-motivo" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary">
+                    <option value="">Seleccione un motivo...</option>
+                    <option value="Excelente rendimiento">Excelente rendimiento</option>
+                    <option value="Mejora continua">Mejora continua</option>
+                    <option value="Buen trabajo en equipo">Buen trabajo en equipo</option>
+                    <option value="Disciplina ejemplar">Disciplina ejemplar</option>
+                    <option value="Logro destacado">Logro destacado</option>
+                    <option value="Participación activa">Participación activa</option>
+                </select>
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="cerrarModalPuntaje()" class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white font-bold rounded-lg transition-colors">
+                    Cancelar
+                </button>
+                <button onclick="guardarPuntaje()" class="flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">save</span>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/legacy/profesor-asistencias.js"></script>
+</body>
+</html>
+
+
+

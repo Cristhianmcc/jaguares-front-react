@@ -1,0 +1,42 @@
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .gold-gradient { background: linear-gradient(90deg, #C59D5F 0%, #E3C58E 50%, #B08546 100%); }
+        @keyframes shimmer { 0%, 100% { transform: translateX(-100%); } 50% { transform: translateX(100%); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-border { 0%, 100% { border-color: #C59D5F; } 50% { border-color: #E3C58E; } }
+        
+        .shadow-card { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
+        .shadow-card-hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .shadow-selected { box-shadow: 0 0 0 3px rgba(197, 157, 95, 0.1), 0 10px 20px -5px rgba(197, 157, 95, 0.3); }
+        
+        .cronograma-cell {
+            transition: all 0.2s ease;
+            min-height: 80px;
+        }
+        
+        .cronograma-cell:hover {
+            transform: scale(1.02);
+        }
+        
+        .cronograma-cell.selected {
+            animation: pulse-border 2s infinite;
+        }
+        
+        .cronograma-cell.disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+        }
+        
+        .sport-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .sport-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .sport-card.active {
+            border-width: 3px;
+        }
+    

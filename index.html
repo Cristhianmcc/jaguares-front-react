@@ -1,0 +1,45 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>JAGUARES - Centro de Alto Rendimiento</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700;900&family=Manrope:wght@400;700;800&family=Noto+Sans:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link rel="icon" href="/assets/logo.ico" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+      window.API_BASE_OVERRIDE = "%VITE_API_BASE%";
+    </script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: { DEFAULT: '#C59D5F', dark: '#B08546', light: '#E3C58E' },
+              secondary: '#1A1A1A',
+              'background-light': '#FFFFFF',
+              'background-dark': '#0A0A0A',
+              'surface-light': '#F9F9F9',
+              'surface-dark': '#1A1A1A',
+              'text-main': '#1A1A1A',
+              'text-muted': '#6B6B6B',
+              'border-color': '#E5E5E5'
+            },
+            fontFamily: {
+              display: ['Lexend', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="dark">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

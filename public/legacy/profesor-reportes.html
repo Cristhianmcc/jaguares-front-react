@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>JAGUARES - Reportes de Asistencia</title>
+    <link rel="icon" type="image/x-icon" href="/assets/logo.ico"/>
+    <link rel="apple-touch-icon" href="/assets/logo.ico"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#C59D5F', dark: '#B08546', light: '#E3C58E' },
+                        'background-light': '#FFFFFF',
+                        'background-dark': '#0A0A0A',
+                        'surface-light': '#F9F9F9',
+                        'surface-dark': '#1A1A1A',
+                        'text-main': '#1A1A1A',
+                        'text-muted': '#6B6B6B',
+                        'border-color': '#E5E5E5'
+                    },
+                    fontFamily: {
+                        display: ['Lexend', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen flex flex-col">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-50 border-b border-solid border-border-color bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm shadow-sm">
+        <div class="px-4 py-4 lg:px-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3 text-text-main dark:text-white">
+                    <img src="/assets/logo.ico" alt="Logo Jaguares" class="h-10 w-auto object-contain">
+                    <h2 class="text-xl lg:text-2xl font-black italic uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <a href="/profesor-dashboard" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">arrow_back</span>
+                        <span class="hidden sm:inline">Volver</span>
+                    </a>
+                    <div class="text-right hidden lg:block">
+                        <p class="text-xs text-text-muted dark:text-gray-400 uppercase tracking-wide">Profesor</p>
+                        <p id="profesorNombre" class="text-sm font-semibold text-black dark:text-white"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow px-4 sm:px-6 lg:px-10 py-8">
+        <div class="max-w-screen-2xl mx-auto">
+            
+            <!-- Título -->
+            <div class="mb-8">
+                <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tight text-black dark:text-white">
+                    Reportes de <span class="text-primary">Asistencia</span>
+                </h1>
+                <p class="text-text-muted dark:text-gray-400 mt-2">Estadísticas de tus clases</p>
+            </div>
+
+            <!-- Filtros -->
+            <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Deporte
+                        </label>
+                        <select id="filtroDeporte" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+                            <option value="">Todos los deportes</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Fecha Inicio
+                        </label>
+                        <input type="date" id="fechaInicio" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-text-main dark:text-gray-300 uppercase tracking-wide mb-2">
+                            Fecha Fin
+                        </label>
+                        <input type="date" id="fechaFin" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-primary">
+                    </div>
+
+                    <div class="flex items-end">
+                        <button id="btnGenerarReporte" class="w-full h-12 px-6 bg-primary hover:bg-primary-dark text-white font-bold uppercase tracking-wide rounded-lg transition-all shadow-lg flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined">insights</span>
+                            Generar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingContainer" class="hidden text-center py-20">
+                <span class="material-symbols-outlined animate-spin text-6xl text-primary">progress_activity</span>
+                <p class="text-text-muted mt-4">Generando reporte...</p>
+            </div>
+
+            <!-- Estadísticas generales -->
+            <div id="estadisticasContainer" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md border-l-4 border-green-500">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Total Asistencias</p>
+                                <p id="totalAsistencias" class="text-4xl font-black text-black dark:text-white mt-2">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-5xl text-green-500">check_circle</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md border-l-4 border-red-500">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Total Ausencias</p>
+                                <p id="totalAusencias" class="text-4xl font-black text-black dark:text-white mt-2">0</p>
+                            </div>
+                            <span class="material-symbols-outlined text-5xl text-red-500">cancel</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md border-l-4 border-primary">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Promedio Asistencia</p>
+                                <p id="promedioAsistencia" class="text-4xl font-black text-black dark:text-white mt-2">0%</p>
+                            </div>
+                            <span class="material-symbols-outlined text-5xl text-primary">percent</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfica -->
+                <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md mb-8">
+                    <h2 class="text-xl font-bold text-black dark:text-white mb-4">Tendencia de Asistencia</h2>
+                    <canvas id="graficoAsistencia" class="w-full" style="max-height: 400px;"></canvas>
+                </div>
+
+                <!-- Detalle por alumno -->
+                <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-bold text-black dark:text-white mb-4">Detalle por Alumno</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-100 dark:bg-gray-800">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-main dark:text-white uppercase">Alumno</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-main dark:text-white uppercase">Asistencias</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-main dark:text-white uppercase">Ausencias</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-main dark:text-white uppercase">%</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaDetalleAlumnos" class="divide-y divide-gray-200 dark:divide-gray-700">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sin datos -->
+            <div id="sinDatos" class="hidden bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-8 text-center">
+                <span class="material-symbols-outlined text-6xl text-blue-500 mb-4">info</span>
+                <p class="text-blue-800 dark:text-blue-300 font-semibold">No hay datos de asistencia para el período seleccionado</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-border-color bg-surface-light dark:bg-surface-dark py-6 mt-8">
+        <div class="px-4 sm:px-6 lg:px-10">
+            <p class="text-center text-sm text-text-muted dark:text-gray-400">
+                © 2026 JAGUARES - Sistema de Gestión Deportiva
+            </p>
+        </div>
+    </footer>
+
+    <script src="/legacy/profesor-reportes.js"></script>
+</body>
+</html>
+
+
