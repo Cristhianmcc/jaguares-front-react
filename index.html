@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -37,8 +37,125 @@
         }
       }
     </script>
+    <!-- Override crítico: asegura que los sliders del tema SoccerClub sean visibles -->
+    <!-- Solo aplica cuando las clases del tema están presentes en el body -->
+    <style id="soccerclub-preload">
+      /* Forzar visibilidad de sliders SoccerClub ANTES de que Swiper inicialice
+         Estas reglas aplican globalmente pero solo afectan elementos del tema
+         que no existen en otras páginas */
+
+      /* Sliders: layout en grid para mostrar slides sin JS */
+      .sc_team_slider .swiper-wrapper,
+      .sc_team_slider .slides { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 30px !important; }
+      .sc_blogger_slider .swiper-wrapper,
+      .sc_blogger_slider .slides { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 30px !important; }
+
+      .sc_team_slider .swiper-wrapper, .sc_team_slider .slides,
+      .sc_blogger_slider .swiper-wrapper, .sc_blogger_slider .slides {
+        display: grid !important; transform: none !important;
+        position: static !important; overflow: visible !important; width: 100% !important;
+      }
+      /* Todos los slides visibles */
+      .sc_team_slider .swiper-slide, .sc_team_slider .slider-slide,
+      .sc_blogger_slider .swiper-slide, .sc_blogger_slider .slider-slide {
+        opacity: 1 !important; visibility: visible !important; transform: none !important;
+        position: static !important; float: none !important; width: auto !important;
+        margin-right: 0 !important; display: block !important; height: auto !important;
+      }
+      /* Contenedores sin overflow hidden */
+      .sc_team_slider .slider_container, .sc_team_slider .slider_outer,
+      .sc_team_slider .slider_outer_overflow_hidden, .sc_team_slider .slider_overflow_hidden,
+      .sc_blogger_slider .slider_container, .sc_blogger_slider .slider_outer,
+      .sc_blogger_slider .slider_outer_overflow_hidden, .sc_blogger_slider .slider_overflow_hidden {
+        overflow: visible !important; position: static !important; height: auto !important;
+      }
+      /* Elementos ocultos por animaciones elementor */
+      .elementor-invisible { opacity: 1 !important; visibility: visible !important; animation: none !important; }
+      /* Contenido de equipo y blog siempre visible */
+      .sc_team_item, .sc_blogger_item {
+        display: block !important; opacity: 1 !important; visibility: visible !important;
+      }
+      .sc_team_item img, .sc_blogger_item img {
+        display: block !important; width: 100% !important; height: auto !important;
+        opacity: 1 !important; visibility: visible !important;
+      }
+      /* Ocultar panel demo flotante */
+      .trx_demo_panels, .trx_demo_panels_mask, .trx_demo_tabs { display: none !important; }
+      /* Instagram widget: mostrar en grilla horizontal */
+      .widget_instagram_images { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; width: 100% !important; }
+      .widget_instagram_images_item_wrap { flex: 1 1 calc(16.666% - 4px) !important; min-width: 0 !important; }
+      .widget_instaglogo.ico" rel="icon" type="image/x-icon"/>
+<link href="/assets/logo.ico" rel="apple-touch-icon"/>
+<meta content="/assets/logo.ico
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .sc_team_slider .slides { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+        .sc_blogger_slider .slides { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      }
+      @media (max-width: 640px) {
+        .sc_team_slider .slides { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        .sc_blogger_slider .slides { grid-template-columns: 1fr !important; }
+      }
+      /* Ocultar popup de newsletter (adp-popup) y su overlay */
+      .adp-popup, .adp-popup-overlay, .adp-popup-wrap { display: none !important; }
+      /* Igualar altura de tarjetas de partidos */
+      [data-id="2263166"] .elementor-container { align-items: stretch !important; }
+      [data-id="2263166"] .elementor-col-25 { display: flex !important; flex-direction: column !important; }
+      [data-id="2263166"] .elementor-widget-wrap,
+      [data-id="2263166"] .elementor-widget,
+      [data-id="2263166"] .elementor-widget-container,
+      [data-id="2263166"] .elementor-shortcode,
+      [data-id="2263166"] .sportspress,
+      [data-id="2263166"] .sp-template-event-blocks,
+      [data-id="2263166"] .sp-table-wrapper { flex: 1 !important; display: flex !important; flex-direction: column !important; }
+      [data-id="2263166"] .sp-event-blocks { flex: 1 !important; width: 100%; }
+      [data-id="2263166"] .sp-event-blocks,
+      [data-id="2263166"] .sp-event-blocks tbody,
+      [data-id="2263166"] .sp-event-blocks tr { height: 100% !important; }
+      [data-id="2263166"] .sp-event-blocks td { height: 100% !important; vertical-align: top !important; }
+      /* === LOADER === */
+      #jag-loader {
+        position: fixed; inset: 0; z-index: 99999;
+        background: #0d0d0d;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.5s ease;
+      }
+      #jag-loader.out { opacity: 0; pointer-events: none; }
+      #jag-loader img { width: 72px; height: auto; margin-bottom: 18px; }
+      #jag-loader .sp {
+        width: 38px; height: 38px;
+        border: 3px solid rgba(255,255,255,0.12);
+        border-top-color: #E03821;
+        border-radius: 50%;
+        animation: sp 0.75s linear infinite;
+      }
+      @keyframes sp { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body class="dark">
+    <div id="jag-loader">
+      <img src="/assets/logo.ico" alt="Jaguares" />
+      <div class="sp"></div>
+    </div>
+    <script>
+      // En rutas que no son la home, ocultar loader al instante
+      (function(){
+        var p = window.location.pathname.replace(/\/+$/,'') || '/';
+        if (p !== '/') {
+          document.getElementById('jag-loader').style.display = 'none';
+          return;
+        }
+        // En la home, quitar loader cuando la página cargue o máximo 5s
+        function hide() {
+          var l = document.getElementById('jag-loader');
+          if (!l || l.classList.contains('out')) return;
+          l.classList.add('out');
+          setTimeout(function(){ l.remove(); }, 520);
+        }
+        window.addEventListener('load', hide);
+        setTimeout(hide, 5000);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
