@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = window.location.hostname === 'localhost' 
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:3002' 
-  : '';
+  : 'https://api.jaguarescar.com';
 
 export default function RankingSection() {
   const [ranking, setRanking] = useState([]);
