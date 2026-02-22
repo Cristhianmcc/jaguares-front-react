@@ -127,11 +127,10 @@
             </div>
 
             <!-- Info ranking automático -->
-            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-5 py-4 mb-6 flex items-start gap-3" id="seccionAcciones" style="display: none;">
-                <span class="material-symbols-outlined text-green-600 text-2xl mt-0.5">auto_awesome</span>
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl px-5 py-4 mb-6 flex items-center justify-between gap-3" id="seccionAcciones" style="display: none;">
                 <div class="flex-1">
                     <p class="font-bold text-green-800 dark:text-green-300 text-sm">Ranking actualizado automáticamente</p>
-                    <p class="text-green-700 dark:text-green-400 text-xs mt-0.5">Los puntos de asistencia se calculan cada vez que guardas una clase. Usa el botón <strong>⭐ Bonus</strong> para premiar rendimiento, actitud o logros especiales.</p>
+                    <p class="text-green-700 dark:text-green-400 text-xs mt-0.5">Los puntos de asistencia se calculan cada vez que guardas una clase. Usa el botón Bonus para premiar rendimiento, actitud o logros especiales.</p>
                 </div>
                 <button id="btnRecalcularAsistencias" class="shrink-0 text-xs text-green-700 dark:text-green-400 underline hover:no-underline" title="Recalcular manualmente (para corregir datos históricos)">
                     Recalcular historial
@@ -142,7 +141,7 @@
             <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md" id="seccionRanking" style="display: none;">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <h2 class="text-xl font-bold text-black dark:text-white flex items-center gap-2">
-                        <span class="material-symbols-outlined">emoji_events</span>
+                        <span class="material-symbols-outlined" style="font-size:1.25rem;">emoji_events</span>
                         Ranking de Alumnos
                     </h2>
                     <div class="text-sm text-text-muted dark:text-gray-400">
@@ -176,7 +175,7 @@
 
                 <!-- Mensaje vacío -->
                 <div id="mensajeVacio" class="text-center py-12" style="display: none;">
-                    <span class="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">leaderboard</span>
+                    
                     <p class="mt-4 text-text-muted dark:text-gray-400">No hay alumnos en esta categoría</p>
                 </div>
             </div>
