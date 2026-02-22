@@ -656,7 +656,7 @@ async function cargarCategoriasReporte() {
         if (response.ok) {
             const data = await response.json();
             selectCat.innerHTML = '<option value="">Todas las categorías</option>' +
-                (data.categorias || []).map(c => `<option value="${c}">${c}</option>`).join('');
+                (data.categorias || []).map(c => { const n = typeof c === 'object' ? c.nombre : c; return `<option value="${n}">${n}</option>`; }).join('');
         }
     } catch (e) {
         console.error('Error al cargar categorías:', e);
