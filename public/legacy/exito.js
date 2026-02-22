@@ -168,7 +168,7 @@ async function renderizarExito(codigo, datosInscripcion) {
             <div class="p-6 md:p-8">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <p class="text-xs font-bold text-primary uppercase tracking-widest mb-1.5">💰 resumen DE PAGO</p>
+                        <p class="text-xs font-bold text-primary uppercase tracking-widest mb-1.5"><span class="material-symbols-outlined text-xs align-middle">payments</span> resumen DE PAGO</p>
                         <h3 class="text-xl font-black text-text-main dark:text-white tracking-tight">Total a pagar</h3>
                     </div>
                     <div class="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -211,7 +211,7 @@ async function renderizarExito(codigo, datosInscripcion) {
                 <!-- TÍTULO -->
                 <div class="flex items-center justify-between mb-2">
                     <div>
-                        <p class="text-xs font-bold text-primary uppercase tracking-widest mb-1.5">💳 MÉTODOS DE PAGO</p>
+                        <p class="text-xs font-bold text-primary uppercase tracking-widest mb-1.5"><span class="material-symbols-outlined text-xs align-middle">credit_card</span> MÉTODOS DE PAGO</p>
                         <h3 class="text-xl font-black text-text-main dark:text-white tracking-tight">Selecciona y expande tu método</h3>
                     </div>
                     <div class="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -444,7 +444,7 @@ async function renderizarExito(codigo, datosInscripcion) {
                     <div class="flex items-start gap-2">
                         <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-lg mt-0.5">info</span>
                         <div class="flex-1">
-                            <p class="text-xs font-bold text-blue-900 dark:text-blue-200 mb-1">💳 Pago con Plin o Transferencia:</p>
+                            <p class="text-xs font-bold text-blue-900 dark:text-blue-200 mb-1"><span class="material-symbols-outlined text-xs align-middle">credit_card</span> Pago con Plin o Transferencia:</p>
                             <ol class="text-xs text-blue-800 dark:text-blue-300 space-y-0.5 list-decimal list-inside">
                                 <li>Expande tu método preferido (Plin, BBVA o BCP)</li>
                                 <li>Realiza el pago y sube tu comprobante</li>
@@ -459,7 +459,7 @@ async function renderizarExito(codigo, datosInscripcion) {
                     <div class="flex items-start gap-2">
                         <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-lg mt-0.5">payments</span>
                         <div class="flex-1">
-                            <p class="text-xs font-bold text-amber-900 dark:text-amber-200 mb-1">💵 Pago en Efectivo:</p>
+                            <p class="text-xs font-bold text-amber-900 dark:text-amber-200 mb-1"><span class="material-symbols-outlined text-xs align-middle">payments</span> Pago en Efectivo:</p>
                             <p class="text-xs text-amber-800 dark:text-amber-300">
                                 Deberás acercarte a <strong>Jaguares</strong> para realizar el pago presencial. 
                                 Las clases NO se activarán hasta confirmar el pago.

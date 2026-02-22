@@ -67,28 +67,29 @@ function manejarImagenSeleccionada(event, tipo) {
         return;
     }
     
-    // Convertir a base64
+    // Convertir a base64 y comprimir con canvas para reducir peso
     const reader = new FileReader();
     reader.onload = function(e) {
-        const base64 = e.target.result;
-        
-        // Guardar en variable correspondiente
-        if (tipo === 'dni_frontal') {
-            imagenDNIFrontal = base64;
-        } else if (tipo === 'dni_reverso') {
-            imagenDNIReverso = base64;
-        } else if (tipo === 'foto_carnet') {
-            imagenFotoCarnet = base64;
-        }
-        
-        // Mostrar preview
-        mostrarPreview(base64, tipo);
+        const img = new Image();
+        img.onload = function() {
+            let w = img.width, h = img.height;
+            if (w > 1000) { h = Math.round(h * 1000 / w); w = 1000; }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const base64 = canvas.toDataURL('image/jpeg', 0.7);
+            if (tipo === 'dni_frontal') imagenDNIFrontal = base64;
+            else if (tipo === 'dni_reverso') imagenDNIReverso = base64;
+            else if (tipo === 'foto_carnet') imagenFotoCarnet = base64;
+            mostrarPreview(base64, tipo);
+        };
+        img.onerror = function() { Utils.mostrarNotificacion('Error al procesar la imagen', 'error'); };
+        img.src = e.target.result;
     };
-    
     reader.onerror = function() {
         Utils.mostrarNotificacion('Error al cargar la imagen', 'error');
     };
-    
     reader.readAsDataURL(file);
 }
 
@@ -334,12 +335,20 @@ async function handleSubmit(e) {
         return;
     }
     
-    // Guardar en localStorage
-    LocalStorage.set('datosInscripcion', {
-        alumno,
-        paso: 1,
-        fecha: new Date().toISOString()
-    });
+    // Guardar en localStorage - puede fallar si las imágenes pesan demasiado
+    try {
+        localStorage.setItem('datosInscripcion', JSON.stringify({
+            alumno,
+            paso: 1,
+            fecha: new Date().toISOString()
+        }));
+    } catch (err) {
+        Utils.mostrarNotificacion(
+            'No se pudo continuar porque las imágenes son demasiado pesadas. Sube imágenes más pequeñas (menos de 2MB cada una) e inténtalo de nuevo.',
+            'error'
+        );
+        return;
+    }
     
     // Ir al siguiente paso - CRONOGRAMA NUEVO
     window.location.href = 'seleccion-horarios-new.html';
