@@ -61,6 +61,7 @@ export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   const goToSlide = useCallback((index) => {
     if (isAnimating || index === currentSlide) return;
@@ -238,6 +239,246 @@ export default function HeroCarousel() {
           background: #d4ac6e;
           transform: translateY(-2px);
           box-shadow: 0 10px 30px rgba(197, 157, 95, 0.4);
+        }
+
+        .hero-carousel-buttons {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          flex-wrap: wrap;
+          opacity: 0;
+          transform: translateY(30px);
+          animation: slideUp 0.8s ease forwards;
+          animation-delay: 0.65s;
+        }
+
+        .hero-carousel-buttons .hero-carousel-cta {
+          opacity: 1;
+          transform: none;
+          animation: none;
+        }
+
+        .hero-video-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 20px 8px 8px;
+          font-family: 'Inter Tight', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: #fff;
+          background: rgba(0,0,0,0.4);
+          border: 2px solid rgba(255,255,255,0.3);
+          border-radius: 100px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          backdrop-filter: blur(4px);
+        }
+
+        .hero-video-btn:hover {
+          border-color: #C59D5F;
+          background: rgba(197, 157, 95, 0.2);
+        }
+
+        .hero-video-btn:hover .video-thumb-play {
+          background: #C59D5F;
+          transform: scale(1.1);
+        }
+
+        .video-thumb-container {
+          position: relative;
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+
+        .video-thumb-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .video-thumb-play {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 28px;
+          height: 28px;
+          background: rgba(197, 157, 95, 0.9);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+
+        .video-thumb-play svg {
+          width: 12px;
+          height: 12px;
+          margin-left: 2px;
+          color: #000;
+        }
+
+        .hero-video-btn-text {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          line-height: 1.2;
+        }
+
+        .hero-video-btn-label {
+          font-size: 10px;
+          color: rgba(255,255,255,0.6);
+          font-weight: 400;
+          letter-spacing: 0.5px;
+        }
+
+        .hero-video-btn-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: #fff;
+        }
+
+        /* Video Modal */
+        .video-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.9);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .video-modal-content {
+          position: relative;
+          width: 100%;
+          max-width: 900px;
+          background: #000;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+        }
+
+        .video-modal-close {
+          position: absolute;
+          top: -50px;
+          right: 0;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.1);
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          z-index: 10;
+        }
+
+        .video-modal-close:hover {
+          background: #C59D5F;
+          color: #000;
+        }
+
+        .video-modal-close svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        .video-modal-video {
+          width: 100%;
+          max-height: 80vh;
+          display: block;
+          background: #000;
+        }
+
+        /* Asegurar controles visibles */
+        .video-modal-video::-webkit-media-controls {
+          display: flex !important;
+        }
+
+        .video-modal-video::-webkit-media-controls-panel {
+          display: flex !important;
+        }
+
+        @media (max-width: 768px) {
+          .hero-carousel-buttons {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .hero-video-btn {
+            padding: 6px 16px 6px 6px;
+          }
+
+          .video-thumb-container {
+            width: 40px;
+            height: 40px;
+          }
+
+          .video-thumb-play {
+            width: 22px;
+            height: 22px;
+          }
+
+          .video-thumb-play svg {
+            width: 10px;
+            height: 10px;
+          }
+
+          .hero-video-btn-label {
+            font-size: 9px;
+          }
+
+          .hero-video-btn-title {
+            font-size: 11px;
+          }
+
+          /* Modal video mobile */
+          .video-modal-overlay {
+            padding: 10px;
+            align-items: flex-start;
+            padding-top: 60px;
+          }
+
+          .video-modal-content {
+            border-radius: 8px;
+          }
+
+          .video-modal-close {
+            top: -45px;
+            right: 5px;
+            width: 36px;
+            height: 36px;
+          }
+
+          .video-modal-video {
+            max-height: 70vh;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .video-modal-overlay {
+            padding: 5px;
+            padding-top: 50px;
+          }
+
+          .video-modal-close {
+            top: -42px;
+          }
         }
 
         @keyframes slideUp {
@@ -472,9 +713,25 @@ export default function HeroCarousel() {
             <div className="hero-carousel-subtitle">{slide.subtitle}</div>
             <h1 className="hero-carousel-title">{slide.title}</h1>
             <p className="hero-carousel-description">{slide.description}</p>
-            <a href="/inscripcion" className="hero-carousel-cta">
-              ¡Inscríbete Ahora!
-            </a>
+            <div className="hero-carousel-buttons">
+              <a href="/inscripcion" className="hero-carousel-cta">
+                ¡Inscríbete Ahora!
+              </a>
+              <button className="hero-video-btn" onClick={() => setShowVideoModal(true)}>
+                <div className="video-thumb-container">
+                  <video className="video-thumb-img" src="/assets/video.mp4#t=1" muted preload="metadata" />
+                  <div className="video-thumb-play">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+                <div className="hero-video-btn-text">
+                  <span className="hero-video-btn-label">Video</span>
+                  <span className="hero-video-btn-title">Guía de Inscripción</span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -533,6 +790,30 @@ export default function HeroCarousel() {
         </span>
         Desplácese hacia abajo
       </div>
+
+      {/* Video Modal */}
+      {showVideoModal && (
+        <div className="video-modal-overlay" onClick={() => setShowVideoModal(false)}>
+          <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="video-modal-close" onClick={() => setShowVideoModal(false)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+            <video 
+              className="video-modal-video" 
+              controls
+              controlsList="nodownload"
+              autoPlay
+              playsInline
+              preload="auto"
+              src="/assets/video.mp4"
+            >
+              Tu navegador no soporta video HTML5.
+            </video>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

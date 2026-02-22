@@ -379,5 +379,89 @@ iframe[src*="tidio"],
     width: calc(100% / 3) !important;
     flex: 0 0 calc(100% / 3) !important;
   }
-}` }
+}` },
+  { id: 'docentes-grid-css', css: `
+/* ============== DOCENTES SECTION ============== */
+.docentes-grid-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.docentes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
+  justify-items: center;
+}
+
+.docente-card {
+  width: 100%;
+  max-width: 260px;
+}
+
+.docente-image {
+  width: 100%;
+  height: 350px;
+  overflow: hidden;
+  position: relative;
+  border-bottom: 4px solid #C59D5F;
+}
+
+.docente-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.3s ease;
+}
+
+.docente-card:hover .docente-image img {
+  transform: scale(1.05);
+}
+
+.docente-info {
+  padding: 15px 0;
+}
+
+.docente-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 4px 0;
+}
+
+.docente-specialty {
+  font-size: 0.875rem;
+  color: #C59D5F;
+  font-style: italic;
+}
+
+/* Responsive para docentes */
+@media (max-width: 1024px) {
+  .docentes-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  
+  .docente-card {
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 600px) {
+  .docentes-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  
+  .docente-card {
+    max-width: 300px;
+  }
+  
+  .docente-image {
+    height: 400px;
+  }
+}
+` }
 ];
