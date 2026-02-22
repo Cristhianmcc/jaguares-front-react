@@ -118,7 +118,10 @@ function cambiarTab(tab) {
     else if (tab === 'deportes') cargarDeportes();
     else if (tab === 'categorias') cargarCategorias();
     else if (tab === 'horarios') cargarHorarios();
-    else if (tab === 'inscripciones') cargarInscripciones();
+    else if (tab === 'inscripciones') {
+        if (typeof cargarInscripciones === 'function') cargarInscripciones();
+        else setTimeout(() => cambiarTab('inscripciones'), 300);
+    }
     else if (tab === 'reportes') { /* Los reportes se generan bajo demanda */ }
 }
 
@@ -422,7 +425,7 @@ function renderizarTablaCategorias() {
                 <td class="px-6 py-4">${badge}</td>
                 <td class="px-6 py-4 text-sm">
                     <button onclick="editarCategoria(${cat.categoria_id})" class="text-primary hover:text-primary-dark"><span class="material-symbols-outlined">edit</span></button>
-                    <button onclick="confirmarEliminarCategoria(${cat.categoria_id}, '${cat.nombre.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800"><span class="material-symbols-outlined">delete</span></button>
+                    <button onclick="confirmarEliminarCategoria(${cat.categoria_id}, '${(cat.nombre || '').replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800"><span class="material-symbols-outlined">delete</span></button>
                 </td>
             </tr>
         `;
