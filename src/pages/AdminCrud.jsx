@@ -528,10 +528,37 @@ const html = `
                         </select>
                     </div>
 
-                    <div>
+                    <!-- Selector de día: checkboxes para crear, select para editar -->
+                    <div id="horario_dias_crear" class="col-span-2 hidden">
+                        <label class="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Días *</label>
+                        <div id="horario_dias_checkboxes" class="flex flex-wrap gap-2">
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="LUNES" class="sr-only"> Lunes
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="MARTES" class="sr-only"> Martes
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="MIERCOLES" class="sr-only"> Miércoles
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="JUEVES" class="sr-only"> Jueves
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="VIERNES" class="sr-only"> Viernes
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="SABADO" class="sr-only"> Sábado
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs sm:text-sm font-medium hover:bg-primary/10 has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:border-primary transition-colors">
+                                <input type="checkbox" value="DOMINGO" class="sr-only"> Domingo
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Se creará un horario por cada día seleccionado</p>
+                    </div>
+                    <div id="horario_dias_editar" class="hidden">
                         <label class="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Día *</label>
-                        <select id="horario_dia" name="dia" required class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
-                            <option value="">Selecciona un Día</option>
+                        <select id="horario_dia" name="dia" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
                             <option value="LUNES">Lunes</option>
                             <option value="MARTES">Martes</option>
                             <option value="MIERCOLES">Miércoles</option>

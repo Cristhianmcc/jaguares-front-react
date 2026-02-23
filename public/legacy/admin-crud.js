@@ -853,9 +853,14 @@ function abrirModalHorario(horarioId = null) {
     const modal = document.getElementById('modalHorario');
     const precioInput = document.getElementById('horario_precio');
     const infoHorario = document.getElementById('info_horario_actual');
+    const diasCrear = document.getElementById('horario_dias_crear');
+    const diasEditar = document.getElementById('horario_dias_editar');
     
     document.getElementById('modalHorarioTitulo').textContent = modoEdicion ? 'Edición Rápida' : 'Nuevo Horario';
     document.getElementById('formHorario').reset();
+
+    // Limpiar checkboxes al abrir
+    document.querySelectorAll('#horario_dias_checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
     
     // El precio siempre es editable
     precioInput.removeAttribute('readonly');
@@ -863,9 +868,12 @@ function abrirModalHorario(horarioId = null) {
     precioInput.classList.add('bg-white', 'dark:bg-gray-800');
     
     if (modoEdicion) {
+        // Modo editar: mostrar select de día único, ocultar checkboxes
+        diasCrear.classList.add('hidden');
+        diasEditar.classList.remove('hidden');
+
         const h = horariosData.find(hor => hor.horario_id === horarioId);
         if (h) {
-            // Mostrar información del horario actual
             const deporteNombre = deportesData.find(d => d.deporte_id === h.deporte_id)?.nombre || h.deporte_id;
             infoHorario.textContent = `${deporteNombre} - ${h.dia} ${h.hora_inicio} - ${h.hora_fin}`;
             infoHorario.parentElement.classList.remove('hidden');
@@ -886,7 +894,9 @@ function abrirModalHorario(horarioId = null) {
             document.getElementById('horario_estado').value = h.estado;
         }
     } else {
-        // Ocultar info cuando es nuevo horario
+        // Modo crear: mostrar checkboxes, ocultar select de día único
+        diasCrear.classList.remove('hidden');
+        diasEditar.classList.add('hidden');
         infoHorario.parentElement.classList.add('hidden');
     }
     
@@ -1128,12 +1138,6 @@ function abrirModalEdicionRapida(horarioId) {
                             <div class="text-xs text-gray-500 mt-1">Ocupados actualmente: ${horario.cupos_ocupados}</div>
                         </div>
                         
-                        <div>
-                            <label class="block text-sm font-medium mb-2">Precio (S/)</label>
-                            <input type="number" id="editar_precio" value="${horario.precio}" step="0.01" 
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
-                                min="0" required>
-                        </div>
                     </div>
                     
                     <!-- Botones de acción -->
@@ -1180,8 +1184,7 @@ async function guardarEdicionRapida(e) {
         nivel: document.getElementById('editar_nivel').value || null,
         hora_inicio: document.getElementById('editar_hora_inicio').value,
         hora_fin: document.getElementById('editar_hora_fin').value,
-        cupo_maximo: parseInt(document.getElementById('editar_cupo_maximo').value),
-        precio: parseFloat(document.getElementById('editar_precio').value)
+        cupo_maximo: parseInt(document.getElementById('editar_cupo_maximo').value)
     };
     
     // Validación de cupos
@@ -1479,9 +1482,9 @@ function setupFormHandlers() {
     document.getElementById('formHorario').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('horario_id').value;
-        const formData = {
+
+        const baseData = {
             deporte_id: parseInt(document.getElementById('horario_deporte').value),
-            dia: document.getElementById('horario_dia').value,
             hora_inicio: document.getElementById('horario_inicio').value,
             hora_fin: document.getElementById('horario_fin').value,
             categoria: document.getElementById('horario_categoria').value || null,
@@ -1494,27 +1497,62 @@ function setupFormHandlers() {
             plan: document.getElementById('horario_plan').value || null,
             estado: document.getElementById('horario_estado').value
         };
-        
+
         try {
-            const url = id ? `${API_BASE}/api/admin/horarios/${id}` : `${API_BASE}/api/admin/horarios`;
-            const response = await fetch(url, {
-                method: id ? 'PUT' : 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(formData)
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                mostrarModalExito(
-                    id ? 'Horario Actualizado' : 'Horario Creado',
-                    id ? 'El horario ha sido actualizado correctamente' : 'El nuevo horario ha sido creado exitosamente',
-                    'schedule'
-                );
+            if (id) {
+                // EDITAR: un solo horario con día del select
+                const formData = { ...baseData, dia: document.getElementById('horario_dia').value };
+                const response = await fetch(`${API_BASE}/api/admin/horarios/${id}`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(formData)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    mostrarModalExito('Horario Actualizado', 'El horario ha sido actualizado correctamente', 'schedule');
+                    cerrarModalHorario();
+                    cargarHorarios();
+                    cargarCalendario();
+                } else {
+                    mostrarNotificacion(data.error, 'error');
+                }
+            } else {
+                // CREAR: uno o varios horarios según días seleccionados
+                const diasSeleccionados = Array.from(
+                    document.querySelectorAll('#horario_dias_checkboxes input[type="checkbox"]:checked')
+                ).map(cb => cb.value);
+
+                if (diasSeleccionados.length === 0) {
+                    mostrarNotificacion('Selecciona al menos un día', 'error');
+                    return;
+                }
+
+                let creados = 0;
+                let errores = [];
+                for (const dia of diasSeleccionados) {
+                    const response = await fetch(`${API_BASE}/api/admin/horarios`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ ...baseData, dia })
+                    });
+                    const data = await response.json();
+                    if (data.success) creados++;
+                    else errores.push(`${dia}: ${data.error}`);
+                }
+
                 cerrarModalHorario();
                 cargarHorarios();
                 cargarCalendario();
-            } else {
-                mostrarNotificacion(data.error, 'error');
+
+                if (errores.length === 0) {
+                    mostrarModalExito(
+                        creados === 1 ? 'Horario Creado' : `${creados} Horarios Creados`,
+                        creados === 1 ? 'El horario ha sido creado exitosamente' : `Se crearon ${creados} horarios correctamente`,
+                        'schedule'
+                    );
+                } else {
+                    mostrarNotificacion(`${creados} creados. Errores: ${errores.join(', ')}`, 'warning');
+                }
             }
         } catch (error) {
             mostrarNotificacion('Error de conexión', 'error');
