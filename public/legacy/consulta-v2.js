@@ -384,6 +384,7 @@ function renderizarHorarios() {
                 deporte: horario.deporte,
                 sede: horario.sede || 'Sede Principal',
                 precio: horario.precio,
+                categoria: horario.categoria || '',
                 estado: horario.estado_inscripcion || 'activa',
                 horarios: []
             };
@@ -471,6 +472,7 @@ function renderizarHorarios() {
                             `}
                         </div>
                         <p class="text-xs ${esSuspendido ? 'text-gray-400' : 'text-primary'} font-bold uppercase">${deporte.sede}</p>
+                        ${deporte.categoria ? `<p class="text-xs text-gray-500 mt-0.5"><span class="font-semibold">Categoría:</span> ${deporte.categoria}</p>` : ''}
                         <p class="text-xs text-gray-500 mt-1">S/ ${parseFloat(deporte.precio).toFixed(2)}/mes</p>
                     </div>
                 </div>
@@ -1105,7 +1107,7 @@ function renderizarSeccionPagoMensual() {
                     <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-2xl">warning</span>
                 </div>
                 <div class="flex-1">
-                    <h4 class="text-amber-900 dark:text-amber-200 font-black text-lg uppercase mb-2">⚠️ Recordatorio de Pago</h4>
+                    <h4 class="text-amber-900 dark:text-amber-200 font-black text-lg uppercase mb-2">RECORDATORIO DE PAGO</h4>
                     <p class="text-amber-800 dark:text-amber-300 text-sm leading-relaxed">
                         El pago de tu Mensualidad debe realizarse <strong>antes del día 5</strong> de cada mes. 
                         Si no se registra el pago correspondiente, <strong class="text-red-600 dark:text-red-400">tu acceso a las clases será suspendido</strong> 

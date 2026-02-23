@@ -141,6 +141,12 @@ function renderizarInscripciones(inscripciones) {
             Eliminar Inscripciones
           </button>
           
+          <button onclick="eliminarAlumnoCompleto('${ins.dni}', '${ins.nombres} ${ins.apellidos}')" 
+                  class="px-4 py-2 bg-gray-800 hover:bg-black text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">person_remove</span>
+            Eliminar Alumno
+          </button>
+          
           ${ins.estado_pago === 'pendiente' ? `
             <button onclick="confirmarPago('${ins.dni}')" 
                     class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
@@ -456,24 +462,8 @@ function confirmarPago(dni) {
     icon: 'payments',
     iconBg: 'bg-green-100 dark:bg-green-900/30',
     iconColor: 'text-green-600 dark:text-green-400',
-    Mensaje: 'Esto activará todas las inscripciones del usuario.',
-    campos: `
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto pagado (opcional)</label>
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">S/</span>
-            <input type="number" id="montoPago" placeholder="0.00" step="0.01" min="0"
-                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white">
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número de operación (opcional)</label>
-          <input type="text" id="numeroOperacion" placeholder="Ej: 00012345678"
-                 class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white">
-        </div>
-      </div>
-    `,
+    Mensaje: 'Se activarán todas las inscripciones del alumno y se registrará el pago como <strong>monto completo</strong>.',
+    campos: '', // TODO: saldo/deuda parcial — restaurar campos de monto y número de operación
     btnTexto: 'Confirmar Pago',
     btnIcon: 'check_circle',
     btnClass: 'bg-green-600 hover:bg-green-700',
@@ -482,8 +472,11 @@ function confirmarPago(dni) {
 }
 
 async function ejecutarConfirmacionPago(dni) {
-  const monto = document.getElementById('montoPago')?.value;
-  const numeroOp = document.getElementById('numeroOperacion')?.value;
+  // TODO: saldo/deuda parcial — restaurar cuando se implemente
+  // const monto = document.getElementById('montoPago')?.value;
+  // const numeroOp = document.getElementById('numeroOperacion')?.value;
+  const monto = null;
+  const numeroOp = null;
   
   // Deshabilitar botón mientras procesa
   const btn = document.querySelector('#modalConfirmacionPago button[onclick*="ejecutar"]');
@@ -849,21 +842,68 @@ function ocultarelemento(id) {
 
 // ==================== ELIMINAR INSCRIPCIONES ====================
 
-async function eliminarInscripcionesUsuario(dni, nombre) {
-  if (!confirm(`¿Estás seguro de eliminar TODAS las inscripciones de ${nombre}?\n\nEsto liberará los cupos en todos los horarios donde esté inscrito.`)) {
-    return;
+function eliminarAlumnoCompleto(dni, nombre) {
+  mostrarModalConfirmacion({
+    titulo: 'Eliminar Alumno',
+    subtitulo: nombre,
+    icon: 'person_remove',
+    iconBg: 'bg-red-100 dark:bg-red-900/30',
+    iconColor: 'text-red-600 dark:text-red-400',
+    Mensaje: 'Se borrarán sus datos, inscripciones, pagos y todo registro. <strong class="text-red-600">Esta acción NO se puede deshacer.</strong>',
+    campos: '',
+    onConfirm: `ejecutarEliminarAlumno('${dni}')`,
+    btnClass: 'bg-red-600 hover:bg-red-700',
+    btnIcon: 'person_remove',
+    btnTexto: 'Eliminar Alumno'
+  });
+}
+
+async function ejecutarEliminarAlumno(dni) {
+  cerrarModalConfirmacion();
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/alumnos/${dni}`, {
+      method: 'DELETE',
+      headers: getAuthHeadersInscripciones()
+    });
+    const data = await response.json();
+    if (data.success) {
+      mostrarNotificacion('Alumno eliminado correctamente', 'success');
+      await cargarInscripciones();
+    } else {
+      mostrarNotificacion('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarNotificacion('Error de conexión al eliminar alumno', 'error');
   }
-  
+}
+
+function eliminarInscripcionesUsuario(dni, nombre) {
+  mostrarModalConfirmacion({
+    titulo: 'Eliminar Inscripciones',
+    subtitulo: nombre,
+    icon: 'delete',
+    iconBg: 'bg-orange-100 dark:bg-orange-900/30',
+    iconColor: 'text-orange-600 dark:text-orange-400',
+    Mensaje: 'Se eliminarán <strong>todas las inscripciones</strong> de este alumno y se liberarán los cupos en los horarios donde esté inscrito.',
+    campos: '',
+    onConfirm: `ejecutarEliminarInscripciones('${dni}')`,
+    btnClass: 'bg-orange-600 hover:bg-orange-700',
+    btnIcon: 'delete',
+    btnTexto: 'Eliminar Inscripciones'
+  });
+}
+
+async function ejecutarEliminarInscripciones(dni) {
+  cerrarModalConfirmacion();
   try {
     const response = await fetch(`${API_BASE}/api/admin/inscripciones/${dni}`, {
       method: 'DELETE',
       headers: getAuthHeadersInscripciones()
     });
-    
     const data = await response.json();
-    
     if (data.success) {
-      mostrarNotificacion(`�o" Inscripciones eliminadas: ${data.eliminadas} horarios liberados`, 'success');
+      mostrarNotificacion(`Inscripciones eliminadas: ${data.eliminadas} horarios liberados`, 'success');
       await cargarInscripciones();
       // Recargar horarios si estamos en la vista de calendario
       if (typeof cargarHorarios === 'function') {

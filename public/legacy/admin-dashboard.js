@@ -74,8 +74,9 @@ async function cargarEstadisticas() {
         if (data.success) {
             // Guardar datos globalmente para exportar
             estadisticasGlobales = prepararDatosExportacion(data.estadisticas);
-            renderizarEstadisticas(data.estadisticas);
+            // Mostrar el contenedor ANTES de renderizar para que los canvas tengan dimensiones
             dashboardContainer.classList.remove('hidden');
+            renderizarEstadisticas(data.estadisticas);
         } else {
             mostrarError('Error al cargar estadí­sticas: ' + data.error);
         }

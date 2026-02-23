@@ -163,6 +163,9 @@ function renderizarBoard(data) {
     
     columnasContainer.innerHTML = '';
 
+    // Renderizar filtro por día
+    renderizarFiltroDia(data.categorias);
+
     data.categorias.forEach((categoria, index) => {
         const columna = crearColumnaCategoria(categoria, index, data.icono);
         columnasContainer.appendChild(columna);
@@ -170,6 +173,81 @@ function renderizarBoard(data) {
 
     // Inicializar Sortable en cada columna
     inicializarSortable();
+}
+
+function renderizarFiltroDia(categorias) {
+    // Eliminar filtro anterior si existe
+    const filtroAnterior = document.getElementById('filtroDiaContainer');
+    if (filtroAnterior) filtroAnterior.remove();
+
+    // Recopilar todos los días únicos de todos los alumnos
+    const diasSet = new Set();
+    categorias.forEach(cat => {
+        cat.alumnos.forEach(alumno => {
+            if (alumno.dias && alumno.dias !== 'Sin horario') {
+                alumno.dias.split(', ').forEach(d => {
+                    const dia = d.split(' ')[0];
+                    if (dia) diasSet.add(dia);
+                });
+            }
+        });
+    });
+
+    const ordenDias = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'];
+    const diasOrdenados = ordenDias.filter(d => diasSet.has(d));
+
+    if (diasOrdenados.length === 0) return;
+
+    const filtroContainer = document.createElement('div');
+    filtroContainer.id = 'filtroDiaContainer';
+    filtroContainer.className = 'mb-4 flex flex-wrap items-center gap-2';
+    filtroContainer.innerHTML = `
+        <span class="text-sm font-semibold text-text-muted flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">filter_list</span>
+            Filtrar por día:
+        </span>
+        <button onclick="filtrarPorDia(null)" 
+            id="filtroBtnTodos"
+            class="filtro-dia-btn px-3 py-1 rounded-full text-xs font-bold border-2 border-primary bg-primary text-black transition-colors">
+            Todos
+        </button>
+        ${diasOrdenados.map(dia => `
+            <button onclick="filtrarPorDia('${dia}')" 
+                id="filtroBtn${dia}"
+                class="filtro-dia-btn px-3 py-1 rounded-full text-xs font-bold border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-primary hover:text-primary transition-colors">
+                ${dia}
+            </button>
+        `).join('')}
+    `;
+
+    boardCategorias.insertBefore(filtroContainer, columnasContainer);
+}
+
+let diaFiltroActivo = null;
+
+function filtrarPorDia(dia) {
+    diaFiltroActivo = dia;
+
+    // Actualizar estilos de botones
+    document.querySelectorAll('.filtro-dia-btn').forEach(btn => {
+        btn.classList.remove('bg-primary', 'border-primary', 'text-black');
+        btn.classList.add('border-gray-300', 'dark:border-gray-600', 'text-gray-700', 'dark:text-gray-300');
+    });
+    const btnActivo = dia ? document.getElementById(`filtroBtn${dia}`) : document.getElementById('filtroBtnTodos');
+    if (btnActivo) {
+        btnActivo.classList.add('bg-primary', 'border-primary', 'text-black');
+        btnActivo.classList.remove('border-gray-300', 'dark:border-gray-600', 'text-gray-700', 'dark:text-gray-300');
+    }
+
+    // Filtrar cards de alumnos
+    document.querySelectorAll('.alumno-card').forEach(card => {
+        if (!dia) {
+            card.style.display = '';
+            return;
+        }
+        const dias = card.querySelector('.text-gray-500 span:last-child')?.textContent || '';
+        card.style.display = dias.includes(dia) ? '' : 'none';
+    });
 }
 
 function crearColumnaCategoria(categoria, index, iconoDeporte) {

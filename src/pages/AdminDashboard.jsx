@@ -178,7 +178,7 @@ function loadScript(src) {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector(`script[data-src="${src}"]`);
     if (existing) {
-      resolve();
+      resolve(false); // ya existía
       return;
     }
     const script = document.createElement('script');
@@ -186,7 +186,7 @@ function loadScript(src) {
     script.async = false;
     script.defer = false;
     script.dataset.src = src;
-    script.onload = () => resolve();
+    script.onload = () => resolve(true); // recién cargado
     script.onerror = () => reject(new Error(`Failed to load ${src}`));
     document.body.appendChild(script);
   });
@@ -205,7 +205,11 @@ export default function AdminDashboard() {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
         await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
-        await loadScript('/legacy/admin-dashboard.js');
+        const freshlyLoaded = await loadScript('/legacy/admin-dashboard.js');
+        // Si el script ya estaba en el DOM (navegación de vuelta), llamar init manualmente
+        if (!cancelled && !freshlyLoaded && typeof window.initAdminDashboard === 'function') {
+          window.initAdminDashboard();
+        }
       } catch (err) {
         if (!cancelled) {
           // eslint-disable-next-line no-console

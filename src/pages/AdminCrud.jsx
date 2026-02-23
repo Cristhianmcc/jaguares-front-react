@@ -403,8 +403,8 @@ const html = `
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">?cono (emoji o nombre de material icon)</label>
-                    <input type="text" id="deporte_icono" name="icono" placeholder="?s? o sports_soccer" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ícono (emoji o nombre de material icon)</label>
+                    <input type="text" id="deporte_icono" name="icono" placeholder="ej: sports_soccer" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
                 </div>
 
                 <div>
@@ -473,14 +473,14 @@ const html = `
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">?cono (emoji)</label>
-                    <input type="text" id="categoria_icono" name="icono" placeholder="?Y?? ?s? ?YZ?" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ícono (emoji)</label>
+                    <input type="text" id="categoria_icono" name="icono" placeholder="ej: sports_soccer, sports_basketball" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Orden de visualizaci?n</label>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Orden de visualización</label>
                     <input type="number" id="categoria_orden" name="orden" value="0" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
-                    <p class="text-xs text-gray-500 mt-1">N?mero Menor aparece primero (0, 1, 2...)</p>
+                    <p class="text-xs text-gray-500 mt-1">Número menor aparece primero (0, 1, 2...)</p>
                 </div>
 
                 <div>

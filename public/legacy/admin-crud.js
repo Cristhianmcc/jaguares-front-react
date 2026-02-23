@@ -868,7 +868,7 @@ function abrirModalHorario(horarioId = null) {
             // Mostrar información del horario actual
             const deporteNombre = deportesData.find(d => d.deporte_id === h.deporte_id)?.nombre || h.deporte_id;
             infoHorario.textContent = `${deporteNombre} - ${h.dia} ${h.hora_inicio} - ${h.hora_fin}`;
-            infoHorario.parentelement.classList.remove('hidden');
+            infoHorario.parentElement.classList.remove('hidden');
             
             document.getElementById('horario_id').value = h.horario_id;
             document.getElementById('horario_deporte').value = h.deporte_id;
@@ -887,7 +887,7 @@ function abrirModalHorario(horarioId = null) {
         }
     } else {
         // Ocultar info cuando es nuevo horario
-        infoHorario.parentelement.classList.add('hidden');
+        infoHorario.parentElement.classList.add('hidden');
     }
     
     modal.classList.remove('hidden');

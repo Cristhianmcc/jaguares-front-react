@@ -178,10 +178,12 @@ async function renderizarExito(codigo, datosInscripcion) {
                 
                 <div class="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 border border-primary/20">
                     <div class="space-y-3">
+                        <!-- Subtotal deportes ocultado: ya se muestra en el TOTAL A PAGAR
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-text-main/70 dark:text-white/70">Deportes (${datosInscripcion.horarios.length} ${datosInscripcion.horarios.length === 1 ? 'clase' : 'clases'}):</span>
                             <span class="font-bold text-text-main dark:text-white">S/. ${datosInscripcion.horarios.reduce((sum, h) => sum + parseFloat(h.precio || 0), 0).toFixed(2)}</span>
                         </div>
+                        -->
                         ${datosInscripcion.matricula && datosInscripcion.matricula.monto > 0 ? `
                             <div class="flex items-center justify-between text-sm">
                                 <span class="text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -740,8 +742,9 @@ async function descargarComprobante() {
         y += 8;
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
-        doc.text('Deportes:', 25, y);
-        doc.text(`S/. ${totalDeportes.toFixed(2)}`, 160, y, { align: 'right' });
+        // Subtotal deportes ocultado: ya se muestra en el TOTAL A PAGAR
+        // doc.text('Deportes:', 25, y);
+        // doc.text(`S/. ${totalDeportes.toFixed(2)}`, 160, y, { align: 'right' });
         
         if (montoMatricula > 0) {
             y += 6;
