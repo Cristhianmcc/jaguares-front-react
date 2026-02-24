@@ -251,8 +251,12 @@ function renderizarCalendario() {
                     else if (porcentaje >= 70) colorBg = 'bg-yellow-100 dark:bg-yellow-900 border-yellow-500';
                     
                     const card = document.createElement('div');
-                    card.className = `${colorBg} border-2 p-3 rounded-lg mb-2 text-xs relative hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200`;
+                    card.className = `${colorBg} border-2 p-3 rounded-lg mb-2 text-xs relative hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 overflow-hidden`;
+                    const nivelColor = horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' : horario.nivel === 'Competitivo' ? 'bg-blue-500' : horario.nivel === 'Básico' ? 'bg-teal-500' : '';
+                    const nivelTexto = horario.nivel === 'Premium Competitivo' ? '★ Premium Competitivo' : horario.nivel === 'Competitivo' ? '★ Competitivo' : horario.nivel === 'Básico' ? '○ Básico' : '';
+                    const nivelTextColor = horario.nivel === 'Premium Competitivo' ? 'text-amber-600' : horario.nivel === 'Competitivo' ? 'text-blue-600' : 'text-teal-600';
                     card.innerHTML = `
+                        ${nivelColor ? `<div class="absolute top-0 inset-x-0 h-1 ${nivelColor}"></div>` : ''}
                         <div class="absolute top-1 right-1 flex gap-1">
                             <button onclick="event.stopPropagation(); abrirModalEdicionRapida(${horario.horario_id})" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full p-1 transition-colors" title="Editar rápido">
                                 <span class="material-symbols-outlined text-base">edit</span>
@@ -261,9 +265,11 @@ function renderizarCalendario() {
                                 <span class="material-symbols-outlined text-base">delete</span>
                             </button>
                         </div>
-                        <div onclick="abrirModalEdicionRapida(${horario.horario_id})" class="cursor-pointer pr-14">
+                        <div onclick="abrirModalEdicionRapida(${horario.horario_id})" class="cursor-pointer pr-14 ${nivelColor ? 'pt-1' : ''}">
                             <div class="font-bold text-black dark:text-white text-sm">${horario.deporte}</div>
                             <div class="text-gray-700 dark:text-gray-300 font-medium">${horario.categoria || 'Sin categoría'}</div>
+                            ${nivelTexto ? `<div class="font-black uppercase tracking-wide text-[9px] ${nivelTextColor}">${nivelTexto}</div>` : ''}
+                            ${horario.plan ? `<div class="text-[9px] text-gray-500 dark:text-gray-400 font-medium">${horario.plan === 'Econ\u00f3mico' || horario.plan.startsWith('Econ') ? 'Econ\u00f3mico' : horario.plan === 'Est\u00e1ndar' || horario.plan.startsWith('Est') ? 'Est\u00e1ndar' : horario.plan}</div>` : ''}
                             <div class="text-gray-600 dark:text-gray-400 mt-1">${horario.hora_inicio} - ${horario.hora_fin}</div>
                             <div class="font-bold mt-2 flex items-center gap-1">
                                 <span class="material-symbols-outlined text-sm">group</span>
