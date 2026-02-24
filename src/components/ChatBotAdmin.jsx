@@ -9,7 +9,21 @@ const SUGERENCIAS = [
     'Muéstrame los profesores activos',
 ];
 
+function getRolFromToken() {
+    try {
+        const token = localStorage.getItem('admin_token');
+        if (!token) return null;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.rol || null;
+    } catch {
+        return null;
+    }
+}
+
 export default function ChatBotAdmin() {
+    const rol = getRolFromToken();
+    if (rol !== 'admin' && rol !== 'super_admin') return null;
+
     const [abierto, setAbierto] = useState(false);
     const [mensajes, setMensajes] = useState([
         {
