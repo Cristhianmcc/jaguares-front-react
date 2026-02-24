@@ -138,7 +138,8 @@ async function initSeleccionHorariosMain() {
         actualizarresumen();
     }
 }
-if (document.readyState === 'loading') {
+
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSeleccionHorariosModal);
     document.addEventListener('DOMContentLoaded', initSeleccionHorariosMain);
 } else {
@@ -399,8 +400,17 @@ function crearCardHorario(horario) {
                     </div>
                     <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm">
                         <span class="material-symbols-outlined text-xl">diversity_3</span>
-                        <span class="font-medium">${horario.categoria || 'Nivel Intermedio'}</span>
+                        <span class="font-medium">${horario.categoria || ''}</span>
                     </div>
+                    ${horario.nivel ? `
+                    <div class="flex items-center gap-3 text-sm">
+                        <span class="material-symbols-outlined text-xl text-primary">military_tech</span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-wide ${
+                            horario.nivel === 'Premium Competitivo' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                            horario.nivel === 'Competitivo' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                            'bg-gray-100 text-gray-700 border border-gray-300'
+                        }">${horario.nivel}</span>
+                    </div>` : ''}
                     <div class="flex items-center gap-3 text-gray-900 dark:text-gray-100 text-sm">
                         <span class="material-symbols-outlined text-xl text-primary">payments</span>
                         <span class="font-bold">${precioTexto}</span>
@@ -450,8 +460,17 @@ function crearCardHorario(horario) {
                 </div>
                 <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm">
                     <span class="material-symbols-outlined text-xl">diversity_3</span>
-                    <span class="font-medium">${horario.categoria || horario.dia}</span>
+                    <span class="font-medium">${horario.categoria || ''}</span>
                 </div>
+                ${horario.nivel ? `
+                <div class="flex items-center gap-3 text-sm">
+                    <span class="material-symbols-outlined text-xl text-primary">military_tech</span>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-wide ${
+                        horario.nivel === 'Premium Competitivo' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                        horario.nivel === 'Competitivo' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                        'bg-gray-100 text-gray-700 border border-gray-300'
+                    }">${horario.nivel}</span>
+                </div>` : ''}
                 <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300 text-sm">
                     <span class="material-symbols-outlined text-xl">payments</span>
                     <span class="font-bold">${precioTexto}</span>

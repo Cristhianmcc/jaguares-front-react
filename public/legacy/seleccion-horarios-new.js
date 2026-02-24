@@ -98,12 +98,12 @@ function mostrarModal(Mensaje, tipo = 'info') {
             colorIcon: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
         },
         'warning': {
-            titulo: 'Atencin',
+            titulo: 'Atención',
             icono: 'warning',
             colorIcon: 'bg-primary/20 dark:bg-primary/10 text-primary dark:text-primary'
         },
         'info': {
-            titulo: 'Informacin',
+            titulo: 'Información',
             icono: 'info',
             colorIcon: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
         }
@@ -459,7 +459,7 @@ function generarCronograma(nombreDeporte) {
                                             colorPlan = 'text-green-600 dark:text-green-400';
                                         }
                                         
-                                        let clases = 'cronograma-cell cursor-pointer rounded-lg border-2 flex flex-col items-center justify-center p-1 text-center transition-all relative min-h-[60px]';
+                                        let clases = 'cronograma-cell cursor-pointer rounded-lg border-2 flex flex-col items-center justify-center p-1 text-center transition-all relative min-h-[60px] overflow-hidden';
                                         let tituloTooltip = '';
                                         
                                         if (estaSeleccionado) {
@@ -481,10 +481,21 @@ function generarCronograma(nombreDeporte) {
                                         
                                         return `
                                             <div class="${clases}" ${onclick} ${tituloTooltip}>
+                                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<div class="absolute top-0 inset-x-0 h-1 rounded-t ${
+                                                    horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' :
+                                                    horario.nivel === 'Competitivo' ? 'bg-blue-500' : 'bg-teal-500'
+                                                }"></div>` : ''}
                                                 <span class="material-symbols-outlined ${colorPlan} text-xs absolute top-0.5 right-0.5" title="${plan}">${iconoPlan}</span>
                                                 ${estaSeleccionado ? '<span class="material-symbols-outlined text-primary text-base">check_circle</span>' : ''}
                                                 ${chocaConOtroDeporte ? '<span class="material-symbols-outlined text-orange-600 text-xs absolute top-0.5 left-0.5">warning</span>' : ''}
-                                                <span class="text-[9px] font-bold text-text-main dark:text-white">${horario.categoria || ''}</span>
+                                                <span class="text-[9px] font-bold text-text-main dark:text-white leading-tight">${horario.categoria || ''}</span>
+                                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<span class="text-[7px] font-black uppercase tracking-wide ${
+                                                    horario.nivel === 'Premium Competitivo' ? 'text-amber-600' :
+                                                    horario.nivel === 'Competitivo' ? 'text-blue-600' : 'text-teal-600'
+                                                }">${
+                                                    horario.nivel === 'Premium Competitivo' ? '\u2605 Premium' :
+                                                    horario.nivel === 'Competitivo' ? '\u2605 Competitivo' : '\u25cb B\u00e1sico'
+                                                }</span>` : ''}
                                                 <span class="text-[8px] text-text-muted dark:text-gray-400">${cuposRestantes} cupos</span>
                                             </div>
                                         `;
@@ -532,7 +543,7 @@ function generarCronograma(nombreDeporte) {
                         colorPlan = 'text-green-600 dark:text-green-400';
                     }
                     
-                    let clases = 'cronograma-cell cursor-pointer h-20 rounded-lg border-2 flex flex-col items-center justify-center p-2 text-center transition-all relative';
+                    let clases = 'cronograma-cell cursor-pointer h-20 rounded-lg border-2 flex flex-col items-center justify-center p-2 text-center transition-all relative overflow-hidden';
                     let tituloTooltip = '';
                     
                     if (estaSeleccionado) {
@@ -555,10 +566,21 @@ function generarCronograma(nombreDeporte) {
                     return `
                         <td class="px-2 py-2">
                             <div class="${clases}" ${onclick} ${tituloTooltip}>
+                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<div class="absolute top-0 inset-x-0 h-1 rounded-t ${
+                                    horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' :
+                                    horario.nivel === 'Competitivo' ? 'bg-blue-500' : 'bg-teal-500'
+                                }"></div>` : ''}
                                 <span class="material-symbols-outlined ${colorPlan} text-xs absolute top-1 right-1" title="${plan}">${iconoPlan}</span>
                                 ${estaSeleccionado ? '<span class="material-symbols-outlined text-primary text-xl">check_circle</span>' : ''}
                                 ${chocaConOtroDeporte ? '<span class="material-symbols-outlined text-orange-600 text-xs absolute top-1 left-1">warning</span>' : ''}
-                                <span class="text-[10px] font-bold text-text-main dark:text-white">${horario.categoria || ''}</span>
+                                <span class="text-[10px] font-bold text-text-main dark:text-white leading-tight">${horario.categoria || ''}</span>
+                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<span class="text-[9px] font-black uppercase tracking-wide ${
+                                    horario.nivel === 'Premium Competitivo' ? 'text-amber-600' :
+                                    horario.nivel === 'Competitivo' ? 'text-blue-600' : 'text-teal-600'
+                                }">${
+                                    horario.nivel === 'Premium Competitivo' ? '★ Premium' :
+                                    horario.nivel === 'Competitivo' ? '★ Competitivo' : '○ Básico'
+                                }</span>` : ''}
                                 <span class="text-[9px] text-text-muted dark:text-gray-400">${cuposRestantes} cupos</span>
                             </div>
                         </td>
@@ -603,6 +625,14 @@ function toggleHorario(horarioId, rangoHorario) {
             const planExistente = horariosEsteDeporte[0].plan || 'Económico';
             if (plan !== planExistente) {
                 mostrarModal(`No puedes mezclar planes diferentes del mismo deporte. Ya tienes horarios del plan ${planExistente} en ${deporteActual}.`, 'warning');
+                return;
+            }
+            
+            // Validar que NO se mezclen niveles diferentes del MISMO deporte
+            const nivelNuevo = horario.nivel || null;
+            const nivelExistente = horariosEsteDeporte[0].nivel || null;
+            if (nivelNuevo && nivelExistente && nivelNuevo !== nivelExistente) {
+                mostrarModal(`No puedes mezclar niveles diferentes del mismo deporte. Ya tienes horarios de nivel <strong>${nivelExistente}</strong> en ${deporteActual}. Debes elegir siempre el mismo nivel.`, 'warning');
                 return;
             }
         }
@@ -675,9 +705,9 @@ function toggleHorario(horarioId, rangoHorario) {
         if ((plan === 'Estándar' || plan === 'Estandar') && cantidadEsteDeporte === 2) {
             mostrarModal(
                 '<strong>Plan Estándar</strong><br><br>' +
-                'Cada día: <strong>S/. 40</strong><br>' +
-                '2 días: <strong>S/. 80</strong><br>' +
-                '3 días: <strong>S/. 120</strong>',
+                '1 día a la semana: <strong>S/. 40</strong><br>' +
+                '2 días a la semana: <strong>S/. 80</strong><br>' +
+                '3 días a la semana: <strong>S/. 120</strong>',
                 'info'
             );
         }

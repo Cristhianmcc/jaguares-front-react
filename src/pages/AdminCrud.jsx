@@ -589,7 +589,12 @@ const html = `
 
                     <div>
                         <label class="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Nivel (opcional)</label>
-                        <input type="text" id="horario_nivel" name="nivel" placeholder="Ej: PC, Intermedio, Avanzado" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                        <select id="horario_nivel" name="nivel" class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                          <option value="">Sin nivel específico</option>
+                          <option value="Básico">Básico — Plan Estándar</option>
+                          <option value="Competitivo">Competitivo — Plan Estándar (S/120)</option>
+                          <option value="Premium Competitivo">Premium Competitivo — Plan Premium (S/150)</option>
+                        </select>
                     </div>
 
                     <div class="hidden">

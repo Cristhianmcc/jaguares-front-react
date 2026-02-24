@@ -328,16 +328,8 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                     </div>
                                 </div>
                             </div>
-                        ` : `
-                            <div class="bg-green-500/10 border border-green-500/30 rounded-md p-2 mb-3">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-green-400 text-sm flex-shrink-0">check_circle</span>
-                                    <p class="text-[10px] text-green-200 leading-snug">
-                                        <strong>Matrícula pagada:</strong> Ya te inscribiste en estos deportes este a&ntilde;o.
-                                    </p>
-                                </div>
-                            </div>
-                        `}
+                        ` : ``}
+                        
                         
                         <div class="flex justify-between items-center border-t border-white/10 pt-2.5">
                             <span class="text-zinc-400 text-sm uppercase font-bold tracking-wide">Total</span>

@@ -1051,13 +1051,29 @@ Deportes: ${deportes}`)) return;
 
 // ==================== EDICI"N RÁPIDA DE HORARIOS ====================
 
-function abrirModalEdicionRapida(horarioId) {
+async function abrirModalEdicionRapida(horarioId) {
     const horario = horariosData.find(h => h.horario_id === horarioId);
     if (!horario) {
         alert('Horario no encontrado');
         return;
     }
-    
+
+    // Cargar deportes y categorías si aún no están disponibles (ej: vista calendario)
+    if (deportesData.length === 0) {
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/deportes`, { headers: getAuthHeaders() });
+            const data = await res.json();
+            if (data.success) deportesData = data.deportes;
+        } catch(e) { console.error('Error cargando deportes', e); }
+    }
+    if (categoriasData.length === 0) {
+        try {
+            const res = await fetch(`${API_BASE}/api/admin/categorias`, { headers: getAuthHeaders() });
+            const data = await res.json();
+            if (data.success) categoriasData = data.categorias;
+        } catch(e) { console.error('Error cargando categorias', e); }
+    }
+
     // Crear modal dinámicamente
     const modalHTML = `
         <div id="modalEdicionRapida" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -1079,24 +1095,86 @@ function abrirModalEdicionRapida(horarioId) {
                     
                     <!-- Grid de 2 columnas para los campos -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                        <!-- Columna 1 -->
+
                         <div>
-                            <label class="block text-sm font-medium mb-2">Categoría</label>
-                            <input type="text" id="editar_categoria" value="${horario.categoria || ''}" 
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
-                                placeholder="Ej: adulto +18">
+                            <label class="block text-sm font-medium mb-2">Deporte *</label>
+                            <select id="editar_deporte_id" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" required onchange="actualizarCategoriasEdicionRapida()">
+                                ${deportesData.map(d => `<option value="${d.deporte_id}" ${d.deporte_id === horario.deporte_id ? 'selected' : ''}>${d.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Día *</label>
+                            <select id="editar_dia" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" required>
+                                ${['LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO'].map(d => `<option value="${d}" ${horario.dia === d ? 'selected' : ''}>${d.charAt(0)+d.slice(1).toLowerCase()}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Hora Inicio *</label>
+                            <input type="time" id="editar_hora_inicio" value="${horario.hora_inicio}" 
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" required>
                         </div>
                         
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Hora Fin *</label>
+                            <input type="time" id="editar_hora_fin" value="${horario.hora_fin}" 
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Categoría</label>
+                            <select id="editar_categoria" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
+                                <option value="">Sin categoría</option>
+                                ${categoriasData.filter(c => c.deporte_id === horario.deporte_id).map(c => `<option value="${c.nombre}" ${horario.categoria === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Nivel (opcional)</label>
+                            <select id="editar_nivel" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
+                                <option value="" ${!horario.nivel ? 'selected' : ''}>Sin nivel específico</option>
+                                <option value="Básico" ${horario.nivel === 'Básico' ? 'selected' : ''}>Básico — Plan Estándar</option>
+                                <option value="Competitivo" ${horario.nivel === 'Competitivo' ? 'selected' : ''}>Competitivo — Plan Estándar (S/120)</option>
+                                <option value="Premium Competitivo" ${horario.nivel === 'Premium Competitivo' ? 'selected' : ''}>Premium Competitivo — Plan Premium (S/150)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Género</label>
+                            <select id="editar_genero" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
+                                <option value="Mixto" ${(horario.genero||'Mixto') === 'Mixto' ? 'selected' : ''}>Mixto</option>
+                                <option value="Masculino" ${horario.genero === 'Masculino' ? 'selected' : ''}>Masculino</option>
+                                <option value="Femenino" ${horario.genero === 'Femenino' ? 'selected' : ''}>Femenino</option>
+                            </select>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium mb-2">Plan de Pago</label>
                             <select id="editar_plan" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
                                 <option value="">Sin plan específico</option>
-                                <option value="Económico" ${horario.plan === 'Económico' ? 'selected' : ''}>Económico (2 días: S/ 60 | 3+ días: S/ 80)</option>
-                                <option value="Estándar" ${horario.plan === 'Estándar' ? 'selected' : ''}>Estándar (1 día: S/ 40 | 2 días: S/ 80 | 3 días: S/ 120)</option>
-                                <option value="Premium" ${horario.plan === 'Premium' ? 'selected' : ''}>Premium (2 días: S/ 100 | 3 días: S/ 150)</option>
+                                <option value="Económico" ${horario.plan === 'Económico' ? 'selected' : ''}>Económico (2d: S/60 | 3d: S/80)</option>
+                                <option value="Estándar" ${horario.plan === 'Estándar' ? 'selected' : ''}>Estándar (1d: S/40 | 2d: S/80 | 3d: S/120)</option>
+                                <option value="Premium" ${horario.plan === 'Premium' ? 'selected' : ''}>Premium (2d: S/100 | 3d: S/150)</option>
                             </select>
                         </div>
-                        
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Precio (S/) *</label>
+                            <input type="number" id="editar_precio" value="${horario.precio || ''}" step="0.01" min="0"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
+                                placeholder="Ej: 60.00">
+                            <div class="text-xs text-gray-400 mt-1">Econ: 2d=S/60, 3d=S/80 | Est: 1d=S/40, 2d=S/80, 3d=S/120 | Prem: 2d=S/100, 3d=S/150</div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Cupo Máximo *</label>
+                            <input type="number" id="editar_cupo_maximo" value="${horario.cupo_maximo}" 
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
+                                min="1" max="100" required>
+                            <div class="text-xs text-gray-500 mt-1">Ocupados actualmente: ${horario.cupos_ocupados}</div>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium mb-2">Año Mínimo</label>
                             <input type="number" id="editar_ano_min" value="${horario.ano_min || ''}" 
@@ -1110,32 +1188,14 @@ function abrirModalEdicionRapida(horarioId) {
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
                                 placeholder="Ej: 2008" min="1900" max="2026">
                         </div>
-                        
+
                         <div>
-                            <label class="block text-sm font-medium mb-2">Nivel (opcional)</label>
-                            <input type="text" id="editar_nivel" value="${horario.nivel || ''}" 
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
-                                placeholder="Ej: PC, Intermedio, Avanzado">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium mb-2">Hora Inicio</label>
-                            <input type="time" id="editar_hora_inicio" value="${horario.hora_inicio}" 
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" required>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium mb-2">Hora Fin</label>
-                            <input type="time" id="editar_hora_fin" value="${horario.hora_fin}" 
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" required>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium mb-2">Cupo Máximo</label>
-                            <input type="number" id="editar_cupo_maximo" value="${horario.cupo_maximo}" 
-                                class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800" 
-                                min="1" max="100" required>
-                            <div class="text-xs text-gray-500 mt-1">Ocupados actualmente: ${horario.cupos_ocupados}</div>
+                            <label class="block text-sm font-medium mb-2">Estado</label>
+                            <select id="editar_estado" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
+                                <option value="activo" ${(horario.estado||'activo') === 'activo' ? 'selected' : ''}>Activo</option>
+                                <option value="inactivo" ${horario.estado === 'inactivo' ? 'selected' : ''}>Inactivo</option>
+                                <option value="completo" ${horario.estado === 'completo' ? 'selected' : ''}>Completo</option>
+                            </select>
                         </div>
                         
                     </div>
@@ -1172,19 +1232,33 @@ function cerrarModalEdicionRapida() {
     if (modal) modal.remove();
 }
 
+function actualizarCategoriasEdicionRapida() {
+    const deporteId = parseInt(document.getElementById('editar_deporte_id').value);
+    const select = document.getElementById('editar_categoria');
+    if (!select) return;
+    const catsFiltradas = categoriasData.filter(c => c.deporte_id === deporteId);
+    select.innerHTML = '<option value="">Sin categoría</option>' +
+        catsFiltradas.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+}
+
 async function guardarEdicionRapida(e) {
     e.preventDefault();
     
     const horarioId = document.getElementById('editar_horario_id').value;
     const formData = {
-        categoria: document.getElementById('editar_categoria').value || null,
-        ano_min: document.getElementById('editar_ano_min').value ? parseInt(document.getElementById('editar_ano_min').value) : null,
-        ano_max: document.getElementById('editar_ano_max').value ? parseInt(document.getElementById('editar_ano_max').value) : null,
-        plan: document.getElementById('editar_plan').value || null,
-        nivel: document.getElementById('editar_nivel').value || null,
+        deporte_id: parseInt(document.getElementById('editar_deporte_id').value),
+        dia: document.getElementById('editar_dia').value,
         hora_inicio: document.getElementById('editar_hora_inicio').value,
         hora_fin: document.getElementById('editar_hora_fin').value,
-        cupo_maximo: parseInt(document.getElementById('editar_cupo_maximo').value)
+        categoria: document.getElementById('editar_categoria').value || null,
+        nivel: document.getElementById('editar_nivel').value || null,
+        genero: document.getElementById('editar_genero').value || null,
+        plan: document.getElementById('editar_plan').value || null,
+        precio: document.getElementById('editar_precio').value ? parseFloat(document.getElementById('editar_precio').value) : null,
+        cupo_maximo: parseInt(document.getElementById('editar_cupo_maximo').value),
+        ano_min: document.getElementById('editar_ano_min').value ? parseInt(document.getElementById('editar_ano_min').value) : null,
+        ano_max: document.getElementById('editar_ano_max').value ? parseInt(document.getElementById('editar_ano_max').value) : null,
+        estado: document.getElementById('editar_estado').value || 'activo'
     };
     
     // Validación de cupos

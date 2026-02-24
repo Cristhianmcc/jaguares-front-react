@@ -135,6 +135,12 @@ function renderizarInscripciones(inscripciones) {
             Ver Detalle
           </button>
           
+          <button onclick="verAsistenciasAlumno('${ins.dni}', '${ins.nombres} ${ins.apellidos}')" 
+                  class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">event_available</span>
+            Ver Asistencias
+          </button>
+          
           <button onclick="eliminarInscripcionesUsuario('${ins.dni}', '${ins.nombres} ${ins.apellidos}')" 
                   class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
             <span class="material-symbols-outlined text-sm">delete</span>
@@ -841,6 +847,312 @@ function ocultarelemento(id) {
 }
 
 // ==================== ELIMINAR INSCRIPCIONES ====================
+
+let _asistenciasData = null; // cache data para re-render del calendario
+
+async function verAsistenciasAlumno(dni, nombre) {
+    const modal = document.createElement('div');
+    modal.id = 'modalAsistenciasAlumno';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div class="bg-purple-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0">
+                <div>
+                    <h3 class="text-lg font-bold">Asistencias</h3>
+                    <p class="text-purple-200 text-sm">${nombre} &bull; DNI: ${dni}</p>
+                </div>
+                <button onclick="document.getElementById('modalAsistenciasAlumno').remove()" class="hover:bg-white/20 rounded-full p-1">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="asistenciasBody" class="flex-1 overflow-y-auto p-5">
+                <div class="flex justify-center py-10">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/alumnos/${dni}/asistencias`, { headers: getAuthHeadersInscripciones() });
+        const data = await res.json();
+        const body = document.getElementById('asistenciasBody');
+
+        if (!data.success || data.asistencias.length === 0) {
+            body.innerHTML = `<div class="text-center py-10 text-gray-400">
+                <span class="material-symbols-outlined" style="font-size:48px">event_busy</span>
+                <p class="mt-2 font-medium">Sin registros de asistencia</p>
+            </div>`;
+            return;
+        }
+
+        _asistenciasData = data;
+
+        // Determinar mes más reciente con datos
+        const fechas = data.asistencias.map(a => {
+            const solo = a.fecha.split('T')[0];
+            return new Date(solo + 'T12:00:00');
+        });
+        const maxFecha = new Date(Math.max(...fechas));
+        renderCalendarioAsistencias(maxFecha.getFullYear(), maxFecha.getMonth(), data);
+    } catch (e) {
+        document.getElementById('asistenciasBody').innerHTML = `<p class="text-red-500 text-center py-8">Error al cargar asistencias</p>`;
+    }
+}
+
+function renderCalendarioAsistencias(anio, mes, data, filtroDeporte) {
+    const body = document.getElementById('asistenciasBody');
+    if (!body) return;
+
+    // Paleta de colores por deporte (base: color del badge)
+    const PALETA = [
+        { base:'#3b82f6', light:'#eff6ff', dark:'#1d4ed8' },  // azul
+        { base:'#8b5cf6', light:'#f5f3ff', dark:'#6d28d9' },  // violeta
+        { base:'#f59e0b', light:'#fffbeb', dark:'#b45309' },  // ámbar
+        { base:'#ec4899', light:'#fdf2f8', dark:'#be185d' },  // rosa
+        { base:'#06b6d4', light:'#ecfeff', dark:'#0e7490' },  // cyan
+        { base:'#10b981', light:'#ecfdf5', dark:'#047857' },  // esmeralda
+        { base:'#f97316', light:'#fff7ed', dark:'#c2410c' },  // naranja
+        { base:'#6366f1', light:'#eef2ff', dark:'#4338ca' },  // índigo
+    ];
+
+    // Deportes únicos en toda la data
+    const deportesUnicos = [...new Set(data.asistencias.map(a => a.deporte))].sort();
+    const colorPorDeporte = {};
+    deportesUnicos.forEach((dep, i) => { colorPorDeporte[dep] = PALETA[i % PALETA.length]; });
+
+    // Abreviatura de 3-4 letras para cada deporte
+    function abrev(nombre) {
+        const palabras = nombre.trim().split(/\s+/);
+        if (palabras.length === 1) return nombre.substring(0, 4).toUpperCase();
+        return palabras.map(p => p[0]).join('').substring(0, 4).toUpperCase();
+    }
+
+    // Filtrar asistencias según deporte seleccionado
+    const asistenciasFiltradas = filtroDeporte
+        ? data.asistencias.filter(a => a.deporte === filtroDeporte)
+        : data.asistencias;
+
+    // Recalcular estadísticas con filtro
+    const total = asistenciasFiltradas.length;
+    const presentes = asistenciasFiltradas.filter(a => a.presente).length;
+    const ausentes = total - presentes;
+    const pct = total > 0 ? Math.round((presentes / total) * 100) : 0;
+    const pctColor = pct >= 75 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
+
+    // Mapa de fecha → asistencias filtradas del día
+    const mapaFechas = {};
+    asistenciasFiltradas.forEach(a => {
+        const key = a.fecha.split('T')[0].substring(0, 10);
+        if (!mapaFechas[key]) mapaFechas[key] = [];
+        mapaFechas[key].push(a);
+    });
+
+    // Calcular meses disponibles (sobre datos filtrados o todos para navegación)
+    const mesesConDatos = [...new Set(asistenciasFiltradas.map(a => {
+        const d = new Date(a.fecha.split('T')[0] + 'T12:00:00');
+        return `${d.getFullYear()}-${d.getMonth()}`;
+    }))].sort().reverse();
+    const mesActualKey = `${anio}-${mes}`;
+    const idxMes = mesesConDatos.indexOf(mesActualKey);
+    const hayAnterior = idxMes < mesesConDatos.length - 1;
+    const haySiguiente = idxMes > 0;
+
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    // Construir grilla del mes
+    const primerDia = new Date(anio, mes, 1).getDay();
+    const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    const hoy = new Date();
+
+    // Argumento filtro serializado para los onclick
+    const filtroArg = filtroDeporte ? `'${filtroDeporte.replace(/'/g, "\\'")}'` : 'null';
+
+    let celdas = '';
+    for (let i = 0; i < primerDia; i++) {
+        celdas += `<div></div>`;
+    }
+    for (let d = 1; d <= diasEnMes; d++) {
+        const mm = String(mes + 1).padStart(2, '0');
+        const dd = String(d).padStart(2, '0');
+        const key = `${anio}-${mm}-${dd}`;
+        const registros = mapaFechas[key];
+        const esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+
+        const borderHoy = esHoy ? 'box-shadow:0 0 0 2px #7c3aed;' : '';
+        const bgCelda = registros ? '' : 'background:#f9fafb;';
+
+        let badgesHTML = '';
+        if (registros) {
+            badgesHTML = registros.map(r => {
+                const c = colorPorDeporte[r.deporte] || PALETA[0];
+                const bgB = r.presente ? '#dcfce7' : '#fee2e2';
+                const colorB = r.presente ? '#15803d' : '#dc2626';
+                const borderB = r.presente ? '#86efac' : '#fca5a5';
+                return `<div style="background:${bgB};color:${colorB};border:1px solid ${borderB};border-radius:4px;font-size:9px;font-weight:700;padding:1px 3px;margin:1px 0;text-align:center;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${abrev(r.deporte)}
+                </div>`;
+            }).join('');
+        }
+
+        const numColor = registros ? '#1f2937' : '#9ca3af';
+        celdas += `
+            <div style="text-align:center;padding:3px 2px;border-radius:8px;cursor:${registros ? 'pointer' : 'default'};${bgCelda}${borderHoy};min-height:52px;font-size:12px;font-weight:600;color:${numColor};position:relative;border:1px solid ${registros ? 'transparent' : '#f3f4f6'};"
+                 onclick="${registros ? `mostrarDetalleDiaAsistencia('${key}', ${JSON.stringify(registros).replace(/"/g, '&quot;')})` : ''}">
+                <div style="margin-bottom:2px;">${d}</div>
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                    ${badgesHTML}
+                </div>
+            </div>`;
+    }
+
+    // Mes anterior/siguiente
+    let prevAnio = anio, prevMes = mes - 1;
+    if (prevMes < 0) { prevMes = 11; prevAnio--; }
+    let nextAnio = anio, nextMes = mes + 1;
+    if (nextMes > 11) { nextMes = 0; nextAnio++; }
+    if (hayAnterior) {
+        const [pa, pm] = mesesConDatos[idxMes + 1].split('-').map(Number);
+        prevAnio = pa; prevMes = pm;
+    }
+    if (haySiguiente) {
+        const [na, nm] = mesesConDatos[idxMes - 1].split('-').map(Number);
+        nextAnio = na; nextMes = nm;
+    }
+
+    // Pills de filtro por deporte
+    const pillsTodos = `<button onclick="renderCalendarioAsistencias(${anio},${mes},_asistenciasData,null)"
+        style="padding:4px 10px;border-radius:9999px;font-size:11px;font-weight:600;border:2px solid ${!filtroDeporte ? '#7c3aed' : '#e5e7eb'};background:${!filtroDeporte ? '#7c3aed' : '#fff'};color:${!filtroDeporte ? '#fff' : '#6b7280'};cursor:pointer;">
+        Todos
+    </button>`;
+    const pillsDeportes = deportesUnicos.map(dep => {
+        const c = colorPorDeporte[dep];
+        const activo = filtroDeporte === dep;
+        return `<button onclick="renderCalendarioAsistencias(${anio},${mes},_asistenciasData,'${dep.replace(/'/g, "\\'")}')"
+            style="padding:4px 10px;border-radius:9999px;font-size:11px;font-weight:600;border:2px solid ${activo ? c.base : '#e5e7eb'};background:${activo ? c.base : '#fff'};color:${activo ? '#fff' : '#6b7280'};cursor:pointer;">
+            ${abrev(dep)} · ${dep}
+        </button>`;
+    }).join('');
+
+    // Stats por deporte (solo si se muestran todos)
+    let statsPorDeporte = '';
+    if (!filtroDeporte && deportesUnicos.length >= 1) {
+        statsPorDeporte = `<div style="margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Resumen por deporte</div>
+            ${deportesUnicos.map(dep => {
+                const c = colorPorDeporte[dep];
+                const depAsis = data.asistencias.filter(a => a.deporte === dep);
+                const dp = depAsis.filter(a => a.presente).length;
+                const dt = depAsis.length;
+                const da = dt - dp;
+                const dpct = dt > 0 ? Math.round((dp/dt)*100) : 0;
+                return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:${c.light};margin-bottom:4px;">
+                    <div style="width:10px;height:10px;border-radius:50%;background:${c.base};flex-shrink:0;"></div>
+                    <span style="font-size:12px;font-weight:600;color:${c.dark};flex:1;">${dep}</span>
+                    <span style="font-size:11px;color:#16a34a;font-weight:600;">${dp}P</span>
+                    <span style="font-size:11px;color:#dc2626;font-weight:600;">${da}F</span>
+                    <div style="width:50px;background:#e5e7eb;border-radius:9999px;height:6px;">
+                        <div style="background:${c.base};height:6px;border-radius:9999px;width:${dpct}%;"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:${c.dark};min-width:30px;text-align:right;">${dpct}%</span>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }
+
+    body.innerHTML = `
+        <!-- Resumen stats -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+            <div style="background:#f9fafb;border-radius:10px;padding:8px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#374151;">${total}</div>
+                <div style="font-size:11px;color:#9ca3af;">Total clases</div>
+            </div>
+            <div style="background:#f0fdf4;border-radius:10px;padding:8px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#16a34a;">${presentes}</div>
+                <div style="font-size:11px;color:#9ca3af;">Asistencias</div>
+            </div>
+            <div style="background:#fff1f2;border-radius:10px;padding:8px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#dc2626;">${ausentes}</div>
+                <div style="font-size:11px;color:#9ca3af;">Faltas</div>
+            </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div style="display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:10px;padding:8px 12px;margin-bottom:12px;">
+            <div style="flex:1;background:#e5e7eb;border-radius:9999px;height:8px;">
+                <div style="background:#16a34a;height:8px;border-radius:9999px;width:${pct}%;transition:width 0.4s;"></div>
+            </div>
+            <span style="font-weight:700;color:${pctColor};min-width:38px;">${pct}%</span>
+            <span style="font-size:12px;color:#9ca3af;">asistencia</span>
+        </div>
+
+        <!-- Stats por deporte -->
+        ${statsPorDeporte}
+
+        <!-- Filtro por deporte -->
+        ${deportesUnicos.length >= 1 ? `
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center;">
+            <span style="font-size:11px;color:#9ca3af;font-weight:600;">Filtrar:</span>
+            ${pillsTodos}
+            ${pillsDeportes}
+        </div>` : ''}
+
+        <!-- Navegación mes -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <button onclick="${hayAnterior ? `renderCalendarioAsistencias(${prevAnio},${prevMes},_asistenciasData,${filtroArg})` : ''}"
+                style="padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:${hayAnterior ? 'pointer' : 'not-allowed'};opacity:${hayAnterior ? '1' : '0.35'};font-size:18px;color:#6b7280;">&#8249;</button>
+            <span style="font-weight:700;font-size:15px;color:#374151;">${MESES[mes]} ${anio}</span>
+            <button onclick="${haySiguiente ? `renderCalendarioAsistencias(${nextAnio},${nextMes},_asistenciasData,${filtroArg})` : ''}"
+                style="padding:5px 10px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:${haySiguiente ? 'pointer' : 'not-allowed'};opacity:${haySiguiente ? '1' : '0.35'};font-size:18px;color:#6b7280;">&#8250;</button>
+        </div>
+
+        <!-- Cabecera días semana -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">
+            ${DIAS_SEMANA.map(d => `<div style="text-align:center;font-size:10px;font-weight:600;color:#9ca3af;">${d}</div>`).join('')}
+        </div>
+
+        <!-- Grilla días -->
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">
+            ${celdas}
+        </div>
+
+        <!-- Leyenda -->
+        <div style="display:flex;gap:14px;margin-top:12px;justify-content:center;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280;">
+                <div style="width:20px;height:10px;border-radius:3px;background:#dcfce7;border:1px solid #86efac;"></div> Presente
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280;">
+                <div style="width:20px;height:10px;border-radius:3px;background:#fee2e2;border:1px solid #fca5a5;"></div> Ausente
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280;">
+                <div style="width:12px;height:12px;border-radius:50%;background:#7c3aed;opacity:0.8;"></div> Hoy
+            </div>
+        </div>
+
+        <!-- Detalle día -->
+        <div id="detalleDiaAsistencia"></div>
+    `;
+}
+
+function mostrarDetalleDiaAsistencia(fecha, registros) {
+    const cont = document.getElementById('detalleDiaAsistencia');
+    if (!cont) return;
+    const d = new Date(fecha + 'T12:00:00');
+    const fechaStr = d.toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    cont.innerHTML = `
+        <div style="margin-top:14px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+            <div style="background:#7c3aed;color:#fff;padding:8px 14px;font-size:13px;font-weight:600;">${fechaStr}</div>
+            ${registros.map(r => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:13px;">
+                    <span style="color:#374151;">${r.deporte}${r.categoria ? ` · ${r.categoria}` : ''}</span>
+                    <span style="padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600;background:${r.presente ? '#dcfce7' : '#fee2e2'};color:${r.presente ? '#15803d' : '#dc2626'};">
+                        ${r.presente ? '✓ Presente' : '✗ Ausente'}
+                    </span>
+                </div>
+            `).join('')}
+        </div>`;
+}
 
 function eliminarAlumnoCompleto(dni, nombre) {
   mostrarModalConfirmacion({

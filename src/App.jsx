@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import Home from './pages/Home.jsx';
+import ChatBotAdmin from './components/ChatBotAdmin.jsx';
 import Inscripcion from './pages/Inscripcion.jsx';
 import SeleccionHorariosNew from './pages/SeleccionHorariosNew.jsx';
 import Confirmacion from './pages/Confirmacion.jsx';
@@ -56,17 +57,33 @@ export default function App() {
   if (route === 'exito') return <Exito />;
   if (route === 'consulta') return <Consulta />;
   if (route === 'admin-login') return <AdminLogin />;
-  if (route === 'admin-panel') return <AdminPanel />;
-  if (route === 'admin-usuarios') return <AdminUsuarios />;
-  if (route === 'admin-docentes') return <AdminDocentes />;
-  if (route === 'admin-crud') return <AdminCrud />;
-  if (route === 'admin-reubicaciones') return <AdminReubicaciones />;
-  if (route === 'admin-dashboard') return <AdminDashboard />;
-  if (route === 'admin-legacy') return <AdminLegacy />;
   if (route === 'seleccion-horarios') return <SeleccionHorarios />;
   if (route === 'profesor-dashboard') return <ProfesorDashboard />;
   if (route === 'profesor-asistencias') return <ProfesorAsistencias />;
   if (route === 'profesor-ranking') return <ProfesorRanking />;
   if (route === 'profesor-reportes') return <ProfesorReportes />;
+
+  if (route === 'home') return <Home />;
+
+  // Para rutas admin, envolver con el chatbot flotante
+  const paginaAdmin = {
+    'admin-panel': <AdminPanel />,
+    'admin-usuarios': <AdminUsuarios />,
+    'admin-docentes': <AdminDocentes />,
+    'admin-crud': <AdminCrud />,
+    'admin-reubicaciones': <AdminReubicaciones />,
+    'admin-dashboard': <AdminDashboard />,
+    'admin-legacy': <AdminLegacy />,
+  }[route];
+
+  if (paginaAdmin) {
+    return (
+      <>
+        {paginaAdmin}
+        <ChatBotAdmin />
+      </>
+    );
+  }
+
   return <Home />;
 }
