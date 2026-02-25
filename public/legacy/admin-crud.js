@@ -6,6 +6,8 @@
 let deportesData = [];
 let horariosData = [];
 let categoriasData = [];
+let planesData = [];
+let nivelesData = [];
 function normalizeText(value) {
     if (value === null || value === undefined) return '';
     let text = String(value);
@@ -67,8 +69,9 @@ function initAdminCrud() {
     verificarSesion();
     cargarCalendario();
     cargarDeportesActivos();
+    cargarPlanesNiveles();
     setupFormHandlers();
-    cargarFiltrosReportes(); // Cargar filtros de reportes
+    cargarFiltrosReportes();
     setupModalCloseHandlers();
 }
 
@@ -118,6 +121,7 @@ function cambiarTab(tab) {
     else if (tab === 'deportes') cargarDeportes();
     else if (tab === 'categorias') cargarCategorias();
     else if (tab === 'horarios') cargarHorarios();
+    else if (tab === 'planes') cargarPlanes();
     else if (tab === 'inscripciones') {
         if (typeof cargarInscripciones === 'function') cargarInscripciones();
         else setTimeout(() => cambiarTab('inscripciones'), 300);
@@ -1140,10 +1144,7 @@ async function abrirModalEdicionRapida(horarioId) {
                             <label class="block text-sm font-medium mb-2">Nivel (opcional)</label>
                             <select id="editar_nivel" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
                                 <option value="" ${!horario.nivel ? 'selected' : ''}>Sin nivel específico</option>
-                                <option value="Básico" ${horario.nivel === 'Básico' ? 'selected' : ''}>Básico — Plan Estándar</option>
-                                <option value="Competitivo" ${horario.nivel === 'Competitivo' ? 'selected' : ''}>Competitivo — Plan Estándar (S/120)</option>
-                                <option value="Premium Competitivo" ${horario.nivel === 'Premium Competitivo' ? 'selected' : ''}>Premium Competitivo — Plan Premium (S/150)</option>
-                                <option value="Baby Fútbol" ${horario.nivel === 'Baby Fútbol' ? 'selected' : ''}>Baby Fútbol — Plan Baby Fútbol</option>
+                                ${nivelesData.map(n => `<option value="${n.nombre}" ${horario.nivel === n.nombre ? 'selected' : ''}>${n.nombre}</option>`).join('')}
                             </select>
                         </div>
 
@@ -1160,10 +1161,7 @@ async function abrirModalEdicionRapida(horarioId) {
                             <label class="block text-sm font-medium mb-2">Plan de Pago</label>
                             <select id="editar_plan" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
                                 <option value="">Sin plan específico</option>
-                                <option value="Económico" ${horario.plan === 'Económico' ? 'selected' : ''}>Económico (2d: S/60 | 3d: S/80)</option>
-                                <option value="Estándar" ${horario.plan === 'Estándar' ? 'selected' : ''}>Estándar (1d: S/40 | 2d: S/80 | 3d: S/120)</option>
-                                <option value="Premium" ${horario.plan === 'Premium' ? 'selected' : ''}>Premium (2d: S/100 | 3d: S/150)</option>
-                                <option value="Baby Fútbol" ${horario.plan === 'Baby Fútbol' ? 'selected' : ''}>Baby Fútbol (1d: S/50 | 2d: S/100 | 3d: S/150)</option>
+                                ${planesData.map(p => `<option value="${p.nombre}" ${horario.plan === p.nombre ? 'selected' : ''}>${p.nombre}${p.tipo === 'precio_fijo' ? ` (S/${p.precio_fijo} fijo)` : [p.precio_1dia ? `1d:S/${p.precio_1dia}` : '', p.precio_2dias ? `2d:S/${p.precio_2dias}` : '', p.precio_3dias ? `3d:S/${p.precio_3dias}` : ''].filter(Boolean).map((x,i) => i===0 ? ' (' + x : x).join(' | ') + ')'}</option>`).join('')}
                             </select>
                         </div>
 
@@ -2049,8 +2047,338 @@ function imprimirReporte() {
     exportarPDF(); // Usa la misma función
 }
 
+// ==================== PLANES Y NIVELES DINÁMICOS ====================
 
+async function cargarPlanesNiveles() {
+    try {
+        const [resPlan, resNivel] = await Promise.all([
+            fetch(`${API_BASE}/api/admin/planes`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/api/admin/niveles`, { headers: getAuthHeaders() })
+        ]);
+        const [dataPlan, dataNivel] = await Promise.all([resPlan.json(), resNivel.json()]);
 
+        if (dataPlan.success) {
+            planesData = dataPlan.planes;
+            // Poblar select horario_plan (Nuevo Horario)
+            const selPlan = document.getElementById('horario_plan');
+            if (selPlan) {
+                selPlan.innerHTML = '<option value="">Sin plan específico</option>' +
+                    planesData.filter(p => p.activo).map(p => {
+                        const label = p.tipo === 'precio_fijo'
+                            ? `${p.nombre} (S/${p.precio_fijo} fijo)`
+                            : `${p.nombre}${[p.precio_1dia ? `1d:S/${p.precio_1dia}` : '', p.precio_2dias ? `2d:S/${p.precio_2dias}` : '', p.precio_3dias ? `3d:S/${p.precio_3dias}` : ''].filter(Boolean).map((x,i) => i===0 ? ' (' + x : x).join(' | ')})`
+                        return `<option value="${p.nombre}">${label}</option>`;
+                    }).join('');
+            }
+        }
+
+        if (dataNivel.success) {
+            nivelesData = dataNivel.niveles;
+            // Poblar select horario_nivel (Nuevo Horario)
+            const selNivel = document.getElementById('horario_nivel');
+            if (selNivel) {
+                selNivel.innerHTML = '<option value="">Sin nivel específico</option>' +
+                    nivelesData.filter(n => n.activo).map(n =>
+                        `<option value="${n.nombre}">${n.nombre}</option>`
+                    ).join('');
+            }
+        }
+    } catch (error) {
+        console.error('Error cargando planes/niveles:', error);
+    }
+}
+
+// ---- CRUD Planes ----
+
+async function cargarPlanes() {
+    document.getElementById('loadingPlanes').classList.remove('hidden');
+    document.getElementById('tablaplanesContainer').classList.add('hidden');
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/planes`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            planesData = data.planes;
+            renderPlanes(data.planes);
+        }
+    } catch (e) {
+        console.error('Error cargarPlanes:', e);
+    }
+    // También recargar niveles
+    cargarNiveles();
+}
+
+function renderPlanes(planes) {
+    const tbody = document.getElementById('tablaPlanes');
+    if (!tbody) return;
+    tbody.innerHTML = planes.map(p => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+            <td class="px-4 py-3 font-semibold text-sm">${p.nombre}</td>
+            <td class="px-4 py-3 text-sm">${p.tipo === 'precio_fijo' ? 'Precio fijo' : 'Por días'}</td>
+            <td class="px-4 py-3 text-sm">${p.precio_1dia != null ? 'S/' + p.precio_1dia : '—'}</td>
+            <td class="px-4 py-3 text-sm">${p.precio_2dias != null ? 'S/' + p.precio_2dias : '—'}</td>
+            <td class="px-4 py-3 text-sm">${p.precio_3dias != null ? 'S/' + p.precio_3dias : '—'}</td>
+            <td class="px-4 py-3 text-sm">${p.precio_fijo != null ? 'S/' + p.precio_fijo : '—'}</td>
+            <td class="px-4 py-3 text-sm">${p.minimo_dias}</td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${p.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">${p.activo ? 'Activo' : 'Inactivo'}</span>
+            </td>
+            <td class="px-4 py-3 flex gap-2">
+                <button onclick="abrirModalPlan(${p.plan_id})" class="text-blue-600 hover:text-blue-800" title="Editar">
+                    <span class="material-symbols-outlined text-base">edit</span>
+                </button>
+                <button onclick="eliminarPlan(${p.plan_id}, '${p.nombre}')" class="text-red-600 hover:text-red-800" title="Eliminar">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    document.getElementById('loadingPlanes').classList.add('hidden');
+    document.getElementById('tablaplanesContainer').classList.remove('hidden');
+}
+
+function abrirModalPlan(planId = null) {
+    const plan = planId ? planesData.find(p => p.plan_id === planId) : null;
+    const modal = document.createElement('div');
+    modal.id = 'modalPlan';
+    modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="bg-primary px-6 py-4 rounded-t-xl flex justify-between items-center">
+                <h3 class="text-white font-bold text-xl">${plan ? 'Editar Plan' : 'Nuevo Plan'}</h3>
+                <button onclick="document.getElementById('modalPlan').remove()" class="text-white hover:text-gray-200">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Nombre *</label>
+                    <input id="plan_nombre" value="${plan ? plan.nombre : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: Premium">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Tipo *</label>
+                    <select id="plan_tipo" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" onchange="togglePlanTipo()">
+                        <option value="por_dias" ${!plan || plan.tipo === 'por_dias' ? 'selected' : ''}>Por días</option>
+                        <option value="precio_fijo" ${plan && plan.tipo === 'precio_fijo' ? 'selected' : ''}>Precio fijo</option>
+                    </select>
+                </div>
+                <div id="campusPorDias">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div><label class="block text-xs font-semibold mb-1">Precio 1 día</label><input id="plan_precio_1dia" type="number" step="0.01" value="${plan && plan.precio_1dia != null ? plan.precio_1dia : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="—"></div>
+                        <div><label class="block text-xs font-semibold mb-1">Precio 2 días</label><input id="plan_precio_2dias" type="number" step="0.01" value="${plan && plan.precio_2dias != null ? plan.precio_2dias : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="—"></div>
+                        <div><label class="block text-xs font-semibold mb-1">Precio 3 días</label><input id="plan_precio_3dias" type="number" step="0.01" value="${plan && plan.precio_3dias != null ? plan.precio_3dias : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="—"></div>
+                    </div>
+                </div>
+                <div id="campusPrecioFijo" class="hidden">
+                    <label class="block text-sm font-semibold mb-1">Precio Fijo</label>
+                    <input id="plan_precio_fijo" type="number" step="0.01" value="${plan && plan.precio_fijo != null ? plan.precio_fijo : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: 60">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-sm font-semibold mb-1">Mín. días</label><input id="plan_minimo_dias" type="number" min="1" max="7" value="${plan ? plan.minimo_dias : 2}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></div>
+                    <div><label class="block text-sm font-semibold mb-1">Máx. días</label><input id="plan_maximo_dias" type="number" min="1" max="7" value="${plan ? plan.maximo_dias : 3}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Descripción extra (opcional)</label>
+                    <textarea id="plan_descripcion_extra" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" rows="2" placeholder="Ej: Incluye Fútbol 11 en estadio">${plan && plan.descripcion_extra ? plan.descripcion_extra : ''}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-sm font-semibold mb-1">Orden</label><input id="plan_orden" type="number" min="0" value="${plan ? plan.orden : 0}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></div>
+                    <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm font-semibold"><input id="plan_activo" type="checkbox" ${!plan || plan.activo ? 'checked' : ''}> Activo</label></div>
+                </div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalPlan').remove()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancelar</button>
+                <button onclick="guardarPlan(${planId || 'null'})" class="px-4 py-2 bg-primary text-white rounded-lg font-semibold text-sm">Guardar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    togglePlanTipo();
+}
+
+function togglePlanTipo() {
+    const tipo = document.getElementById('plan_tipo')?.value;
+    if (!tipo) return;
+    document.getElementById('campusPorDias').classList.toggle('hidden', tipo === 'precio_fijo');
+    document.getElementById('campusPrecioFijo').classList.toggle('hidden', tipo !== 'precio_fijo');
+}
+
+async function guardarPlan(planId) {
+    const body = {
+        nombre: document.getElementById('plan_nombre').value.trim(),
+        tipo: document.getElementById('plan_tipo').value,
+        precio_1dia: document.getElementById('plan_precio_1dia')?.value || null,
+        precio_2dias: document.getElementById('plan_precio_2dias')?.value || null,
+        precio_3dias: document.getElementById('plan_precio_3dias')?.value || null,
+        precio_fijo: document.getElementById('plan_precio_fijo')?.value || null,
+        minimo_dias: parseInt(document.getElementById('plan_minimo_dias').value) || 2,
+        maximo_dias: parseInt(document.getElementById('plan_maximo_dias').value) || 3,
+        descripcion_extra: document.getElementById('plan_descripcion_extra').value.trim() || null,
+        activo: document.getElementById('plan_activo').checked,
+        orden: parseInt(document.getElementById('plan_orden').value) || 0
+    };
+    if (!body.nombre) { mostrarModal('El nombre es requerido', 'warning'); return; }
+    try {
+        const url = planId ? `${API_BASE}/api/admin/planes/${planId}` : `${API_BASE}/api/admin/planes`;
+        const res = await fetch(url, { method: planId ? 'PUT' : 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('modalPlan')?.remove();
+            mostrarModalExito(planId ? 'Plan Actualizado' : 'Plan Creado', planId ? 'Plan actualizado correctamente' : 'Plan creado correctamente', 'sell');
+            cargarPlanes();
+            cargarPlanesNiveles();
+        } else {
+            mostrarModal(data.error || 'Error al guardar', 'error');
+        }
+    } catch (e) {
+        mostrarModal('Error de conexión', 'error');
+    }
+}
+
+async function eliminarPlan(planId, nombre) {
+    if (!confirm(`¿Eliminar el plan "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/planes/${planId}`, { method: 'DELETE', headers: getAuthHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            cargarPlanes();
+            cargarPlanesNiveles();
+        } else {
+            mostrarModal(data.error || 'Error al eliminar', 'error');
+        }
+    } catch (e) {
+        mostrarModal('Error de conexión', 'error');
+    }
+}
+
+// ---- CRUD Niveles ----
+
+async function cargarNiveles() {
+    document.getElementById('loadingNiveles').classList.remove('hidden');
+    document.getElementById('tablaNivelesContainer').classList.add('hidden');
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/niveles`, { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            nivelesData = data.niveles;
+            renderNiveles(data.niveles);
+        }
+    } catch (e) {
+        console.error('Error cargarNiveles:', e);
+    }
+}
+
+function renderNiveles(niveles) {
+    const tbody = document.getElementById('tablaNiveles');
+    if (!tbody) return;
+    tbody.innerHTML = niveles.map(n => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+            <td class="px-4 py-3 font-semibold text-sm">${n.nombre}</td>
+            <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                    <div class="h-3 w-8 rounded ${n.color_barra}"></div>
+                    <span class="text-xs text-gray-500">${n.color_barra}</span>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-sm">${n.orden}</td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${n.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">${n.activo ? 'Activo' : 'Inactivo'}</span>
+            </td>
+            <td class="px-4 py-3 flex gap-2">
+                <button onclick="abrirModalNivel(${n.nivel_id})" class="text-blue-600 hover:text-blue-800" title="Editar">
+                    <span class="material-symbols-outlined text-base">edit</span>
+                </button>
+                <button onclick="eliminarNivel(${n.nivel_id}, '${n.nombre}')" class="text-red-600 hover:text-red-800" title="Eliminar">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    document.getElementById('loadingNiveles').classList.add('hidden');
+    document.getElementById('tablaNivelesContainer').classList.remove('hidden');
+}
+
+function abrirModalNivel(nivelId = null) {
+    const nivel = nivelId ? nivelesData.find(n => n.nivel_id === nivelId) : null;
+    const modal = document.createElement('div');
+    modal.id = 'modalNivel';
+    modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md">
+            <div class="bg-primary px-6 py-4 rounded-t-xl flex justify-between items-center">
+                <h3 class="text-white font-bold text-xl">${nivel ? 'Editar Nivel' : 'Nuevo Nivel'}</h3>
+                <button onclick="document.getElementById('modalNivel').remove()" class="text-white hover:text-gray-200">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Nombre *</label>
+                    <input id="nivel_nombre" value="${nivel ? nivel.nombre : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: Competitivo">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Color barra (clase Tailwind)</label>
+                    <input id="nivel_color_barra" value="${nivel ? nivel.color_barra : 'bg-gray-500'}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: bg-blue-500">
+                    <p class="text-xs text-gray-400 mt-1">Opciones: bg-teal-500, bg-blue-500, bg-pink-500, bg-amber-400, bg-purple-500</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Color texto (clase Tailwind)</label>
+                    <input id="nivel_color_texto" value="${nivel ? nivel.color_texto : 'text-gray-600'}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: text-blue-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-sm font-semibold mb-1">Orden</label><input id="nivel_orden" type="number" min="0" value="${nivel ? nivel.orden : 0}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></div>
+                    <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm font-semibold"><input id="nivel_activo" type="checkbox" ${!nivel || nivel.activo ? 'checked' : ''}> Activo</label></div>
+                </div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalNivel').remove()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancelar</button>
+                <button onclick="guardarNivel(${nivelId || 'null'})" class="px-4 py-2 bg-primary text-white rounded-lg font-semibold text-sm">Guardar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function guardarNivel(nivelId) {
+    const body = {
+        nombre: document.getElementById('nivel_nombre').value.trim(),
+        color_barra: document.getElementById('nivel_color_barra').value.trim() || 'bg-gray-500',
+        color_texto: document.getElementById('nivel_color_texto').value.trim() || 'text-gray-600',
+        activo: document.getElementById('nivel_activo').checked,
+        orden: parseInt(document.getElementById('nivel_orden').value) || 0
+    };
+    if (!body.nombre) { mostrarModal('El nombre es requerido', 'warning'); return; }
+    try {
+        const url = nivelId ? `${API_BASE}/api/admin/niveles/${nivelId}` : `${API_BASE}/api/admin/niveles`;
+        const res = await fetch(url, { method: nivelId ? 'PUT' : 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('modalNivel')?.remove();
+            mostrarModalExito(nivelId ? 'Nivel Actualizado' : 'Nivel Creado', nivelId ? 'Nivel actualizado correctamente' : 'Nivel creado correctamente', 'military_tech');
+            cargarNiveles();
+            cargarPlanesNiveles();
+        } else {
+            mostrarModal(data.error || 'Error al guardar', 'error');
+        }
+    } catch (e) {
+        mostrarModal('Error de conexión', 'error');
+    }
+}
+
+async function eliminarNivel(nivelId, nombre) {
+    if (!confirm(`¿Eliminar el nivel "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/admin/niveles/${nivelId}`, { method: 'DELETE', headers: getAuthHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            cargarNiveles();
+            cargarPlanesNiveles();
+        } else {
+            mostrarModal(data.error || 'Error al eliminar', 'error');
+        }
+    } catch (e) {
+        mostrarModal('Error de conexión', 'error');
+    }
+}
 
 
 

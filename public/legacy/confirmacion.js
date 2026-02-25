@@ -538,8 +538,8 @@ function volverHorarios() {
                         <span class="material-symbols-outlined text-3xl text-yellow-600 dark:text-yellow-400">warning</span>
                     </div>
                     <div class="flex-1">
-                        <h3 class="text-lg font-bold text-black dark:text-white mb-2">Volver a seleccionar horarios?</h3>
-                        <p class="text-text-muted dark:text-gray-300">Si vuelves, perders la selección actual y tendrs que elegir tus horarios nuevamente.</p>
+                        <h3 class="text-lg font-bold text-black dark:text-white mb-2">¿Volver a seleccionar horarios?</h3>
+                        <p class="text-text-muted dark:text-gray-300">Si vuelves, perderás la selección actual y tendrás que elegir tus horarios nuevamente.</p>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
@@ -550,7 +550,7 @@ function volverHorarios() {
                     <button onclick="window.location.href='/seleccion-horarios-new'" 
                             class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined">arrow_back</span>
-                        S, volver
+                        Sí, volver
                     </button>
                 </div>
             </div>

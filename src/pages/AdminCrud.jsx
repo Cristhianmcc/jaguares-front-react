@@ -67,6 +67,12 @@ const html = `
                                 Pagos
                             </span>
                         </button>
+                        <button onclick="cambiarTab('planes')" id="tab-planes" class="tab-button px-6 py-4 text-sm font-semibold transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300">
+                            <span class="flex items-center gap-2">
+                                <span class="material-symbols-outlined">sell</span>
+                                Planes
+                            </span>
+                        </button>
                         <button onclick="cambiarTab('reportes')" id="tab-reportes" class="tab-button px-6 py-4 text-sm font-semibold transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300">
                             <span class="flex items-center gap-2">
                                 <span class="material-symbols-outlined">summarize</span>
@@ -314,6 +320,77 @@ const html = `
                 </div>
 
                 <!-- Contenido de Reportes -->
+                <!-- Contenido de Planes -->
+                <div id="content-planes" class="tab-content hidden p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-black dark:text-white">Planes de Pago</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Administra los planes disponibles para los alumnos</p>
+                        </div>
+                        <button onclick="abrirModalPlan()" class="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined">add</span>
+                            Nuevo Plan
+                        </button>
+                    </div>
+                    <div id="loadingPlanes" class="text-center py-10">
+                        <span class="material-symbols-outlined animate-spin text-5xl text-primary">progress_activity</span>
+                        <p class="text-text-muted mt-4">Cargando planes...</p>
+                    </div>
+                    <div id="tablaplanesContainer" class="hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">1 Día</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">2 Días</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">3 Días</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio Fijo</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mín Días</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPlanes" class="bg-white dark:bg-surface-dark divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Tab de Niveles dentro de Planes -->
+                    <div class="mt-10">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-black dark:text-white">Niveles</h2>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Administra los niveles deportivos disponibles</p>
+                            </div>
+                            <button onclick="abrirModalNivel()" class="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2">
+                                <span class="material-symbols-outlined">add</span>
+                                Nuevo Nivel
+                            </button>
+                        </div>
+                        <div id="loadingNiveles" class="text-center py-10">
+                            <span class="material-symbols-outlined animate-spin text-5xl text-primary">progress_activity</span>
+                            <p class="text-text-muted mt-4">Cargando niveles...</p>
+                        </div>
+                        <div id="tablaNivelesContainer" class="hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead class="bg-gray-50 dark:bg-gray-900">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Color Barra</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaNiveles" class="bg-white dark:bg-surface-dark divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="content-reportes" class="tab-content hidden p-6">
                     <div class="mb-6">
                         <h2 class="text-2xl font-bold text-black dark:text-white mb-4">Reportes de Alumnos</h2>

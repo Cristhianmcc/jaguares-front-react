@@ -62,6 +62,49 @@ const PLANES = {
 
 const MATRICULA_POR_DEPORTE = 20;
 
+// Carga planes desde la API y sobreescribe el objeto PLANES (fallback: mantiene hardcodeado)
+async function cargarPlanesDesdeBD() {
+    try {
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3002'
+                : 'https://api.jaguarescar.com');
+
+        const res = await fetch(`${API_BASE}/api/planes`);
+        if (!res.ok) return; // Si falla, mantener PLANES hardcodeado
+        const data = await res.json();
+        if (!data.success || !data.planes?.length) return;
+
+        // Sobreescribir PLANES con los datos de la BD
+        data.planes.filter(p => p.activo).forEach(p => {
+            if (p.tipo === 'precio_fijo') {
+                PLANES[p.nombre] = {
+                    precio_fijo: parseFloat(p.precio_fijo),
+                    dias_minimo: p.minimo_dias,
+                    dias_Recomendado: p.maximo_dias,
+                    clases_mes: 12
+                };
+            } else {
+                const preciosPorDias = {};
+                if (p.precio_1dia != null) preciosPorDias[1] = parseFloat(p.precio_1dia);
+                if (p.precio_2dias != null) preciosPorDias[2] = parseFloat(p.precio_2dias);
+                if (p.precio_3dias != null) preciosPorDias[3] = parseFloat(p.precio_3dias);
+                PLANES[p.nombre] = {
+                    precio_por_dias: preciosPorDias,
+                    minimo_dias: p.minimo_dias,
+                    maximo_dias: p.maximo_dias,
+                    ...(p.precio_completo ? { precio_completo: parseFloat(p.precio_completo), incluye_extra: true } : {}),
+                    ...(p.descripcion_extra ? { descripcion_extra: p.descripcion_extra } : {})
+                };
+            }
+        });
+        console.log('✅ Planes cargados desde BD:', Object.keys(PLANES));
+    } catch (e) {
+        console.warn('⚠️ No se pudieron cargar planes desde BD, usando hardcodeados:', e.message);
+    }
+}
+
 // Iconos por deporte
 const ICONOS_DEPORTES = {
     'Fútbol': 'sports_soccer',
@@ -159,6 +202,9 @@ async function initSeleccionHorariosNew() {
     if (datosInscripcion.horariosSeleccionados) {
         horariosSeleccionados = datosInscripcion.horariosSeleccionados;
     }
+    
+    // Cargar planes dinámicos desde la API (con fallback al objeto hardcodeado)
+    await cargarPlanesDesdeBD();
     
     // Cargar horarios desde el backend
     await cargarHorarios();

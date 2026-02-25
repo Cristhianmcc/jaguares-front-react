@@ -1042,7 +1042,7 @@ async function subirComprobanteTardio() {
         });
         
         if (resultado.success) {
-            mostrarNotificacion('✅ Comprobante subido exitosamente. El administrador lo revisará pronto.', 'success');
+            mostrarNotificacion('Comprobante subido exitosamente. El administrador lo revisará pronto.', 'success');
             cerrarModalSubirComprobante();
             
             // Recargar después de 2 segundos
