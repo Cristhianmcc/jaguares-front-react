@@ -252,9 +252,9 @@ function renderizarCalendario() {
                     
                     const card = document.createElement('div');
                     card.className = `${colorBg} border-2 p-3 rounded-lg mb-2 text-xs relative hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 overflow-hidden`;
-                    const nivelColor = horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' : horario.nivel === 'Competitivo' ? 'bg-blue-500' : horario.nivel === 'Básico' ? 'bg-teal-500' : '';
-                    const nivelTexto = horario.nivel === 'Premium Competitivo' ? '★ Premium Competitivo' : horario.nivel === 'Competitivo' ? '★ Competitivo' : horario.nivel === 'Básico' ? '○ Básico' : '';
-                    const nivelTextColor = horario.nivel === 'Premium Competitivo' ? 'text-amber-600' : horario.nivel === 'Competitivo' ? 'text-blue-600' : 'text-teal-600';
+                    const nivelColor = horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' : horario.nivel === 'Competitivo' ? 'bg-blue-500' : horario.nivel === 'Básico' ? 'bg-teal-500' : horario.nivel === 'Baby Fútbol' ? 'bg-pink-500' : '';
+                    const nivelTexto = horario.nivel === 'Premium Competitivo' ? '★ Premium Competitivo' : horario.nivel === 'Competitivo' ? '★ Competitivo' : horario.nivel === 'Básico' ? '○ Básico' : horario.nivel === 'Baby Fútbol' ? 'Baby Fútbol' : '';
+                    const nivelTextColor = horario.nivel === 'Premium Competitivo' ? 'text-amber-600' : horario.nivel === 'Competitivo' ? 'text-blue-600' : horario.nivel === 'Baby Fútbol' ? 'text-pink-600' : 'text-teal-600';
                     card.innerHTML = `
                         ${nivelColor ? `<div class="absolute top-0 inset-x-0 h-1 ${nivelColor}"></div>` : ''}
                         <div class="absolute top-1 right-1 flex gap-1">
@@ -1143,6 +1143,7 @@ async function abrirModalEdicionRapida(horarioId) {
                                 <option value="Básico" ${horario.nivel === 'Básico' ? 'selected' : ''}>Básico — Plan Estándar</option>
                                 <option value="Competitivo" ${horario.nivel === 'Competitivo' ? 'selected' : ''}>Competitivo — Plan Estándar (S/120)</option>
                                 <option value="Premium Competitivo" ${horario.nivel === 'Premium Competitivo' ? 'selected' : ''}>Premium Competitivo — Plan Premium (S/150)</option>
+                                <option value="Baby Fútbol" ${horario.nivel === 'Baby Fútbol' ? 'selected' : ''}>Baby Fútbol — Plan Baby Fútbol</option>
                             </select>
                         </div>
 
@@ -1162,6 +1163,7 @@ async function abrirModalEdicionRapida(horarioId) {
                                 <option value="Económico" ${horario.plan === 'Económico' ? 'selected' : ''}>Económico (2d: S/60 | 3d: S/80)</option>
                                 <option value="Estándar" ${horario.plan === 'Estándar' ? 'selected' : ''}>Estándar (1d: S/40 | 2d: S/80 | 3d: S/120)</option>
                                 <option value="Premium" ${horario.plan === 'Premium' ? 'selected' : ''}>Premium (2d: S/100 | 3d: S/150)</option>
+                                <option value="Baby Fútbol" ${horario.plan === 'Baby Fútbol' ? 'selected' : ''}>Baby Fútbol (1d: S/50 | 2d: S/100 | 3d: S/150)</option>
                             </select>
                         </div>
 
@@ -1473,6 +1475,9 @@ function setupFormHandlers() {
                     break;
                 case 'Premium':
                     precioInput.placeholder = 'Ej: S/ 100 (2 días) o S/ 150 (3 días)';
+                    break;
+                case 'Baby Fútbol':
+                    precioInput.placeholder = 'Ej: S/ 50 (1 día), S/ 100 (2 días), S/ 150 (3 días)';
                     break;
                 default:
                     precioInput.placeholder = 'Ingrese el precio';

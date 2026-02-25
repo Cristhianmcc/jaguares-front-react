@@ -48,6 +48,15 @@ const PLANES = {
         dias_minimo: 2, // mínimo 2 días
         dias_Recomendado: 3, // Recomendado 3 días para asegurar resultados
         clases_mes: 12
+    },
+    'Baby F\u00fatbol': {
+        precio_por_dias: {
+            1: 50,   // 1 día/semana
+            2: 100,  // 2 días/semana
+            3: 150   // 3 días/semana
+        },
+        minimo_dias: 1,
+        maximo_dias: 3
     }
 };
 
@@ -481,20 +490,23 @@ function generarCronograma(nombreDeporte) {
                                         
                                         return `
                                             <div class="${clases}" ${onclick} ${tituloTooltip}>
-                                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<div class="absolute top-0 inset-x-0 h-1 rounded-t ${
+                                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'B\u00e1sico' || horario.nivel === 'Baby F\u00fatbol') ? `<div class="absolute top-0 inset-x-0 h-1 rounded-t ${
                                                     horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' :
-                                                    horario.nivel === 'Competitivo' ? 'bg-blue-500' : 'bg-teal-500'
+                                                    horario.nivel === 'Competitivo' ? 'bg-blue-500' :
+                                                    horario.nivel === 'Baby F\u00fatbol' ? 'bg-pink-500' : 'bg-teal-500'
                                                 }"></div>` : ''}
                                                 <span class="material-symbols-outlined ${colorPlan} text-xs absolute top-0.5 right-0.5" title="${plan}">${iconoPlan}</span>
                                                 ${estaSeleccionado ? '<span class="material-symbols-outlined text-primary text-base">check_circle</span>' : ''}
                                                 ${chocaConOtroDeporte ? '<span class="material-symbols-outlined text-orange-600 text-xs absolute top-0.5 left-0.5">warning</span>' : ''}
                                                 <span class="text-[9px] font-bold text-text-main dark:text-white leading-tight">${horario.categoria || ''}</span>
-                                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<span class="text-[7px] font-black uppercase tracking-wide ${
+                                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'B\u00e1sico' || horario.nivel === 'Baby F\u00fatbol') ? `<span class="text-[7px] font-black uppercase tracking-wide ${
                                                     horario.nivel === 'Premium Competitivo' ? 'text-amber-600' :
-                                                    horario.nivel === 'Competitivo' ? 'text-blue-600' : 'text-teal-600'
+                                                    horario.nivel === 'Competitivo' ? 'text-blue-600' :
+                                                    horario.nivel === 'Baby F\u00fatbol' ? 'text-pink-600' : 'text-teal-600'
                                                 }">${
                                                     horario.nivel === 'Premium Competitivo' ? '\u2605 Premium' :
-                                                    horario.nivel === 'Competitivo' ? '\u2605 Competitivo' : '\u25cb B\u00e1sico'
+                                                    horario.nivel === 'Competitivo' ? '\u2605 Competitivo' :
+                                                    horario.nivel === 'Baby F\u00fatbol' ? 'Baby F\u00fatbol' : '\u25cb B\u00e1sico'
                                                 }</span>` : ''}
                                                 <span class="text-[8px] text-text-muted dark:text-gray-400">${cuposRestantes} cupos</span>
                                             </div>
@@ -566,20 +578,23 @@ function generarCronograma(nombreDeporte) {
                     return `
                         <td class="px-2 py-2">
                             <div class="${clases}" ${onclick} ${tituloTooltip}>
-                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<div class="absolute top-0 inset-x-0 h-1 rounded-t ${
+                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'B\u00e1sico' || horario.nivel === 'Baby F\u00fatbol') ? `<div class="absolute top-0 inset-x-0 h-1 rounded-t ${
                                     horario.nivel === 'Premium Competitivo' ? 'bg-gradient-to-r from-yellow-500 to-amber-400' :
-                                    horario.nivel === 'Competitivo' ? 'bg-blue-500' : 'bg-teal-500'
+                                    horario.nivel === 'Competitivo' ? 'bg-blue-500' :
+                                    horario.nivel === 'Baby F\u00fatbol' ? 'bg-pink-500' : 'bg-teal-500'
                                 }"></div>` : ''}
                                 <span class="material-symbols-outlined ${colorPlan} text-xs absolute top-1 right-1" title="${plan}">${iconoPlan}</span>
                                 ${estaSeleccionado ? '<span class="material-symbols-outlined text-primary text-xl">check_circle</span>' : ''}
                                 ${chocaConOtroDeporte ? '<span class="material-symbols-outlined text-orange-600 text-xs absolute top-1 left-1">warning</span>' : ''}
                                 <span class="text-[10px] font-bold text-text-main dark:text-white leading-tight">${horario.categoria || ''}</span>
-                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'Básico') ? `<span class="text-[9px] font-black uppercase tracking-wide ${
+                                ${(horario.nivel === 'Competitivo' || horario.nivel === 'Premium Competitivo' || horario.nivel === 'B\u00e1sico' || horario.nivel === 'Baby F\u00fatbol') ? `<span class="text-[9px] font-black uppercase tracking-wide ${
                                     horario.nivel === 'Premium Competitivo' ? 'text-amber-600' :
-                                    horario.nivel === 'Competitivo' ? 'text-blue-600' : 'text-teal-600'
+                                    horario.nivel === 'Competitivo' ? 'text-blue-600' :
+                                    horario.nivel === 'Baby F\u00fatbol' ? 'text-pink-600' : 'text-teal-600'
                                 }">${
-                                    horario.nivel === 'Premium Competitivo' ? '★ Premium' :
-                                    horario.nivel === 'Competitivo' ? '★ Competitivo' : '○ Básico'
+                                    horario.nivel === 'Premium Competitivo' ? '\u2605 Premium' :
+                                    horario.nivel === 'Competitivo' ? '\u2605 Competitivo' :
+                                    horario.nivel === 'Baby F\u00fatbol' ? 'Baby F\u00fatbol' : '\u25cb B\u00e1sico'
                                 }</span>` : ''}
                                 <span class="text-[9px] text-text-muted dark:text-gray-400">${cuposRestantes} cupos</span>
                             </div>
@@ -708,6 +723,23 @@ function toggleHorario(horarioId, rangoHorario) {
                 '1 día a la semana: <strong>S/. 40</strong><br>' +
                 '2 días a la semana: <strong>S/. 80</strong><br>' +
                 '3 días a la semana: <strong>S/. 120</strong>',
+                'info'
+            );
+        }
+        
+        // Baby Fútbol: máximo 3 días del mismo deporte
+        if (plan === 'Baby F\u00fatbol' && cantidadEsteDeporte >= 3) {
+            mostrarModal('El plan Baby F\u00fatbol permite m\u00e1ximo 3 d\u00edas por semana.', 'warning');
+            return;
+        }
+        
+        // Modal informativo al seleccionar 2do día en Baby Fútbol
+        if (plan === 'Baby F\u00fatbol' && cantidadEsteDeporte === 1) {
+            mostrarModal(
+                '<strong>Baby F\u00fatbol</strong><br><br>' +
+                '1 d\u00eda a la semana: <strong>S/. 50</strong><br>' +
+                '2 d\u00edas a la semana: <strong>S/. 100</strong><br>' +
+                '3 d\u00edas a la semana: <strong>S/. 150</strong>',
                 'info'
             );
         }

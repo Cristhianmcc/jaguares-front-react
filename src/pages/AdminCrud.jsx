@@ -594,6 +594,7 @@ const html = `
                           <option value="Básico">Básico — Plan Estándar</option>
                           <option value="Competitivo">Competitivo — Plan Estándar (S/120)</option>
                           <option value="Premium Competitivo">Premium Competitivo — Plan Premium (S/150)</option>
+                          <option value="Baby Fútbol">Baby Fútbol — Plan Baby Fútbol</option>
                         </select>
                     </div>
 
@@ -628,6 +629,7 @@ const html = `
                             <option value="Económico">Económico (2 Días: S/ 60 | 3+ Días: S/ 80)</option>
                             <option value="Estándar">Estándar (1 Día: S/ 40 | 2 Días: S/ 80 | 3 Días: S/ 120)</option>
                             <option value="Premium">Premium (2 Días: S/ 100 | 3 Días: S/ 150)</option>
+                            <option value="Baby Fútbol">Baby Fútbol (1 Día: S/ 50 | 2 Días: S/ 100 | 3 Días: S/ 150)</option>
                         </select>
                         <div class="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">
                             El precio varía Según la cantidad de Días por semana
@@ -638,7 +640,7 @@ const html = `
                         <label class="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Precio (S/) *</label>
                         <input type="number" id="horario_precio" name="precio" step="0.01" placeholder="Según el plan" required class="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
                         <div class="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">
-                            Econ: 2d=S/60, 3+d=S/80 | Est: 1d=S/40, 2d=S/80, 3d=S/120 | Prem: 2d=S/100, 3d=S/150
+                            Econ: 2d=S/60, 3+d=S/80 | Est: 1d=S/40, 2d=S/80, 3d=S/120 | Prem: 2d=S/100, 3d=S/150 | Baby: 1d=S/50, 2d=S/100, 3d=S/150
                         </div>
                     </div>
 
