@@ -239,7 +239,7 @@ async function renderizarExito(codigo, datosInscripcion) {
                     <div id="contentPlin" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-green-200 dark:border-green-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
                         <div class="flex flex-col gap-3">
                             <!-- BOTÓN QR -->
-                            <button onclick="abrirModalQR('assets/qrplin.jpeg', 'Plin')" class="flex flex-col items-center gap-3 p-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] group w-full">
+                            <button onclick="abrirModalQR('assets/plinqr.jpeg', 'Plin')" class="flex flex-col items-center gap-3 p-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] group w-full">
                                 <div class="size-12 bg-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                                     <span class="material-symbols-outlined text-green-600 text-4xl font-bold">qr_code_scanner</span>
                                 </div>
@@ -255,7 +255,7 @@ async function renderizarExito(codigo, datosInscripcion) {
                                     <span class="material-symbols-outlined text-green-600 text-xl">person</span>
                                     <div>
                                         <p class="text-[10px] text-text-main/50 dark:text-white/50 font-medium uppercase">Destinatario</p>
-                                        <p class="text-sm font-black text-text-main dark:text-white">Oscar Orosco - 955 195 324</p>
+                                        <p class="text-sm font-black text-text-main dark:text-white">Oscar Orosco - 973 324 460</p>
                                     </div>
                                 </div>
                             </div>
@@ -795,7 +795,7 @@ async function descargarComprobante() {
         y += 12;
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
-        doc.text('Contacto: +51 955 195 324', 105, y, { align: 'center' });
+        doc.text('Contacto: +51 973 324 460', 105, y, { align: 'center' });
         
         // PIE DE PÁGINA
         doc.setFillColor(...colorPrimary);
@@ -870,10 +870,10 @@ function consultarEstado() {
 }
 
 function copiarNumero(event) {
-    const numero = '955195324'; // Sin espacios para copiar
+    const numero = '973324460'; // Sin espacios para copiar
     
     navigator.clipboard.writeText(numero).then(() => {
-        Utils.mostrarNotificacion('Número copiado: 955 195 324', 'success');
+        Utils.mostrarNotificacion('Número copiado: 973 324 460', 'success');
         
         // Cambiar temporalmente el texto del botón si existe el evento
         if (event) {
@@ -893,7 +893,7 @@ function copiarNumero(event) {
         }
     }).catch(err => {
         console.error('Error al copiar:', err);
-        Utils.mostrarNotificacion('No se pudo copiar. Usa: 955 195 324', 'warning');
+        Utils.mostrarNotificacion('No se pudo copiar. Usa: 973 324 460', 'warning');
     });
 }
 

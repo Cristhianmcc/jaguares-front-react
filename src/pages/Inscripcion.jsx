@@ -54,7 +54,7 @@ const html = `
                         <p class="text-text-muted dark:text-gray-400 text-lg font-medium mt-2">Comienza tu camino al alto rendimiento.</p>
                     </div>
                     <div class="hidden md:block">
-                        <span class="px-4 py-2 bg-gradient-to-r from-primary to-primary-dark text-white rounded-md text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20">Temporada de Verano</span>
+                        <span class="px-4 py-2 bg-gradient-to-r from-primary to-primary-dark text-white rounded-md text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20">Temporada Anual</span>
                     </div>
                 </div>
 
@@ -339,6 +339,10 @@ const html = `
                         <p class="text-xs text-text-muted dark:text-gray-400">
                             <span class="material-symbols-outlined text-sm align-middle">info</span>
                             Las imágenes deben ser claras y legibles. Formatos aceptados: JPG, PNG. Tamaño máximo: 5MB por imagen.
+                        </p>
+                        <p class="text-xs text-text-muted dark:text-gray-400 mt-1">
+                            <span class="material-symbols-outlined text-sm align-middle">compress</span>
+                            ¿Imagen muy pesada? Comprímela gratis aquí: <a href="https://www.iloveimg.com/es/comprimir-imagen/comprimir-jpg" target="_blank" rel="noopener noreferrer" class="text-primary dark:text-primary underline font-semibold hover:opacity-80">iLoveIMG</a>
                         </p>
                     </div>
 

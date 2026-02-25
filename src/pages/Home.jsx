@@ -1005,6 +1005,10 @@ export default function Home() {
                   </div>
                 </section>
               </div>
+              <div style={{textAlign:'center',padding:'8px 0 12px',fontSize:'12px',color:'#999',borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+                © Desarrollado por{' '}
+                <a href="https://wa.me/51955195324" target="_blank" rel="noopener noreferrer" style={{color:'#f59e0b',fontWeight:'bold',textDecoration:'none'}}>Monterrial</a>
+              </div>
             </footer>
           </div>
         </div>

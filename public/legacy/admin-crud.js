@@ -8,6 +8,16 @@ let horariosData = [];
 let categoriasData = [];
 let planesData = [];
 let nivelesData = [];
+
+function mostrarToast(mensaje, tipo = 'success') {
+    const toast = document.createElement('div');
+    const color = tipo === 'success' ? '#22c55e' : tipo === 'error' ? '#ef4444' : '#f59e0b';
+    toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${color};color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);transition:opacity 0.4s;opacity:1;max-width:320px`;
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 3000);
+}
+
 function normalizeText(value) {
     if (value === null || value === undefined) return '';
     let text = String(value);
@@ -474,9 +484,40 @@ function editarCategoria(id) {
     abrirModalCategoria(id);
 }
 
-async function confirmarEliminarCategoria(id, nombre) {
-    if (!confirm(`¿Desactivar categoría "${nombre}"?`)) return;
-    
+// Variables para el modal de confirmar categoría
+let _categoriaAccionId = null;
+let _categoriaAccionNombre = null;
+
+function confirmarEliminarCategoria(id, nombre) {
+    _categoriaAccionId = id;
+    _categoriaAccionNombre = nombre;
+    const modal = document.getElementById('modalConfirmarCategoria');
+    document.getElementById('modalConfirmarCategoriaNombre').textContent = `"${nombre}"`;
+    // Si ya está inactiva, deshabilitar botón desactivar
+    const cat = categoriasData.find(c => c.categoria_id === id);
+    const btnDesactivar = document.getElementById('btnDesactivarCategoria');
+    if (cat && cat.estado === 'inactivo') {
+        btnDesactivar.disabled = true;
+        btnDesactivar.classList.add('opacity-40', 'cursor-not-allowed');
+        btnDesactivar.title = 'Ya está inactiva';
+    } else {
+        btnDesactivar.disabled = false;
+        btnDesactivar.classList.remove('opacity-40', 'cursor-not-allowed');
+        btnDesactivar.title = '';
+    }
+    modal.classList.remove('hidden');
+}
+
+function cerrarModalConfirmarCategoria() {
+    document.getElementById('modalConfirmarCategoria').classList.add('hidden');
+    _categoriaAccionId = null;
+    _categoriaAccionNombre = null;
+}
+
+async function ejecutarDesactivarCategoria() {
+    if (!_categoriaAccionId) return;
+    const id = _categoriaAccionId;
+    cerrarModalConfirmarCategoria();
     try {
         const response = await fetch(`${API_BASE}/api/admin/categorias/${id}`, {
             method: 'DELETE',
@@ -484,13 +525,34 @@ async function confirmarEliminarCategoria(id, nombre) {
         });
         const data = await response.json();
         if (data.success) {
-            alert('o. Categoría desactivada');
+            mostrarToast('Categoría desactivada correctamente', 'success');
             cargarCategorias();
         } else {
-            alert('O ' + data.error);
+            mostrarToast('Error: ' + data.error, 'error');
         }
     } catch (error) {
-        alert('O Error de conexión');
+        mostrarToast('Error de conexión', 'error');
+    }
+}
+
+async function ejecutarEliminarDefinitivoCategoria() {
+    if (!_categoriaAccionId) return;
+    const id = _categoriaAccionId;
+    cerrarModalConfirmarCategoria();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/categorias/${id}/forzar`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (data.success) {
+            mostrarToast('Categoría eliminada definitivamente', 'success');
+            cargarCategorias();
+        } else {
+            mostrarToast('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        mostrarToast('Error de conexión', 'error');
     }
 }
 
@@ -928,19 +990,66 @@ function confirmarEliminarHorario(id) {
     horarioIdAEliminar = id;
     const modal = document.getElementById('modalEliminarHorario');
     modal.classList.remove('hidden');
-    modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
 }
 
 function cerrarModalEliminarHorario() {
     const modal = document.getElementById('modalEliminarHorario');
     modal.classList.add('hidden');
-    modal.classList.remove('flex');
     document.body.style.overflow = '';
     horarioIdAEliminar = null;
 }
 
+async function ejecutarDesactivarHorario() {
+    if (!horarioIdAEliminar) return;
+    const id = horarioIdAEliminar;
+    cerrarModalEliminarHorario();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/horarios/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (data.success) {
+            mostrarToast('Horario desactivado correctamente', 'success');
+            cargarHorarios();
+            cargarCalendario();
+        } else {
+            mostrarToast('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        mostrarToast('Error de conexión', 'error');
+    }
+}
+
+async function ejecutarEliminarDefinitivoHorario() {
+    if (!horarioIdAEliminar) return;
+    const id = horarioIdAEliminar;
+    cerrarModalEliminarHorario();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/horarios/${id}/forzar`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (data.success) {
+            mostrarToast('Horario eliminado definitivamente', 'success');
+            cargarHorarios();
+            cargarCalendario();
+        } else {
+            mostrarToast('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        mostrarToast('Error de conexión', 'error');
+    }
+}
+
+// mantener por compatibilidad con el calendario
 async function ejecutarEliminarHorario() {
+    await ejecutarDesactivarHorario();
+}
+
+async function _legacyEliminarHorarioAntiguo() {
     if (!horarioIdAEliminar) return;
     
     try {
@@ -953,18 +1062,16 @@ async function ejecutarEliminarHorario() {
         cerrarModalEliminarHorario();
         
         if (data.success) {
-            mostrarNotificacion('o. Horario desactivado correctamente', 'success');
+            mostrarToast('Horario desactivado correctamente', 'success');
             cargarHorarios();
             cargarCalendario();
         } else {
-            // Detectar si es un error por inscripciones activas
             if (data.error && data.error.includes('inscripción(es) activa(s)')) {
-                // Extraer el número de inscripciones del Mensaje
                 const match = data.error.match(/(\d+)/);
                 const cantidad = match ? match[1] : '1';
                 mostrarModalNoSePuedeEliminar(cantidad);
             } else {
-                mostrarNotificacion('O ' + data.error, 'error');
+                mostrarToast('Error: ' + data.error, 'error');
             }
         }
     } catch (error) {
@@ -1136,7 +1243,7 @@ async function abrirModalEdicionRapida(horarioId) {
                             <label class="block text-sm font-medium mb-2">Categoría</label>
                             <select id="editar_categoria" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800">
                                 <option value="">Sin categoría</option>
-                                ${categoriasData.filter(c => c.deporte_id === horario.deporte_id).map(c => `<option value="${c.nombre}" ${horario.categoria === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                                ${categoriasData.filter(c => Number(c.deporte_id) === Number(horario.deporte_id)).map(c => `<option value="${c.nombre}" ${horario.categoria === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
                             </select>
                         </div>
 
@@ -1242,7 +1349,7 @@ function actualizarCategoriasEdicionRapida() {
     const deporteId = parseInt(document.getElementById('editar_deporte_id').value);
     const select = document.getElementById('editar_categoria');
     if (!select) return;
-    const catsFiltradas = categoriasData.filter(c => c.deporte_id === deporteId);
+    const catsFiltradas = categoriasData.filter(c => Number(c.deporte_id) === deporteId);
     select.innerHTML = '<option value="">Sin categoría</option>' +
         catsFiltradas.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
 }

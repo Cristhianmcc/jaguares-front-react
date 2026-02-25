@@ -58,7 +58,7 @@ const html = `
                         <button onclick="cambiarTab('horarios')" id="tab-horarios" class="tab-button px-6 py-4 text-sm font-semibold transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300">
                             <span class="flex items-center gap-2">
                                 <span class="material-symbols-outlined">view_list</span>
-                                Vista Tabla
+                                Horarios
                             </span>
                         </button>
                         <button onclick="cambiarTab('inscripciones')" id="tab-inscripciones" class="tab-button px-6 py-4 text-sm font-semibold transition-colors border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300">
@@ -239,7 +239,7 @@ const html = `
                     </div>
                 </div>
 
-                <!-- Contenido de Horarios (Vista Tabla) -->
+                <!-- Contenido de Horarios -->
                 <div id="content-horarios" class="tab-content hidden p-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                         <h2 class="text-2xl font-bold text-black dark:text-white">Lista de Horarios</h2>
@@ -580,6 +580,35 @@ const html = `
         </div>
     </div>
 
+    <!-- Modal Confirmar Acción Categoría -->
+    <div id="modalConfirmarCategoria" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-red-600 dark:text-red-400 text-2xl">warning</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-black dark:text-white">Gestionar Categoría</h3>
+                    <p id="modalConfirmarCategoriaNombre" class="text-sm text-gray-600 dark:text-gray-400"></p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">¿Qué deseas hacer con esta categoría?</p>
+            <div class="flex flex-col gap-3">
+                <button id="btnDesactivarCategoria" onclick="ejecutarDesactivarCategoria()" class="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">visibility_off</span>
+                    Desactivar (ocultar)
+                </button>
+                <button id="btnEliminarCategoria" onclick="ejecutarEliminarDefinitivoCategoria()" class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">delete_forever</span>
+                    Eliminar definitivamente
+                </button>
+                <button onclick="cerrarModalConfirmarCategoria()" class="w-full px-4 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold text-sm transition-colors">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Horario -->
     <div id="modalHorario" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
         <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
@@ -743,50 +772,30 @@ const html = `
         </div>
     </div>
 
-    <!-- Modal de Confirmación de eliminación -->
-    <div id="modalEliminarHorario" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
-        <div class="relative w-full max-w-md bg-white dark:bg-[#1A1A1A] rounded-2xl shadow-2xl border-2 border-red-500/30 overflow-hidden animate-[slideUp_0.3s_ease-out] max-h-[95vh] sm:max-h-auto flex flex-col">
-            <!-- Header -->
-            <div class="flex items-center gap-3 sm:gap-4 p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-red-500/10 to-transparent flex-shrink-0">
-                <div class="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center bg-red-100 dark:bg-red-900/30">
-                    <span class="material-symbols-outlined text-3xl sm:text-4xl text-red-600 dark:text-red-400">warning</span>
+    <!-- Modal Gestionar Horario -->
+    <div id="modalEliminarHorario" class="hidden fixed inset-0 bg-black bg-opacity-60 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                    <span class="material-symbols-outlined text-red-600 dark:text-red-400" style="font-size:22px">warning</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-base sm:text-xl font-black uppercase tracking-tight text-text-main dark:text-white">Confirmar eliminación</h3>
-                    <p class="text-xs sm:text-sm text-text-muted dark:text-gray-400 mt-0.5">Esta acción no se puede deshacer</p>
-                </div>
-            </div>
-            
-            <!-- Contenido -->
-            <div class="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto flex-1">
-                <div class="bg-yellow-50 dark:bg-yellow-900/10 border-l-4 border-yellow-500 p-3 sm:p-4 rounded-lg">
-                    <p class="text-sm sm:text-base text-yellow-800 dark:text-yellow-300 font-semibold leading-relaxed">
-                        ⚠️ ¿Estás seguro de que deseas <strong>desactivar este horario</strong>?
-                    </p>
-                </div>
-                
-                <p class="text-xs sm:text-sm text-text-main dark:text-gray-300 leading-relaxed">
-                    El horario se marcará como inactivo y ya no estará disponible para nuevas inscripciones.
-                </p>
-                
-                <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-700">
-                    <p class="text-xs font-bold text-text-muted dark:text-gray-400 uppercase mb-2">
-                        <span class="material-symbols-outlined text-sm align-middle">info</span>
-                        Nota importante
-                    </p>
-                    <p class="text-xs text-text-muted dark:text-gray-400">
-                        Los alumnos que ya están inscritos en este horario mantendrán su inscripción, pero no se permitirán nuevas inscripciones.
-                    </p>
+                <div>
+                    <h3 class="text-lg font-bold text-black dark:text-white">Gestionar Horario</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Elige una acción</p>
                 </div>
             </div>
-            
-            <!-- Footer con botones -->
-            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A] flex-shrink-0">
-                <button onclick="cerrarModalEliminarHorario()" class="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-gray-200 dark:bg-gray-800 text-text-main dark:text-white font-bold text-sm uppercase tracking-wide hover:bg-gray-300 dark:hover:bg-gray-700 transition-all order-2 sm:order-1">
-                    Cancelar
+            <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">¿Qué deseas hacer con este horario?</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="ejecutarDesactivarHorario()" class="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">visibility_off</span>
+                    Desactivar (ocultar)
                 </button>
-                <button onclick="ejecutarEliminarHorario()" class="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg bg-red-600 text-white font-bold text-sm uppercase tracking-wide hover:bg-red-700 transition-all shadow-lg order-1 sm:order-2">
-                    Eliminar
+                <button onclick="ejecutarEliminarDefinitivoHorario()" class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">delete_forever</span>
+                    Eliminar definitivamente
+                </button>
+                <button onclick="cerrarModalEliminarHorario()" class="w-full px-4 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold text-sm transition-colors">
+                    Cancelar
                 </button>
             </div>
         </div>
@@ -890,11 +899,9 @@ const html = `
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
+    // Eliminar script previo para garantizar recarga fresca (HMR safe)
     const existing = document.querySelector(`script[data-src="${src}"]`);
-    if (existing) {
-      resolve();
-      return;
-    }
+    if (existing) existing.remove();
     const script = document.createElement('script');
     script.src = src;
     script.async = false;

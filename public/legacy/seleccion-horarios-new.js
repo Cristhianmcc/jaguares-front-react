@@ -188,7 +188,8 @@ async function initSeleccionHorariosNew() {
     if (!datosInscripcion || !datosInscripcion.alumno) {
         mostrarModal(
             'No se pudieron guardar tus datos del paso 1. Esto ocurre cuando las imágenes subidas son demasiado pesadas.<br><br>' +
-            '<strong>¿Qué hacer?</strong> Regresa al paso 1 y sube imágenes de menor resolución o tamaño (menos de 2MB cada una).',
+            '<strong>¿Qué hacer?</strong> Regresa al paso 1 y sube imágenes de menor resolución o tamaño (menos de 2MB cada una).<br><br>' +
+            '¿Tienes imágenes muy pesadas? Puedes comprimirlas aquí: <a href="https://www.iloveimg.com/es/comprimir-imagen/comprimir-jpg" target="_blank" rel="noopener noreferrer" style="color:#f59e0b;text-decoration:underline;font-weight:bold;">iLoveIMG - Comprimir imágenes</a>',
             'warning'
         );
         // Al hacer click en "Entendido", redirigir al paso 1 en lugar de cerrar el modal
@@ -314,8 +315,21 @@ async function cargarHorarios() {
             console.warn('NO se encontr fecha de nacimiento - mostrando TODOS los horarios');
         }
         
-        // Obtener horarios filtrados por edad Y género (excluye MAMAS FIT para hombres)
-        const horarios = await academiaAPI.getHorarios(añoNacimientoGlobal, sexoAlumno, true); // año, sexo, forceRefresh
+        // Obtener horarios filtrados por edad (forceRefresh=true para evitar caché stale)
+        const todosHorarios = await academiaAPI.getHorarios(añoNacimientoGlobal, true);
+
+        // Filtrar por género: mostrar horarios Mixtos + del mismo género + sin género asignado
+        // Si el alumno es Femenino: ve Mixto + Femenino
+        // Si el alumno es Masculino: ve Mixto + Masculino
+        const horarios = sexoAlumno
+            ? todosHorarios.filter(h => {
+                const genero = (h.genero || '').trim();
+                if (!genero || genero === 'Mixto') return true;
+                return genero === sexoAlumno;
+              })
+            : todosHorarios; // sin sexo registrado → mostrar todos
+
+        console.log(`🔍 Filtro género (${sexoAlumno}): ${todosHorarios?.length} → ${horarios?.length} horarios`);
         
         if (!horarios || horarios.length === 0) {
             const MensajeEdad = edadCalculada ? 
