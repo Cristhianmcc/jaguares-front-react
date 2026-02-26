@@ -541,12 +541,17 @@ const html = `
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Año Mínimo</label>
-                        <input type="number" id="categoria_ano_min" name="ano_min" placeholder="2011" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                        <input type="number" id="categoria_ano_min" name="ano_min" placeholder="2008" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">El número <strong>más chico</strong>. Ej: categoría 2008-2011 → aquí va <strong>2008</strong></p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Año Máximo</label>
-                        <input type="number" id="categoria_ano_max" name="ano_max" placeholder="2012" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                        <input type="number" id="categoria_ano_max" name="ano_max" placeholder="2011" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">El número <strong>más grande</strong>. Ej: categoría 2008-2011 → aquí va <strong>2011</strong></p>
                     </div>
+                </div>
+                <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+                    <p class="text-xs text-amber-800 dark:text-amber-300"><strong>⚠️ Importante:</strong> Son años de nacimiento, no edades. El mínimo siempre debe ser menor. Ej correcto: Mín <strong>2008</strong> / Máx <strong>2011</strong> → entran alumnos nacidos del 2008 al 2011.</p>
                 </div>
 
                 <div>

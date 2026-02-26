@@ -501,12 +501,13 @@ function generarCronograma(nombreDeporte) {
                                         
                                         const plan = horario.plan || 'Económico';
                                         const esEstandar = plan === 'Estándar' || plan === 'Estandar';
+                                        const esBabyFutbol = plan === 'Baby Fútbol' || plan === 'Baby Futbol';
                                         const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
                                         
                                         const bloqueActualDeporte = horariosPorDeporte[nombreDeporte];
                                         const horariosEsteDeporte = horariosSeleccionados.filter(h => h.deporte === nombreDeporte).length;
-                                        // Para estándar: permitir SÁBADO como 3er día aunque sea diferente bloque
-                                        const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !(esEstandar && esSabado && horariosEsteDeporte === 2);
+                                        // Para estándar y Baby Fútbol: permitir SÁBADO como 3er día aunque sea diferente bloque
+                                        const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !((esEstandar || esBabyFutbol) && esSabado && horariosEsteDeporte === 2);
                                         
                                         const chocaConOtroDeporte = horariosSeleccionados.some(h => 
                                             h.deporte !== nombreDeporte && 
@@ -586,13 +587,14 @@ function generarCronograma(nombreDeporte) {
                     // Obtener icono y color según el plan
                     const plan = horario.plan || 'Económico';
                     const esEstandar = plan === 'Estándar' || plan === 'Estandar';
+                    const esBabyFutbol = plan === 'Baby Fútbol' || plan === 'Baby Futbol';
                     const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
                     
                     // Verificar si est deshabilitado por Restricción de bloque horario DENTRO del mismo deporte
                     const bloqueActualDeporte = horariosPorDeporte[nombreDeporte];
                     const horariosEsteDeporte = horariosSeleccionados.filter(h => h.deporte === nombreDeporte).length;
-                    // Para estándar: permitir SÁBADO como 3er día aunque sea diferente bloque
-                    const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !(esEstandar && esSabado && horariosEsteDeporte === 2);
+                    // Para estándar y Baby Fútbol: permitir SÁBADO como 3er día aunque sea diferente bloque
+                    const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !((esEstandar || esBabyFutbol) && esSabado && horariosEsteDeporte === 2);
                     
                     // Verificar si choca con otro deporte (mismo día y hora)
                     const chocaConOtroDeporte = horariosSeleccionados.some(h => 
@@ -808,22 +810,23 @@ function toggleHorario(horarioId, rangoHorario) {
         const bloqueActualDeporte = horariosPorDeporte[deporteActual];
         const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
         const esEstandar = plan === 'Estándar' || plan === 'Estandar';
+        const esBabyFutbol = plan === 'Baby Fútbol' || plan === 'Baby Futbol';
         
-        // Para plan Estándar: permitir SÁBADO como tercer día (diferente bloque)
-        if (esEstandar && esSabado && cantidadEsteDeporte === 2) {
+        // Para plan Estándar y Baby Fútbol: permitir SÁBADO como tercer día (diferente bloque)
+        if ((esEstandar || esBabyFutbol) && esSabado && cantidadEsteDeporte === 2) {
             // Permitir SÁBADO como 3er día sin validar bloque horario
-            console.log('plan Estándar: Permitiendo SÁBADO como 3er día');
+            console.log(`${plan}: Permitiendo SÁBADO como 3er día`);
         } else if (!bloqueActualDeporte) {
-            // primera selecciónón de este deporte, establecer su bloque horario
+            // primera selección de este deporte, establecer su bloque horario
             horariosPorDeporte[deporteActual] = rangoHorario;
             document.getElementById('horarioActual').textContent = rangoHorario.replace('-', ' - ');
         } else if (bloqueActualDeporte !== rangoHorario) {
-            // Para estándar: si ya tiene 2 días entre semana y está seleccionando SÁBADO, permitir
-            if (esEstandar && esSabado && cantidadEsteDeporte < 3) {
-                console.log('plan Estándar: Permitiendo SÁBADO como día adicional');
+            // Para estándar y Baby Fútbol: si ya tiene 2 días entre semana y está seleccionando SÁBADO, permitir
+            if ((esEstandar || esBabyFutbol) && esSabado && cantidadEsteDeporte < 3) {
+                console.log(`${plan}: Permitiendo SÁBADO como día adicional`);
             } else {
                 // Intentando seleccionar otro bloque horario del mismo deporte
-                mostrarModal(`En ${deporteActual}, solo puedes seleccionar turnos del mismo bloque horario (${bloqueActualDeporte.replace('-', ' - ')}). ${esEstandar ? 'Para Plan Estándar, puedes agregar un día el SÁBADO como 3er día.' : 'Desmarca los horarios actuales de este deporte si quieres cambiar de bloque.'}`, 'warning');
+                mostrarModal(`En ${deporteActual}, solo puedes seleccionar turnos del mismo bloque horario (${bloqueActualDeporte.replace('-', ' - ')}). ${(esEstandar || esBabyFutbol) ? 'Puedes agregar un día el SÁBADO como 3er día.' : 'Desmarca los horarios actuales de este deporte si quieres cambiar de bloque.'}`, 'warning');
                 return;
             }
         }
