@@ -503,11 +503,12 @@ function generarCronograma(nombreDeporte) {
                                         const esEstandar = plan === 'Estándar' || plan === 'Estandar';
                                         const esBabyFutbol = plan === 'Baby Fútbol' || plan === 'Baby Futbol';
                                         const esPremium = plan === 'Premium';
+                                        const esEconomico = plan === 'Económico' || plan === 'Economico';
                                         
                                         const bloqueActualDeporte = horariosPorDeporte[nombreDeporte];
                                         const horariosEsteDeporte = horariosSeleccionados.filter(h => h.deporte === nombreDeporte).length;
-                                        // Premium, Estándar y Baby Fútbol: sin restricción de bloque (pueden mezclar días de distinto bloque dentro del mismo plan)
-                                        const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !(esEstandar || esBabyFutbol || esPremium);
+                                        // Todos los planes: sin restricción de bloque (pueden mezclar días de distinto bloque dentro del mismo plan)
+                                        const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !(esEstandar || esBabyFutbol || esPremium || esEconomico);
                                         // [ANTERIOR - solo permitía SÁBADO como 3er día para Estándar/BabyFútbol]
                                         // const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
                                         // const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !((esEstandar || esBabyFutbol) && esSabado && horariosEsteDeporte === 2);
@@ -592,12 +593,13 @@ function generarCronograma(nombreDeporte) {
                     const esEstandar = plan === 'Estándar' || plan === 'Estandar';
                     const esBabyFutbol = plan === 'Baby Fútbol' || plan === 'Baby Futbol';
                     const esPremium = plan === 'Premium';
+                    const esEconomico = plan === 'Económico' || plan === 'Economico';
                     
                     // Verificar si est deshabilitado por Restricción de bloque horario DENTRO del mismo deporte
                     const bloqueActualDeporte = horariosPorDeporte[nombreDeporte];
                     const horariosEsteDeporte = horariosSeleccionados.filter(h => h.deporte === nombreDeporte).length;
-                    // Premium, Estándar y Baby Fútbol: sin restricción de bloque (pueden mezclar días de distinto bloque dentro del mismo plan)
-                    const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !(esEstandar || esBabyFutbol || esPremium);
+                    // Todos los planes: sin restricción de bloque (pueden mezclar días de distinto bloque dentro del mismo plan)
+                    const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !(esEstandar || esBabyFutbol || esPremium || esEconomico);
                     // [ANTERIOR - solo permitía SÁBADO como 3er día para Estándar/BabyFútbol]
                     // const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
                     // const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !((esEstandar || esBabyFutbol) && esSabado && horariosEsteDeporte === 2);
@@ -817,9 +819,10 @@ function toggleHorario(horarioId, rangoHorario) {
         const esEstandar = plan === 'Estándar' || plan === 'Estandar';
         const esBabyFutbol = plan === 'Baby Fútbol' || plan === 'Baby Futbol';
         const esPremium = plan === 'Premium';
+        const esEconomico = plan === 'Económico' || plan === 'Economico';
         
-        // Premium, Estándar y Baby Fútbol: sin restricción de bloque (el admin programa días de distinto bloque intencionalmente)
-        if (esEstandar || esBabyFutbol || esPremium) {
+        // Todos los planes: sin restricción de bloque (el admin programa días de distinto bloque intencionalmente)
+        if (esEstandar || esBabyFutbol || esPremium || esEconomico) {
             if (!bloqueActualDeporte) {
                 horariosPorDeporte[deporteActual] = rangoHorario;
                 document.getElementById('horarioActual').textContent = rangoHorario.replace('-', ' - ');
