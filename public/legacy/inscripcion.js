@@ -45,52 +45,59 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Manejar selección de imagen y convertir a base64
+ * Manejar selección de imagen: comprime automáticamente con canvas y convierte a base64.
+ * Acepta fotos pesadas de celular (hasta 20MB) y las reduce a ~200KB automáticamente.
  */
-function manejarImagenSeleccionada(event, tipo) {
+async function manejarImagenSeleccionada(event, tipo) {
     const file = event.target.files[0];
-    
     if (!file) return;
-    
-    // Validar tamaño (máx 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB en bytes
-    if (file.size > maxSize) {
-        Utils.mostrarNotificacion('La imagen es muy grande. Máximo 5MB', 'error');
-        event.target.value = ''; // Limpiar input
-        return;
-    }
-    
+
     // Validar tipo
     if (!file.type.startsWith('image/')) {
         Utils.mostrarNotificacion('Solo se permiten archivos de imagen', 'error');
         event.target.value = '';
         return;
     }
-    
-    // Convertir a base64 y comprimir con canvas para reducir peso
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-            let w = img.width, h = img.height;
-            if (w > 1000) { h = Math.round(h * 1000 / w); w = 1000; }
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            const base64 = canvas.toDataURL('image/jpeg', 0.7);
-            if (tipo === 'dni_frontal') imagenDNIFrontal = base64;
-            else if (tipo === 'dni_reverso') imagenDNIReverso = base64;
-            else if (tipo === 'foto_carnet') imagenFotoCarnet = base64;
-            mostrarPreview(base64, tipo);
-        };
-        img.onerror = function() { Utils.mostrarNotificacion('Error al procesar la imagen', 'error'); };
-        img.src = e.target.result;
-    };
-    reader.onerror = function() {
-        Utils.mostrarNotificacion('Error al cargar la imagen', 'error');
-    };
-    reader.readAsDataURL(file);
+
+    try {
+        const uploadBtn = document.getElementById(`upload_btn_${tipo}`);
+        if (uploadBtn) uploadBtn.textContent = 'Comprimiendo...';
+
+        // Comprimir: máx 1024px de ancho, calidad JPEG 75%
+        const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let w = img.width, h = img.height;
+                    if (w > 1024) { h = Math.round(h * 1024 / w); w = 1024; }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.75));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+
+        if (tipo === 'dni_frontal') imagenDNIFrontal = base64;
+        else if (tipo === 'dni_reverso') imagenDNIReverso = base64;
+        else if (tipo === 'foto_carnet') imagenFotoCarnet = base64;
+
+        mostrarPreview(base64, tipo);
+
+        const kb = Math.round((base64.length * 3) / 4 / 1024);
+        console.log(`📸 ${tipo}: comprimido a ~${kb}KB`);
+
+    } catch (err) {
+        console.error('Error al comprimir imagen:', err);
+        Utils.mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+        event.target.value = '';
+    }
 }
 
 /**

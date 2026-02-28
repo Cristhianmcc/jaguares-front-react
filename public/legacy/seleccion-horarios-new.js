@@ -187,9 +187,9 @@ async function initSeleccionHorariosNew() {
     
     if (!datosInscripcion || !datosInscripcion.alumno) {
         mostrarModal(
-            'No se pudieron guardar tus datos del paso 1. Esto ocurre cuando las imágenes subidas son demasiado pesadas.<br><br>' +
-            '<strong>¿Qué hacer?</strong> Regresa al paso 1 y sube imágenes de menor resolución o tamaño (menos de 2MB cada una).<br><br>' +
-            '¿Tienes imágenes muy pesadas? Puedes comprimirlas aquí: <a href="https://www.iloveimg.com/es/comprimir-imagen/comprimir-jpg" target="_blank" rel="noopener noreferrer" style="color:#f59e0b;text-decoration:underline;font-weight:bold;">iLoveIMG - Comprimir imágenes</a>',
+            'No se encontraron los datos del paso 1. Esto puede ocurrir si cerraste el navegador o hubo un problema al guardar.<br><br>' +
+            '<strong>¿Qué hacer?</strong> Regresa al paso 1 y completa el formulario nuevamente.<br><br>' +
+            '<small>Las imágenes se comprimen automáticamente, no es necesario reducirlas manualmente.</small>',
             'warning'
         );
         // Al hacer click en "Entendido", redirigir al paso 1 en lugar de cerrar el modal
