@@ -456,16 +456,57 @@ async function renderizarExito(codigo, datosInscripcion) {
                     </div>
                 </div>
                 
-                <!-- Aviso Pago en Efectivo -->
-                <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-3">
-                    <div class="flex items-start gap-2">
-                        <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-lg mt-0.5">payments</span>
-                        <div class="flex-1">
-                            <p class="text-xs font-bold text-amber-900 dark:text-amber-200 mb-1"><span class="material-symbols-outlined text-xs align-middle">payments</span> Pago en Efectivo:</p>
-                            <p class="text-xs text-amber-800 dark:text-amber-300">
-                                Deberás acercarte a <strong>Jaguares</strong> para realizar el pago presencial. 
-                                Las clases NO se activarán hasta confirmar el pago.
-                            </p>
+                <!-- ACORDEÓN: PAGO EN EFECTIVO / RECIBO -->
+                <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
+                    <!-- HEADER EFECTIVO -->
+                    <button onclick="toggleMetodoPago('efectivo')" class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="size-9 bg-white rounded-lg flex items-center justify-center px-1">
+                                <span class="material-symbols-outlined text-amber-600 text-3xl">payments</span>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-white font-black text-lg">EFECTIVO EN OFICINA</p>
+                                <p class="text-yellow-100 text-xs">Sube tu recibo de pago</p>
+                            </div>
+                        </div>
+                        <span id="iconEfectivo" class="material-symbols-outlined text-white text-2xl transition-transform">expand_more</span>
+                    </button>
+                    <div id="contentEfectivo" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-amber-200 dark:border-amber-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
+                        <div class="space-y-3">
+                            <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-200 dark:border-amber-800">
+                                <div class="flex items-start gap-2">
+                                    <span class="material-symbols-outlined text-amber-600 text-lg mt-0.5">info</span>
+                                    <div>
+                                        <p class="text-xs font-bold text-amber-900 dark:text-amber-200 mb-1">¿Pagaste en oficina?</p>
+                                        <p class="text-xs text-amber-800 dark:text-amber-300">Toma una foto al <strong>recibo físico</strong> que te entregamos y súbelo aquí. Tu inscripción se activará una vez confirmemos el pago.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white dark:bg-white/10 rounded-xl p-3 border border-amber-200 dark:border-amber-800">
+                                <div class="flex flex-col gap-2">
+                                    <p class="text-xs text-text-main/70 dark:text-white/70 font-medium flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-sm">upload_file</span>
+                                        Foto del recibo de pago
+                                    </p>
+                                    <input type="file" id="inputComprobanteEfectivo" accept="image/*" class="hidden" onchange="handleComprobanteBanco(event, 'Efectivo')">
+                                    <button onclick="document.getElementById('inputComprobanteEfectivo').click()" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-xs transition-all">
+                                        <span class="material-symbols-outlined text-base">add_photo_alternate</span>
+                                        <span>Subir Foto del Recibo</span>
+                                    </button>
+                                    <div id="previewEfectivo" class="hidden mt-2 bg-white/90 dark:bg-white/10 rounded-lg p-2">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <p class="text-[10px] font-bold text-amber-600 flex items-center gap-1">
+                                                <span class="material-symbols-outlined text-xs">check_circle</span>
+                                                Recibo adjunto
+                                            </p>
+                                            <button onclick="eliminarComprobanteBanco('Efectivo')" class="text-red-600 hover:text-red-700">
+                                                <span class="material-symbols-outlined text-sm">delete</span>
+                                            </button>
+                                        </div>
+                                        <img id="imagenPreviewEfectivo" src="" alt="Preview recibo" class="w-full max-h-20 object-contain rounded">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1220,6 +1261,7 @@ async function subirCapturaAlServidor() {
 // Variables globales para almacenar comprobantes de bancos
 let comprobanteBBVA = null;
 let comprobanteBCP = null;
+let comprobanteEfectivo = null;
 
 /**
  * Manejar la selección de comprobante bancario
@@ -1235,19 +1277,27 @@ function handleComprobanteBanco(event, banco) {
         return;
     }
     
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        Utils.mostrarNotificacion('La imagen no debe superar 5MB', 'error');
-        return;
-    }
+    // Comprimir imagen con Canvas (acepta cualquier tamaño)
+    const img = new Image();
+    const url = URL.createObjectURL(file);
     
-    // Leer archivo y convertir a Base64
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    img.onload = function() {
+        URL.revokeObjectURL(url);
+        const maxW = 1024;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        
+        const base64 = canvas.toDataURL('image/jpeg', 0.75);
+        
         const comprobante = {
             nombre: file.name,
-            tipo: file.type,
-            base64: e.target.result,
+            tipo: 'image/jpeg',
+            base64: base64,
             banco: banco
         };
         
@@ -1256,19 +1306,22 @@ function handleComprobanteBanco(event, banco) {
             comprobanteBBVA = comprobante;
         } else if (banco === 'BCP') {
             comprobanteBCP = comprobante;
+        } else if (banco === 'Efectivo') {
+            comprobanteEfectivo = comprobante;
         }
         
-        mostrarPreviewComprobanteBanco(e.target.result, banco);
+        mostrarPreviewComprobanteBanco(base64, banco);
         
         // Intentar subir automáticamente
         subirComprobanteBancoAlServidor(comprobante);
     };
     
-    reader.onerror = function() {
+    img.onerror = function() {
+        URL.revokeObjectURL(url);
         Utils.mostrarNotificacion('Error al leer la imagen', 'error');
     };
     
-    reader.readAsDataURL(file);
+    img.src = url;
 }
 
 /**
@@ -1307,6 +1360,8 @@ function eliminarComprobanteBanco(banco) {
         comprobanteBBVA = null;
     } else if (banco === 'BCP') {
         comprobanteBCP = null;
+    } else if (banco === 'Efectivo') {
+        comprobanteEfectivo = null;
     }
     
     Utils.mostrarNotificacion(`Comprobante ${banco} eliminado`, 'info');
