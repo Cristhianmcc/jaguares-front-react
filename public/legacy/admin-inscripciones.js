@@ -16,6 +16,8 @@ function getAuthHeadersInscripciones() {
 
 let inscripcionesData = [];
 let reporteData = [];
+let paginaActual = 1;
+const POR_PAGINA = 10;
 
 /**
  * Cargar inscripciones según filtro de estado de pago
@@ -36,6 +38,7 @@ async function cargarInscripciones() {
     
     if (data.success) {
       inscripcionesData = data.inscripciones;
+      paginaActual = 1;
       renderizarInscripciones(data.inscripciones);
       await cargarEstadisticasInscripciones();
     } else {
@@ -63,10 +66,16 @@ function renderizarInscripciones(inscripciones) {
         <p class="text-text-muted mt-4 text-lg">No se encontraron inscripciones</p>
       </div>
     `;
+    renderizarPaginacion(0, 0);
     return;
   }
-  
-  container.innerHTML = inscripciones.map(ins => `
+
+  const totalPaginas = Math.ceil(inscripciones.length / POR_PAGINA);
+  if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+  const inicio = (paginaActual - 1) * POR_PAGINA;
+  const pagina = inscripciones.slice(inicio, inicio + POR_PAGINA);
+
+  container.innerHTML = pagina.map(ins => `
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
       <div class="flex flex-col md:flex-row justify-between gap-4">
         <!-- Información del Usuario -->
@@ -182,6 +191,60 @@ function renderizarInscripciones(inscripciones) {
       </div>
     </div>
   `).join('');
+
+  renderizarPaginacion(inscripciones.length, totalPaginas);
+}
+
+function renderizarPaginacion(total, totalPaginas) {
+  let paginacionEl = document.getElementById('paginacionInscripciones');
+  if (!paginacionEl) {
+    const container = document.getElementById('tablaInscripcionesContainer');
+    paginacionEl = document.createElement('div');
+    paginacionEl.id = 'paginacionInscripciones';
+    container.appendChild(paginacionEl);
+  }
+
+  if (totalPaginas <= 1) { paginacionEl.innerHTML = ''; return; }
+
+  const inicio = (paginaActual - 1) * POR_PAGINA + 1;
+  const fin = Math.min(paginaActual * POR_PAGINA, total);
+
+  // Generar botones de página (máx 5 visibles)
+  let botonesHTML = '';
+  const rango = 2;
+  for (let i = 1; i <= totalPaginas; i++) {
+    if (i === 1 || i === totalPaginas || (i >= paginaActual - rango && i <= paginaActual + rango)) {
+      botonesHTML += `<button onclick="irAPagina(${i})" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+        i === paginaActual
+          ? 'bg-primary text-white'
+          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/20'
+      }">${i}</button>`;
+    } else if (i === paginaActual - rango - 1 || i === paginaActual + rango + 1) {
+      botonesHTML += `<span class="px-2 py-1.5 text-gray-400 text-sm">…</span>`;
+    }
+  }
+
+  paginacionEl.className = 'flex items-center justify-between px-2 py-4 mt-2 border-t border-gray-200 dark:border-gray-700';
+  paginacionEl.innerHTML = `
+    <p class="text-sm text-gray-500 dark:text-gray-400">Mostrando <span class="font-semibold text-black dark:text-white">${inicio}-${fin}</span> de <span class="font-semibold text-black dark:text-white">${total}</span> alumnos</p>
+    <div class="flex items-center gap-1">
+      <button onclick="irAPagina(${paginaActual - 1})" ${paginaActual === 1 ? 'disabled' : ''} class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <span class="material-symbols-outlined text-lg">chevron_left</span>
+      </button>
+      ${botonesHTML}
+      <button onclick="irAPagina(${paginaActual + 1})" ${paginaActual === totalPaginas ? 'disabled' : ''} class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <span class="material-symbols-outlined text-lg">chevron_right</span>
+      </button>
+    </div>
+  `;
+}
+
+function irAPagina(pagina) {
+  const totalPaginas = Math.ceil(inscripcionesData.length / POR_PAGINA);
+  if (pagina < 1 || pagina > totalPaginas) return;
+  paginaActual = pagina;
+  renderizarInscripciones(inscripcionesData);
+  document.getElementById('tablaInscripcionesContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**

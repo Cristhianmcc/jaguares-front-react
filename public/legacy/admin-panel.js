@@ -7,6 +7,8 @@
 
 
 let inscritosData = [];
+let paginaActualLista = 1;
+const POR_PAGINA_LISTA = 10;
 
 let dniSeleccionado = null;
 
@@ -430,6 +432,8 @@ async function cargarInscritos(dia = null, deporte = null) {
 
             inscritosData = data.inscritos;
 
+            paginaActualLista = 1;
+
             renderizarTabla(inscritosData);
 
             actualizarEstadisticas(inscritosData);
@@ -532,9 +536,14 @@ function renderizarTabla(inscritos) {
 
     });
 
-    
+    // Paginar por DNI
+    const inscritosArray = Array.from(porDni.values());
+    const totalPaginasLista = Math.ceil(inscritosArray.length / POR_PAGINA_LISTA);
+    if (paginaActualLista > totalPaginasLista) paginaActualLista = Math.max(1, totalPaginasLista);
+    const inicioLista = (paginaActualLista - 1) * POR_PAGINA_LISTA;
+    const paginaInscritos = inscritosArray.slice(inicioLista, inicioLista + POR_PAGINA_LISTA);
 
-    porDni.forEach(inscrito => {
+    paginaInscritos.forEach(inscrito => {
 
         const row = document.createElement('tr');
 
@@ -672,6 +681,53 @@ function renderizarTabla(inscritos) {
 
     sinResultados.classList.add('hidden');
 
+    renderizarPaginacionLista(inscritosArray.length, totalPaginasLista);
+
+}
+
+function renderizarPaginacionLista(total, totalPaginas) {
+    let paginacionEl = document.getElementById('paginacionListaInscritos');
+    if (!paginacionEl) {
+        const container = document.getElementById('tablaContainer');
+        paginacionEl = document.createElement('div');
+        paginacionEl.id = 'paginacionListaInscritos';
+        container.appendChild(paginacionEl);
+    }
+    if (totalPaginas <= 1) { paginacionEl.innerHTML = ''; return; }
+    const inicio = (paginaActualLista - 1) * POR_PAGINA_LISTA + 1;
+    const fin = Math.min(paginaActualLista * POR_PAGINA_LISTA, total);
+    const rango = 2;
+    let botonesHTML = '';
+    for (let i = 1; i <= totalPaginas; i++) {
+        if (i === 1 || i === totalPaginas || (i >= paginaActualLista - rango && i <= paginaActualLista + rango)) {
+            botonesHTML += `<button onclick="irAPaginaLista(${i})" class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${i === paginaActualLista ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/20'}">${i}</button>`;
+        } else if (i === paginaActualLista - rango - 1 || i === paginaActualLista + rango + 1) {
+            botonesHTML += `<span class="px-2 text-gray-400 text-sm">…</span>`;
+        }
+    }
+    paginacionEl.className = 'flex items-center justify-between px-2 py-4 mt-2 border-t border-gray-200 dark:border-gray-700';
+    paginacionEl.innerHTML = `
+        <p class="text-sm text-gray-500 dark:text-gray-400">Mostrando <span class="font-semibold text-black dark:text-white">${inicio}-${fin}</span> de <span class="font-semibold text-black dark:text-white">${total}</span> alumnos</p>
+        <div class="flex items-center gap-1">
+            <button onclick="irAPaginaLista(${paginaActualLista - 1})" ${paginaActualLista === 1 ? 'disabled' : ''} class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                <span class="material-symbols-outlined text-lg">chevron_left</span>
+            </button>
+            ${botonesHTML}
+            <button onclick="irAPaginaLista(${paginaActualLista + 1})" ${paginaActualLista === totalPaginas ? 'disabled' : ''} class="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                <span class="material-symbols-outlined text-lg">chevron_right</span>
+            </button>
+        </div>
+    `;
+}
+
+function irAPaginaLista(pagina) {
+    const porDni = new Map();
+    inscritosData.forEach(ins => { if (!porDni.has(ins.dni)) porDni.set(ins.dni, ins); });
+    const totalPaginas = Math.ceil(porDni.size / POR_PAGINA_LISTA);
+    if (pagina < 1 || pagina > totalPaginas) return;
+    paginaActualLista = pagina;
+    renderizarTabla(inscritosData);
+    document.getElementById('tablaContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function eliminarAlumnoCompleto(dni, nombre) {
