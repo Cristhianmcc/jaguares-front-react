@@ -291,7 +291,9 @@ async function cargarHorarios() {
         
         // Extraer año de nacimiento si existe
         if (fechaNacimiento) {
-            añoNacimientoGlobal = new Date(fechaNacimiento).getFullYear();
+            // Añadir T12:00:00 a fechas YYYY-MM-DD para evitar desfase por zona horaria UTC-5 (Perú)
+            const _fnDate = (typeof fechaNacimiento === 'string' && fechaNacimiento.length === 10) ? new Date(fechaNacimiento + 'T12:00:00') : new Date(fechaNacimiento);
+            añoNacimientoGlobal = _fnDate.getFullYear();
             edadCalculada = new Date().getFullYear() - añoNacimientoGlobal;
             console.log('Año de nacimiento calculado:', añoNacimientoGlobal);
             console.log('Edad calculada:', edadCalculada);
@@ -305,7 +307,7 @@ async function cargarHorarios() {
                     <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">cake</span>
                     <div>
                         <p class="text-sm font-semibold text-blue-900 dark:text-blue-100">Edad calculada: ${edadCalculada} años</p>
-                        <p class="text-xs text-blue-700 dark:text-blue-300">Fecha de nacimiento: ${new Date(fechaNacimiento).toLocaleDateString('es-PE')}</p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300">Fecha de nacimiento: ${_fnDate.toLocaleDateString('es-PE')}</p>
                     </div>
                 </div>
             `;

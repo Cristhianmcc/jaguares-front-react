@@ -1005,7 +1005,8 @@ const Utils = {
 
         const hoy = new Date();
 
-        const nacimiento = new Date(fechaNacimiento);
+        // Añadir T12:00:00 a fechas YYYY-MM-DD para evitar desfase por zona horaria UTC-5 (Perú)
+        const nacimiento = (typeof fechaNacimiento === 'string' && fechaNacimiento.length === 10) ? new Date(fechaNacimiento + 'T12:00:00') : new Date(fechaNacimiento);
 
         let edad = hoy.getFullYear() - nacimiento.getFullYear();
 
@@ -1079,7 +1080,10 @@ const Utils = {
 
         const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
 
-        return new Date(fecha).toLocaleDateString('es-PE', opciones);
+        // Añadir T12:00:00 a fechas YYYY-MM-DD para evitar desfase por zona horaria UTC-5 (Perú)
+        const d = (typeof fecha === 'string' && fecha.length === 10) ? new Date(fecha + 'T12:00:00') : new Date(fecha);
+
+        return d.toLocaleDateString('es-PE', opciones);
 
     },
 
