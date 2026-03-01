@@ -923,13 +923,27 @@ class LocalStorage {
 
     static set(key, value) {
 
+        const serialized = JSON.stringify(value);
+
         try {
 
-            localStorage.setItem(key, JSON.stringify(value));
+            localStorage.setItem(key, serialized);
 
         } catch (error) {
 
-            console.error('Error al guardar en localStorage:', error);
+            console.warn('Error al guardar en localStorage:', error);
+
+        }
+
+        // Guardar en sessionStorage como backup (más estable en móviles Android)
+
+        try {
+
+            sessionStorage.setItem(key, serialized);
+
+        } catch (error) {
+
+            console.warn('Error al guardar en sessionStorage:', error);
 
         }
 
@@ -943,15 +957,29 @@ class LocalStorage {
 
             const item = localStorage.getItem(key);
 
-            return item ? JSON.parse(item) : null;
+            if (item) return JSON.parse(item);
 
         } catch (error) {
 
-            console.error('Error al leer de localStorage:', error);
-
-            return null;
+            console.warn('Error al leer de localStorage:', error);
 
         }
+
+        // Fallback a sessionStorage si localStorage fue evictado por el navegador móvil
+
+        try {
+
+            const item = sessionStorage.getItem(key);
+
+            if (item) return JSON.parse(item);
+
+        } catch (error) {
+
+            console.warn('Error al leer de sessionStorage:', error);
+
+        }
+
+        return null;
 
     }
 

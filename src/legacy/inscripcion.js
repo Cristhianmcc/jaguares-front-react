@@ -19,17 +19,9 @@ function getAcademiaAPI() {
   return window.academiaAPI;
 }
 
-function manejarImagenSeleccionada(event, tipo) {
+async function manejarImagenSeleccionada(event, tipo) {
   const file = event.target.files[0];
-
   if (!file) return;
-
-  const maxSize = 5 * 1024 * 1024;
-  if (file.size > maxSize) {
-    getUtils().mostrarNotificacion('La imagen es muy grande. Máximo 5MB', 'error');
-    event.target.value = '';
-    return;
-  }
 
   if (!file.type.startsWith('image/')) {
     getUtils().mostrarNotificacion('Solo se permiten archivos de imagen', 'error');
@@ -37,26 +29,45 @@ function manejarImagenSeleccionada(event, tipo) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    const base64 = e.target.result;
+  try {
+    const uploadBtn = document.getElementById(`upload_btn_${tipo}`);
+    if (uploadBtn) uploadBtn.textContent = 'Comprimiendo...';
 
-    if (tipo === 'dni_frontal') {
-      imagenDNIFrontal = base64;
-    } else if (tipo === 'dni_reverso') {
-      imagenDNIReverso = base64;
-    } else if (tipo === 'foto_carnet') {
-      imagenFotoCarnet = base64;
-    }
+    // Comprimir con Canvas: máx 1024px, calidad JPEG 75% (~200KB sin importar el tamaño original)
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          let w = img.width, h = img.height;
+          if (w > 1024) { h = Math.round(h * 1024 / w); w = 1024; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    if (tipo === 'dni_frontal') imagenDNIFrontal = base64;
+    else if (tipo === 'dni_reverso') imagenDNIReverso = base64;
+    else if (tipo === 'foto_carnet') imagenFotoCarnet = base64;
 
     mostrarPreview(base64, tipo);
-  };
 
-  reader.onerror = function () {
-    getUtils().mostrarNotificacion('Error al cargar la imagen', 'error');
-  };
+    const kb = Math.round((base64.length * 3) / 4 / 1024);
+    console.log(`📸 ${tipo}: comprimido a ~${kb}KB`);
 
-  reader.readAsDataURL(file);
+  } catch (err) {
+    console.error('Error al comprimir imagen:', err);
+    getUtils().mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+    event.target.value = '';
+  }
 }
 
 function mostrarPreview(base64, tipo) {
@@ -109,7 +120,19 @@ function cargarDatosGuardados() {
     document.getElementById('nombres').value = alumno.nombres || '';
     document.getElementById('apellido_paterno').value = alumno.apellido_paterno || '';
     document.getElementById('apellido_materno').value = alumno.apellido_materno || '';
-    document.getElementById('fecha_nacimiento').value = alumno.fecha_nacimiento || '';
+    // Restaurar fecha en el hidden input y en los 3 selects
+    if (alumno.fecha_nacimiento) {
+      document.getElementById('fecha_nacimiento').value = alumno.fecha_nacimiento;
+      const partes = alumno.fecha_nacimiento.split('-'); // [YYYY, MM, DD]
+      if (partes.length === 3) {
+        const s = document.getElementById('dia_nac');
+        const m = document.getElementById('mes_nac');
+        const a = document.getElementById('anio_nac');
+        if (s) s.value  = partes[2];
+        if (m) m.value  = partes[1];
+        if (a) a.value  = partes[0];
+      }
+    }
     document.getElementById('telefono').value = alumno.telefono || '';
     document.getElementById('direccion').value = alumno.direccion || '';
     document.getElementById('email').value = alumno.email || '';
@@ -205,6 +228,13 @@ async function handleSubmit(e) {
 
   const dni = document.getElementById('dni').value.trim();
 
+  const fechaVal = document.getElementById('fecha_nacimiento').value;
+  if (!fechaVal) {
+    getUtils().mostrarNotificacion('Debes seleccionar la fecha de nacimiento', 'error');
+    document.getElementById('fecha-helper')?.classList.remove('hidden');
+    return;
+  }
+
   if (!imagenDNIFrontal || !imagenDNIReverso || !imagenFotoCarnet) {
     getUtils().mostrarNotificacion('Debes subir todas las imágenes requeridas (DNI frontal, DNI reverso y foto carnet)', 'error');
     return;
@@ -280,6 +310,41 @@ export function initInscripcion() {
   const form = document.getElementById('formInscripcion');
   const btnBuscarDni = document.getElementById('btnBuscarDni');
   const fechaNacimientoInput = document.getElementById('fecha_nacimiento');
+
+  // Poblar select de días (01-31)
+  const selDia = document.getElementById('dia_nac');
+  const selAnio = document.getElementById('anio_nac');
+  if (selDia) {
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = String(d).padStart(2, '0');
+      opt.textContent = d;
+      selDia.appendChild(opt);
+    }
+  }
+  if (selAnio) {
+    const anioActual = new Date().getFullYear();
+    for (let y = anioActual - 2; y >= 1980; y--) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      selAnio.appendChild(opt);
+    }
+  }
+
+  // Sincronizar selects → hidden input → verificarEdad
+  const actualizarFecha = () => {
+    const d = selDia?.value, m = document.getElementById('mes_nac')?.value, a = selAnio?.value;
+    if (d && m && a) {
+      fechaNacimientoInput.value = `${a}-${m}-${d}`;
+      verificarEdad();
+    } else {
+      fechaNacimientoInput.value = '';
+    }
+  };
+  selDia?.addEventListener('change', actualizarFecha);
+  document.getElementById('mes_nac')?.addEventListener('change', actualizarFecha);
+  selAnio?.addEventListener('change', actualizarFecha);
 
   cargarDatosGuardados();
 

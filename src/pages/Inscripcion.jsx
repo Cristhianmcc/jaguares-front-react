@@ -103,9 +103,31 @@ const html = `
                             <label class="text-text-main dark:text-gray-300 text-xs font-bold uppercase tracking-wider">
                                 Fecha de Nacimiento <span class="text-red-500">*</span>
                             </label>
-                            <div class="relative">
-                                <input id="fecha_nacimiento" name="fecha_nacimiento" class="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-gray-400 transition-all shadow-sm text-gray-500 dark:text-gray-300 group-hover:border-primary/50" type="date" required/>
+                            <input type="hidden" id="fecha_nacimiento" name="fecha_nacimiento"/>
+                            <div class="grid grid-cols-3 gap-2">
+                                <select id="dia_nac" class="w-full h-12 px-2 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm text-gray-500 dark:text-gray-300">
+                                    <option value="">Día</option>
+                                </select>
+                                <select id="mes_nac" class="w-full h-12 px-2 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm text-gray-500 dark:text-gray-300">
+                                    <option value="">Mes</option>
+                                    <option value="01">Enero</option>
+                                    <option value="02">Febrero</option>
+                                    <option value="03">Marzo</option>
+                                    <option value="04">Abril</option>
+                                    <option value="05">Mayo</option>
+                                    <option value="06">Junio</option>
+                                    <option value="07">Julio</option>
+                                    <option value="08">Agosto</option>
+                                    <option value="09">Septiembre</option>
+                                    <option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option>
+                                    <option value="12">Diciembre</option>
+                                </select>
+                                <select id="anio_nac" class="w-full h-12 px-2 rounded-lg border border-gray-300 bg-white dark:bg-[#252525] dark:border-gray-700 dark:text-white text-sm focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm text-gray-500 dark:text-gray-300">
+                                    <option value="">Año</option>
+                                </select>
                             </div>
+                            <span class="text-xs text-red-500 hidden" id="fecha-helper">Selecciona día, mes y año</span>
                         </div>
                     </div>
 
@@ -338,11 +360,7 @@ const html = `
 
                         <p class="text-xs text-text-muted dark:text-gray-400">
                             <span class="material-symbols-outlined text-sm align-middle">info</span>
-                            Las imágenes deben ser claras y legibles. Formatos aceptados: JPG, PNG. Tamaño máximo: 5MB por imagen.
-                        </p>
-                        <p class="text-xs text-text-muted dark:text-gray-400 mt-1">
-                            <span class="material-symbols-outlined text-sm align-middle">compress</span>
-                            ¿Imagen muy pesada? Comprímela gratis aquí: <a href="https://www.iloveimg.com/es/comprimir-imagen/comprimir-jpg" target="_blank" rel="noopener noreferrer" class="text-primary dark:text-primary underline font-semibold hover:opacity-80">iLoveIMG</a>
+                            Las imágenes deben ser claras y legibles. Formatos aceptados: JPG, PNG. Se comprimen automáticamente al subirlas.
                         </p>
                     </div>
 
