@@ -1033,8 +1033,9 @@ const Utils = {
 
         const hoy = new Date();
 
-        // Añadir T12:00:00 a fechas YYYY-MM-DD para evitar desfase por zona horaria UTC-5 (Perú)
-        const nacimiento = (typeof fechaNacimiento === 'string' && fechaNacimiento.length === 10) ? new Date(fechaNacimiento + 'T12:00:00') : new Date(fechaNacimiento);
+        // Extraer parte YYYY-MM-DD (funciona para "2016-06-19" y "2016-06-19T00:00:00.000Z")
+        const datePart = typeof fechaNacimiento === 'string' ? fechaNacimiento.substring(0, 10) : null;
+        const nacimiento = datePart ? new Date(datePart + 'T12:00:00') : new Date(fechaNacimiento);
 
         let edad = hoy.getFullYear() - nacimiento.getFullYear();
 
@@ -1108,8 +1109,9 @@ const Utils = {
 
         const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
 
-        // Añadir T12:00:00 a fechas YYYY-MM-DD para evitar desfase por zona horaria UTC-5 (Perú)
-        const d = (typeof fecha === 'string' && fecha.length === 10) ? new Date(fecha + 'T12:00:00') : new Date(fecha);
+        // Extraer parte YYYY-MM-DD (funciona para "2016-06-19" y "2016-06-19T00:00:00.000Z")
+        const datePart = typeof fecha === 'string' ? fecha.substring(0, 10) : null;
+        const d = datePart ? new Date(datePart + 'T12:00:00') : new Date(fecha);
 
         return d.toLocaleDateString('es-PE', opciones);
 

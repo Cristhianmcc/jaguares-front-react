@@ -859,9 +859,10 @@ function imprimirReporte() {
  */
 function formatearFecha(fecha) {
   if (!fecha) return 'N/A';
-  // Añadir T12:00:00 a fechas YYYY-MM-DD para evitar desfase por zona horaria UTC-5 (Perú)
-  const s = (typeof fecha === 'string' && fecha.length === 10) ? fecha + 'T12:00:00' : fecha;
-  const d = new Date(s);
+  // Extraer solo la parte YYYY-MM-DD (funciona tanto para "2016-06-19" como "2016-06-19T00:00:00.000Z")
+  // y usar T12:00:00 para evitar desfase UTC-5 (Perú)
+  const datePart = typeof fecha === 'string' ? fecha.substring(0, 10) : null;
+  const d = datePart ? new Date(datePart + 'T12:00:00') : new Date(fecha);
   return d.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
