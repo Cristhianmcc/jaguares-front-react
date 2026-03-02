@@ -742,29 +742,31 @@ function mostrarModalInactivo(dni) {
 function previsualizarComprobanteInactivo(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
-    // Validar tipo
+
     if (!file.type.startsWith('image/')) {
         mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
         return;
     }
-    
-    // Validar tamaño (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        mostrarNotificacion('La imagen no debe superar 5MB', 'error');
-        return;
-    }
-    
-    // Mostrar preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('imgComprobanteInactivo').src = e.target.result;
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function() {
+        URL.revokeObjectURL(url);
+        const maxW = 1024;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        window._base64Inactivo = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('imgComprobanteInactivo').src = window._base64Inactivo;
         document.getElementById('nombreArchivoInactivo').textContent = file.name;
         document.getElementById('iconoSubidaInactivo').classList.add('hidden');
         document.getElementById('previewComprobanteInactivo').classList.remove('hidden');
         document.getElementById('btnSubirComprobanteInactivo').disabled = false;
     };
-    reader.readAsDataURL(file);
+    img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
+    img.src = url;
 }
 
 /**
@@ -790,14 +792,10 @@ async function subirComprobanteInactivo() {
     btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div><span>Subiendo...</span>';
     
     try {
-        // Convertir imagen a Base64
-        const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-        
+        // Usar base64 comprimido generado al previsualizar
+        const base64 = window._base64Inactivo;
+        if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+
         // Usar el endpoint de pago Mensual (que es el que usa el modal de inactivo para regularizar)
         const resultado = await academiaAPI.subirPagoMensual({
             dni: dni,
@@ -989,26 +987,28 @@ function cerrarModalSubirComprobante() {
 function previsualizarComprobante(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
-    // Validar tipo
+
     if (!file.type.startsWith('image/')) {
         mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
         return;
     }
-    
-    // Validar tamaño (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        mostrarNotificacion('La imagen no debe superar 5MB', 'error');
-        return;
-    }
-    
-    // Mostrar preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('imgPreview').src = e.target.result;
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function() {
+        URL.revokeObjectURL(url);
+        const maxW = 1024;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        window._base64Tardio = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('imgPreview').src = window._base64Tardio;
         document.getElementById('previsualizacionComprobante').classList.remove('hidden');
     };
-    reader.readAsDataURL(file);
+    img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
+    img.src = url;
 }
 
 async function subirComprobanteTardio() {
@@ -1026,14 +1026,10 @@ async function subirComprobanteTardio() {
     btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-black"></div><span>Subiendo...</span>';
     
     try {
-        // Convertir imagen a Base64
-        const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-        
+        // Usar base64 comprimido generado al previsualizar
+        const base64 = window._base64Tardio;
+        if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+
         // Usar la API igual que en exito.js
         const resultado = await academiaAPI.subirComprobanteTardio(dni, {
             imagen: base64,
@@ -1190,29 +1186,31 @@ function renderizarSeccionPagoMensual() {
 function previsualizarPagoMensual(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
-    // Validar tipo
+
     if (!file.type.startsWith('image/')) {
         mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
         return;
     }
-    
-    // Validar tamaño (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        mostrarNotificacion('La imagen no debe superar 5MB', 'error');
-        return;
-    }
-    
-    // Mostrar preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        document.getElementById('imgPagoMensual').src = e.target.result;
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function() {
+        URL.revokeObjectURL(url);
+        const maxW = 1024;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        window._base64Mensual = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('imgPagoMensual').src = window._base64Mensual;
         document.getElementById('nombreArchivoPago').textContent = file.name;
         document.getElementById('iconoSubidaMensual').classList.add('hidden');
         document.getElementById('previewPagoMensual').classList.remove('hidden');
         document.getElementById('btnSubirPagoMensual').disabled = false;
     };
-    reader.readAsDataURL(file);
+    img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
+    img.src = url;
 }
 
 /**
@@ -1232,14 +1230,10 @@ async function subirPagoMensual() {
     btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div><span>Subiendo a Drive...</span>';
     
     try {
-        // Convertir imagen a Base64
-        const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-        
+        // Usar base64 comprimido generado al previsualizar
+        const base64 = window._base64Mensual;
+        if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+
         // Obtener mes actual para el nombre
         const hoy = new Date();
         const mesAnio = hoy.toLocaleString('es-PE', { month: 'long', year: 'numeric' }).replace(' ', '-');

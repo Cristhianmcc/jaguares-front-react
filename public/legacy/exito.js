@@ -1094,32 +1094,41 @@ function handleCapturaPago(event) {
         return;
     }
     
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        Utils.mostrarNotificacion('La imagen no debe superar 5MB', 'error');
-        return;
-    }
-    
-    // Leer archivo y convertir a Base64
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    // Comprimir con Canvas: máx 1024px, JPEG 75% — sin límite de tamaño
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = function() {
+        URL.revokeObjectURL(url);
+        const maxW = 1024;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+        const base64 = canvas.toDataURL('image/jpeg', 0.75);
+
         capturaSeleccionada = {
             nombre: file.name,
-            tipo: file.type,
-            base64: e.target.result
+            tipo: 'image/jpeg',
+            base64: base64
         };
-        
-        mostrarPreviewCaptura(e.target.result, file.name);
-        
+
+        mostrarPreviewCaptura(base64, file.name);
+
         // Intentar subir automáticamente
         subirCapturaAlServidor();
     };
-    
-    reader.onerror = function() {
+
+    img.onerror = function() {
+        URL.revokeObjectURL(url);
         Utils.mostrarNotificacion('Error al leer la imagen', 'error');
     };
-    
-    reader.readAsDataURL(file);
+
+    img.src = url;
 }
 
 /**

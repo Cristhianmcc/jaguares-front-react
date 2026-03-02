@@ -190,6 +190,50 @@ function verificarEdad() {
   }
 }
 
+async function verificarYaMostrarModal(dni) {
+  try {
+    const res = await fetch(`/api/mis-inscripciones/${encodeURIComponent(dni)}`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    const inscripciones = data.inscripciones || data || [];
+    const activas = inscripciones.filter(i => i.estado === 'activa' || i.estado === 'pagado');
+    if (activas.length === 0) return false;
+
+    // Tiene inscripción activa — mostrar modal
+    const deportes = activas.map(i => i.deporte || i.nombre_deporte || '').filter(Boolean).join(', ');
+    const modalHTML = `
+      <div id="modalYaInscrito" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div class="flex items-start gap-4 mb-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <span class="material-symbols-outlined text-3xl text-blue-600">info</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-bold text-black dark:text-white mb-1">Ya estás inscrito</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-300">El DNI <strong>${dni}</strong> ya tiene una inscripción activa${deportes ? ` en: <strong>${deportes}</strong>` : ''}.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Si deseas subir tu comprobante de pago o ver tus detalles, ve a <strong>Consulta tu inscripción</strong>.</p>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-6">
+            <a href="/consulta?dni=${dni}" 
+               class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all text-center text-sm">
+              Ver mi inscripción
+            </a>
+            <button onclick="document.getElementById('modalYaInscrito').remove()" 
+                    class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold transition-colors text-sm">
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('modalYaInscrito')?.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    return true;
+  } catch (_) {
+    return false; // Si falla la consulta, dejar continuar normalmente
+  }
+}
+
 async function buscarDNI() {
   const dniInput = document.getElementById('dni');
   const dni = dniInput.value.trim();
@@ -239,6 +283,13 @@ async function handleSubmit(e) {
   e.preventDefault();
 
   const dni = document.getElementById('dni').value.trim();
+  const tipoDoc = document.getElementById('tipo_documento')?.value || 'DNI';
+
+  // Verificar si ya está inscrito antes de continuar (solo DNI peruano)
+  if (tipoDoc === 'DNI' && getUtils().validarDNI(dni)) {
+    const yaInscrito = await verificarYaMostrarModal(dni);
+    if (yaInscrito) return;
+  }
 
   const fechaVal = document.getElementById('fecha_nacimiento').value;
   if (!fechaVal) {
