@@ -196,11 +196,18 @@ async function verificarYaMostrarModal(dni) {
     if (!res.ok) return false;
     const data = await res.json();
     const inscripciones = data.inscripciones || data || [];
-    const activas = inscripciones.filter(i => i.estado === 'activa' || i.estado === 'pagado');
+    const activas = inscripciones.filter(i => i.estado === 'activa' || i.estado === 'pagado' || i.estado === 'pendiente');
     if (activas.length === 0) return false;
 
     // Tiene inscripción activa — mostrar modal
     const deportes = activas.map(i => i.deporte || i.nombre_deporte || '').filter(Boolean).join(', ');
+    const hayPendiente = activas.some(i => i.estado === 'pendiente');
+    const mensajeEstado = hayPendiente
+      ? 'ya tiene una inscripción registrada'
+      : 'ya tiene una inscripción activa';
+    const mensajeSecundario = hayPendiente
+      ? 'Si ya subiste tu comprobante de pago, espera la aprobación del administrador. De lo contrario, sube tu comprobante en <strong>Consulta tu inscripción</strong>.'
+      : 'Si deseas subir tu comprobante de pago o ver tus detalles, ve a <strong>Consulta tu inscripción</strong>.';
     const modalHTML = `
       <div id="modalYaInscrito" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -210,8 +217,8 @@ async function verificarYaMostrarModal(dni) {
             </div>
             <div class="flex-1">
               <h3 class="text-lg font-bold text-black dark:text-white mb-1">Ya estás inscrito</h3>
-              <p class="text-sm text-gray-600 dark:text-gray-300">El DNI <strong>${dni}</strong> ya tiene una inscripción activa${deportes ? ` en: <strong>${deportes}</strong>` : ''}.</p>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Si deseas subir tu comprobante de pago o ver tus detalles, ve a <strong>Consulta tu inscripción</strong>.</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300">El DNI <strong>${dni}</strong> ${mensajeEstado}${deportes ? ` en: <strong>${deportes}</strong>` : ''}.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">${mensajeSecundario}</p>
             </div>
           </div>
           <div class="flex gap-3 mt-6">
@@ -238,15 +245,38 @@ async function buscarDNI() {
   const dniInput = document.getElementById('dni');
   const dni = dniInput.value.trim();
   const helper = document.getElementById('dni-helper');
+  const tipoDoc = document.getElementById('tipo_documento')?.value || 'DNI';
 
-  if (!getUtils().validarDNI(dni)) {
+  // Validar formato
+  if (tipoDoc === 'DNI' && !getUtils().validarDNI(dni)) {
     getUtils().mostrarNotificacion('El DNI debe tener 8 dígitos', 'error');
+    return;
+  }
+  if (tipoDoc !== 'DNI' && dni.length < 5) {
+    getUtils().mostrarNotificacion('Ingresa el número de documento completo', 'error');
+    return;
+  }
+
+  // Para documentos no-DNI no se consulta la API
+  if (tipoDoc !== 'DNI') {
+    dniValidado = true;
+    helper.classList.remove('hidden');
+    helper.textContent = '✓ Documento ingresado';
+    helper.className = 'text-sm text-green-600 mt-1 font-semibold';
+    setTimeout(() => { helper.classList.add('hidden'); }, 3000);
     return;
   }
 
   helper.classList.remove('hidden');
-  helper.textContent = 'Verificando DNI...';
+  helper.textContent = 'Verificando...';
   helper.className = 'text-sm text-blue-600 mt-1';
+
+  // Verificar si ya está inscrito con este DNI
+  const yaInscrito = await verificarYaMostrarModal(dni);
+  if (yaInscrito) {
+    helper.classList.add('hidden');
+    return;
+  }
 
   try {
     const response = await getAcademiaAPI().validarDNI(dni);
