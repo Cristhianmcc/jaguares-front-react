@@ -10,12 +10,50 @@ let imagenDNIFrontal = null;
 let imagenDNIReverso = null;
 let imagenFotoCarnet = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+export function initInscripcion() {
     const form = document.getElementById('formInscripcion');
     const btnBuscarDni = document.getElementById('btnBuscarDni');
     const apoderadoSection = document.getElementById('apoderadoSection');
     const fechaNacimientoInput = document.getElementById('fecha_nacimiento');
     
+    // Inicializar selects de fecha de nacimiento
+    const selDia  = document.getElementById('dia_nac');
+    const selMes  = document.getElementById('mes_nac');
+    const selAnio = document.getElementById('anio_nac');
+
+    if (selDia && selMes && selAnio) {
+        // Poblar días 1-31
+        for (let d = 1; d <= 31; d++) {
+            const opt = document.createElement('option');
+            opt.value = String(d).padStart(2, '0');
+            opt.textContent = d;
+            selDia.appendChild(opt);
+        }
+        // Poblar años (más reciente primero para niños)
+        const anioActual = new Date().getFullYear();
+        for (let y = anioActual - 2; y >= 1980; y--) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            selAnio.appendChild(opt);
+        }
+
+        // Al cambiar cualquier select → actualizar hidden input y disparar change
+        const actualizarFecha = () => {
+            const d = selDia.value, m = selMes.value, a = selAnio.value;
+            if (d && m && a) {
+                fechaNacimientoInput.value = `${a}-${m}-${d}`;
+                fechaNacimientoInput.dispatchEvent(new Event('change'));
+                document.getElementById('fecha-helper') && document.getElementById('fecha-helper').classList.add('hidden');
+            } else {
+                fechaNacimientoInput.value = '';
+            }
+        };
+        selDia.addEventListener('change', actualizarFecha);
+        selMes.addEventListener('change', actualizarFecha);
+        selAnio.addEventListener('change', actualizarFecha);
+    }
+
     // Cargar datos guardados si existen
     cargarDatosGuardados();
     
@@ -42,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Submit del formulario
     form.addEventListener('submit', handleSubmit);
-});
+}
 
 /**
  * Manejar selección de imagen: comprime automáticamente con canvas y convierte a base64.
@@ -160,7 +198,19 @@ function cargarDatosGuardados() {
         document.getElementById('nombres').value = alumno.nombres || '';
         document.getElementById('apellido_paterno').value = alumno.apellido_paterno || '';
         document.getElementById('apellido_materno').value = alumno.apellido_materno || '';
-        document.getElementById('fecha_nacimiento').value = alumno.fecha_nacimiento || '';
+        // Restaurar fecha en los 3 selects
+        if (alumno.fecha_nacimiento) {
+            const partes = alumno.fecha_nacimiento.split('-'); // [YYYY, MM, DD]
+            if (partes.length === 3) {
+                const selDia2  = document.getElementById('dia_nac');
+                const selMes2  = document.getElementById('mes_nac');
+                const selAnio2 = document.getElementById('anio_nac');
+                if (selDia2)  selDia2.value  = partes[2];
+                if (selMes2)  selMes2.value  = partes[1];
+                if (selAnio2) selAnio2.value = partes[0];
+            }
+            document.getElementById('fecha_nacimiento').value = alumno.fecha_nacimiento;
+        }
         document.getElementById('telefono').value = alumno.telefono || '';
         document.getElementById('direccion').value = alumno.direccion || '';
         document.getElementById('email').value = alumno.email || '';
@@ -180,6 +230,20 @@ function cargarDatosGuardados() {
         // Verificar edad
         if (alumno.fecha_nacimiento) {
             verificarEdad();
+        }
+
+        // Restaurar imágenes guardadas (para cuando el usuario vuelve del paso 2)
+        if (alumno.imagen_dni_frontal) {
+            imagenDNIFrontal = alumno.imagen_dni_frontal;
+            mostrarPreview(imagenDNIFrontal, 'dni_frontal');
+        }
+        if (alumno.imagen_dni_reverso) {
+            imagenDNIReverso = alumno.imagen_dni_reverso;
+            mostrarPreview(imagenDNIReverso, 'dni_reverso');
+        }
+        if (alumno.imagen_foto_carnet) {
+            imagenFotoCarnet = alumno.imagen_foto_carnet;
+            mostrarPreview(imagenFotoCarnet, 'foto_carnet');
         }
     }
 }
@@ -342,21 +406,47 @@ async function handleSubmit(e) {
         return;
     }
     
-    // Guardar en localStorage - puede fallar si las imágenes pesan demasiado
+    // Guardar en localStorage Y sessionStorage (sessionStorage es más estable en móviles)
+    const datosParaGuardar = JSON.stringify({
+        alumno,
+        paso: 1,
+        fecha: new Date().toISOString()
+    });
+
+    let guardadoOk = false;
     try {
-        localStorage.setItem('datosInscripcion', JSON.stringify({
-            alumno,
-            paso: 1,
-            fecha: new Date().toISOString()
-        }));
+        localStorage.setItem('datosInscripcion', datosParaGuardar);
+        guardadoOk = true;
     } catch (err) {
+        console.warn('localStorage falló, usando solo sessionStorage:', err);
+    }
+
+    // Siempre guardar en sessionStorage como backup (no se evicta entre páginas en la misma pestaña)
+    try {
+        sessionStorage.setItem('datosInscripcion', datosParaGuardar);
+        guardadoOk = true;
+    } catch (err2) {
+        console.warn('sessionStorage también falló:', err2);
+    }
+
+    if (!guardadoOk) {
         Utils.mostrarNotificacion(
-            'No se pudo continuar porque las imágenes son demasiado pesadas. Sube imágenes más pequeñas (menos de 2MB cada una) e inténtalo de nuevo.',
+            'No se pudo guardar la información. Las imágenes pueden ser demasiado pesadas. Inténtalo de nuevo.',
             'error'
         );
         return;
     }
-    
+
+    // Verificar que realmente se guardó
+    const verificacion = localStorage.getItem('datosInscripcion') || sessionStorage.getItem('datosInscripcion');
+    if (!verificacion) {
+        Utils.mostrarNotificacion('Error al guardar datos. Por favor, intenta de nuevo.', 'error');
+        return;
+    }
+
+    // Pequeño delay para garantizar el flush en navegadores móviles antes de redirigir
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Ir al siguiente paso - CRONOGRAMA NUEVO
     window.location.href = 'seleccion-horarios-new.html';
 }

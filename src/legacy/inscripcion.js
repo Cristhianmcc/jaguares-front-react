@@ -31,7 +31,10 @@ async function manejarImagenSeleccionada(event, tipo) {
 
   try {
     const uploadBtn = document.getElementById(`upload_btn_${tipo}`);
-    if (uploadBtn) uploadBtn.textContent = 'Comprimiendo...';
+    if (uploadBtn) {
+      const textoSpan = uploadBtn.querySelector('span:last-child');
+      if (textoSpan) textoSpan.textContent = 'Comprimiendo...';
+    }
 
     // Comprimir con Canvas: máx 1024px, calidad JPEG 75% (~200KB sin importar el tamaño original)
     const base64 = await new Promise((resolve, reject) => {
@@ -65,6 +68,12 @@ async function manejarImagenSeleccionada(event, tipo) {
 
   } catch (err) {
     console.error('Error al comprimir imagen:', err);
+    // Restaurar el botón si falló la compresión
+    const uploadBtnErr = document.getElementById(`upload_btn_${tipo}`);
+    if (uploadBtnErr) {
+      const textoSpan = uploadBtnErr.querySelector('span:last-child');
+      if (textoSpan) textoSpan.textContent = 'Subir imagen';
+    }
     getUtils().mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
     event.target.value = '';
   }
@@ -105,6 +114,9 @@ export function eliminarImagen(tipo) {
 
   if (uploadBtn) {
     uploadBtn.classList.remove('hidden');
+    // Restaurar el texto del span por si quedó como 'Comprimiendo...'
+    const textoSpan = uploadBtn.querySelector('span:last-child');
+    if (textoSpan) textoSpan.textContent = 'Subir imagen';
   }
 
   getUtils().mostrarNotificacion('Imagen eliminada correctamente', 'success');
