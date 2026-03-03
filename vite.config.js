@@ -12,5 +12,19 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    // Split inteligente: cada vendor en su propio chunk → mejor cache de browser
+    // cuando solo cambia el código de la app, los chunks de vendor no cambian
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react':  ['react', 'react-dom'],
+          'vendor-swr':    ['swr'],
+          'vendor-dndkit': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600,  // kB — silencia avisos en chunks grandes del template
   }
 });

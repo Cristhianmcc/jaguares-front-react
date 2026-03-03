@@ -19,6 +19,7 @@ import ProfesorDashboard from './pages/ProfesorDashboard.jsx';
 import ProfesorAsistencias from './pages/ProfesorAsistencias.jsx';
 import ProfesorRanking from './pages/ProfesorRanking.jsx';
 import ProfesorReportes from './pages/ProfesorReportes.jsx';
+import AdminLandingEditor from './pages/AdminLandingEditor.jsx';
 
 export default function App() {
   const route = useMemo(() => {
@@ -45,7 +46,8 @@ export default function App() {
       ['/profesor-dashboard', 'profesor-dashboard'],
       ['/profesor-asistencias', 'profesor-asistencias'],
       ['/profesor-ranking', 'profesor-ranking'],
-      ['/profesor-reportes', 'profesor-reportes']
+      ['/profesor-reportes', 'profesor-reportes'],
+      ['/admin-landing-editor', 'admin-landing-editor']
     ]);
 
     return routes.get(normalized) || 'home';
@@ -62,6 +64,9 @@ export default function App() {
   if (route === 'profesor-asistencias') return <ProfesorAsistencias />;
   if (route === 'profesor-ranking') return <ProfesorRanking />;
   if (route === 'profesor-reportes') return <ProfesorReportes />;
+
+  // Editor de Landing Page — pantalla completa sin chatbot superpuesto
+  if (route === 'admin-landing-editor') return <AdminLandingEditor />;
 
   if (route === 'home') return <Home />;
 

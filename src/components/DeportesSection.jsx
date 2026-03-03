@@ -1,4 +1,6 @@
 import React from 'react';
+import EditableText from './EditableText.jsx';
+import EditableImage from './EditableImage.jsx';
 
 const deportes = [
   {
@@ -39,9 +41,10 @@ const deportes = [
   }
 ];
 
-export default function DeportesSection() {
-  const destacado = deportes.find(d => d.destacado);
-  const lista = deportes.filter(d => !d.destacado);
+export default function DeportesSection({ deportesData, onUpdateDeporte }) {
+  const effectiveDeportes = deportesData ?? deportes;
+  const destacado = effectiveDeportes.find(d => d.destacado);
+  const lista = effectiveDeportes.filter(d => !d.destacado);
 
   return (
     <section className="deportes-section">
@@ -323,7 +326,7 @@ export default function DeportesSection() {
           {/* Artículo destacado */}
           <div className="deporte-destacado">
             <div className="deporte-destacado-image">
-              <img src={destacado.imagen} alt={destacado.titulo} />
+              <EditableImage src={destacado.imagen} alt={destacado.titulo} imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }} onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(destacado), 'imagen', v) : undefined} />
               <span className="deporte-destacado-badge">{destacado.categoria}</span>
             </div>
             <div className="deporte-destacado-content">
@@ -332,8 +335,14 @@ export default function DeportesSection() {
                 <div className="deporte-destacado-date-label">2026</div>
               </div>
               <div className="deporte-destacado-text">
-                <h3>{destacado.titulo}</h3>
-                <p>{destacado.descripcion}</p>
+                <EditableText tag="h3" value={destacado.titulo}
+                  onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(destacado), 'titulo', v) : undefined}
+                  textStyle={destacado.tituloStyle || {}}
+                  onStyleChange={onUpdateDeporte ? s => onUpdateDeporte(effectiveDeportes.indexOf(destacado), 'tituloStyle', s) : undefined} />
+                <EditableText tag="p" value={destacado.descripcion} multiline
+                  onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(destacado), 'descripcion', v) : undefined}
+                  textStyle={destacado.descripcionStyle || {}}
+                  onStyleChange={onUpdateDeporte ? s => onUpdateDeporte(effectiveDeportes.indexOf(destacado), 'descripcionStyle', s) : undefined} />
                 <a href="/inscripcion" className="deporte-cta">
                   Inscríbete ahora
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -349,14 +358,23 @@ export default function DeportesSection() {
             {lista.map((deporte) => (
               <a href="/inscripcion" key={deporte.id} className="deporte-item" style={{ textDecoration: 'none' }}>
                 <div className="deporte-item-image">
-                  <img src={deporte.imagen} alt={deporte.titulo} />
+                  <EditableImage src={deporte.imagen} alt={deporte.titulo} imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }} onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'imagen', v) : undefined} />
                 </div>
                 <div className="deporte-item-content">
                   <div className="deporte-item-meta">
-                    <span className="deporte-item-categoria">{deporte.categoria}</span>
-                    <span className="deporte-item-fecha">• {deporte.fecha}</span>
+                    <EditableText tag="span" className="deporte-item-categoria" value={deporte.categoria}
+                      onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'categoria', v) : undefined}
+                      textStyle={deporte.categoriaStyle || {}}
+                      onStyleChange={onUpdateDeporte ? s => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'categoriaStyle', s) : undefined} />
+                    <EditableText tag="span" className="deporte-item-fecha" value={`\u2022 ${deporte.fecha}`}
+                      onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'fecha', v.replace(/^\u2022\s*/, '')) : undefined}
+                      textStyle={deporte.fechaStyle || {}}
+                      onStyleChange={onUpdateDeporte ? s => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'fechaStyle', s) : undefined} />
                   </div>
-                  <h4>{deporte.titulo}</h4>
+                  <EditableText tag="h4" value={deporte.titulo}
+                    onChange={onUpdateDeporte ? v => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'titulo', v) : undefined}
+                    textStyle={deporte.tituloStyle || {}}
+                    onStyleChange={onUpdateDeporte ? s => onUpdateDeporte(effectiveDeportes.indexOf(deporte), 'tituloStyle', s) : undefined} />
                 </div>
               </a>
             ))}

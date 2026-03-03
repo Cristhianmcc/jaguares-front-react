@@ -390,6 +390,7 @@ function renderizarHorarios() {
             };
         }
         deportesAgrupados[key].horarios.push({
+            horario_id: horario.horario_id,
             dia: horario.dia,
             hora_inicio: horario.hora_inicio,
             hora_fin: horario.hora_fin
@@ -444,13 +445,29 @@ function renderizarHorarios() {
             `;
         }
         
-        // Lista de horarios
+        // Lista de horarios (con botón eliminar si hay más de 1 y la inscripción está activa)
+        const totalDiasDeporte = deporte.horarios.length;
         const horariosHtml = deporte.horarios.map(h => `
             <div class="flex items-center gap-2 text-text-muted dark:text-gray-400 text-sm">
                 <span class="material-symbols-outlined text-lg ${esSuspendido ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
-                <span class="font-medium">${h.dia} ${formatearHora(h.hora_inicio)} - ${formatearHora(h.hora_fin)}</span>
+                <span class="font-medium flex-1">${h.dia} ${formatearHora(h.hora_inicio)} - ${formatearHora(h.hora_fin)}</span>
+                ${!esSuspendido && totalDiasDeporte > 1 && h.horario_id ? `
+                <button onclick="confirmarEliminarHorario(${deporte.inscripcion_id}, ${h.horario_id}, '${h.dia}')"
+                        class="ml-1 p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Eliminar este día">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                </button>` : ''}
             </div>
         `).join('');
+
+        // Botón agregar día (solo para inscripciones activas)
+        const botonAgregarDia = !esSuspendido ? `
+            <button onclick="abrirModalAgregarHorario(${deporte.inscripcion_id})"
+                    class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold uppercase transition-all">
+                <span class="material-symbols-outlined text-sm">add_circle</span>
+                Agregar día
+            </button>
+        ` : '';
         
         return `
             <div class="rounded-lg p-5 shadow-md border transition-all ${cardClasses}">
@@ -482,9 +499,17 @@ function renderizarHorarios() {
                 </div>
                 
                 ${botonAccion}
+                ${botonAgregarDia}
             </div>
         `;
-    }).join('');
+    }).join('') + `
+        <div class="col-span-full mt-2">
+            <a href="/inscripcion?dni=${datosUsuario.alumno.dni}&nuevo_deporte=1"
+               class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-primary/10 dark:hover:bg-primary/20 text-gray-600 dark:text-gray-300 hover:text-primary border border-gray-200 dark:border-gray-700 hover:border-primary/50 font-bold text-sm uppercase transition-all">
+                <span class="material-symbols-outlined text-sm">sports</span>
+                Inscribirse en otro deporte
+            </a>
+        </div>`;
 }
 
 /**
@@ -1327,6 +1352,286 @@ function cerrarModalExitoPagoMensual() {
         document.getElementById('previewPagoMensual').classList.add('hidden');
         document.getElementById('btnSubirPagoMensual').disabled = true;
         document.getElementById('btnSubirPagoMensual').innerHTML = '<span class="material-symbols-outlined">send</span><span>Enviar Comprobante del Mes</span>';
+    }
+}
+
+// ============================================================
+// ELIMINAR DÍA DE INSCRIPCIÓN EXISTENTE
+// ============================================================
+
+function confirmarEliminarHorario(inscripcionId, horarioId, dia) {
+    const existente = document.getElementById('modalEliminarHorario');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalEliminarHorario';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-sm w-full">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <div class="size-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-3xl text-red-600 dark:text-red-400">delete</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Eliminar día</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${dia}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 dark:text-gray-300 mb-3">¿Estás seguro de eliminar el día <strong>${dia}</strong> de tu inscripción?</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                    <span class="material-symbols-outlined text-sm align-middle mr-1">info</span>
+                    La mensualidad se ajustará al nuevo número de días.
+                </p>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalEliminarHorario').remove(); document.body.style.overflow='';"
+                        class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button id="btnConfirmarEliminar" onclick="ejecutarEliminarHorario(${inscripcionId}, ${horarioId})"
+                        class="px-5 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">delete</span>
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) { modal.remove(); document.body.style.overflow = ''; }
+    });
+}
+
+async function ejecutarEliminarHorario(inscripcionId, horarioId) {
+    const dni = datosUsuario.alumno.dni;
+    const btn = document.getElementById('btnConfirmarEliminar');
+    if (btn) { btn.disabled = true; btn.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Eliminando...</span>`; }
+
+    try {
+        const res = await fetch('/api/eliminar-horario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dni, inscripcion_id: inscripcionId, horario_id: horarioId })
+        });
+        const data = await res.json();
+
+        const modal = document.getElementById('modalEliminarHorario');
+        if (modal) { modal.remove(); document.body.style.overflow = ''; }
+
+        if (data.success) {
+            const msgPrecio = data.nuevo_precio ? ` Mensualidad actualizada a S/.${data.nuevo_precio}.` : '';
+            mostrarNotificacion('Día eliminado correctamente.' + msgPrecio, 'success');
+            setTimeout(() => consultarPorDNI(dni), 800);
+        } else {
+            mostrarNotificacion(data.error || 'Error al eliminar el día', 'error');
+        }
+    } catch (error) {
+        mostrarNotificacion('Error de conexión. Intente nuevamente.', 'error');
+        const modal = document.getElementById('modalEliminarHorario');
+        if (modal) { modal.remove(); document.body.style.overflow = ''; }
+    }
+}
+
+// ============================================================
+// AGREGAR DÍA A INSCRIPCIÓN EXISTENTE
+// ============================================================
+
+async function abrirModalAgregarHorario(inscripcionId) {
+    // Obtener nombre del deporte, categoría y plan desde los datos ya cargados
+    const horarioRef = datosUsuario?.horarios?.find(h => h.inscripcion_id === inscripcionId);
+    const deporteNombre = horarioRef?.deporte || 'el deporte';
+    const categoria = horarioRef?.categoria || null;
+    const plan = horarioRef?.plan || null;
+
+    const existente = document.getElementById('modalAgregarHorario');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalAgregarHorario';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="size-14 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-3xl text-blue-600 dark:text-blue-400">add_circle</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Agregar día</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${deporteNombre}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Contenido -->
+            <div class="p-6 overflow-y-auto flex-1" id="contenidoModalAgregarHorario">
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    <span class="ml-3 text-gray-500">Cargando horarios disponibles...</span>
+                </div>
+            </div>
+            <!-- Acciones -->
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end flex-shrink-0">
+                <button onclick="cerrarModalAgregarHorario()"
+                        class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button id="btnConfirmarAgregarHorario" onclick="confirmarAgregarHorario(${inscripcionId})" disabled
+                        class="px-5 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">add_circle</span>
+                    Agregar
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) cerrarModalAgregarHorario();
+    });
+
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            cerrarModalAgregarHorario();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    // Cargar horarios disponibles
+    await cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria, plan);
+}
+
+async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria, plan) {
+    const contenido = document.getElementById('contenidoModalAgregarHorario');
+
+    try {
+        // Filtrar por año de nacimiento si está disponible
+        const fechaNac = datosUsuario?.alumno?.fecha_nacimiento;
+        const anioNac = fechaNac ? new Date(fechaNac).getFullYear() : null;
+        const url = anioNac ? `/api/horarios?anio_nacimiento=${anioNac}` : '/api/horarios';
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.success || !data.horarios?.length) {
+            contenido.innerHTML = `<p class="text-center text-gray-500 py-8">No hay horarios disponibles.</p>`;
+            return;
+        }
+
+        // Filtrar por deporte + categoría + plan (misma lógica de la inscripción original)
+        const horariosDeporte = data.horarios.filter(h => {
+            if (h.deporte.toLowerCase() !== deporteNombre.toLowerCase()) return false;
+            if (categoria && h.categoria && h.categoria !== categoria) return false;
+            if (plan && h.plan && h.plan !== plan) return false;
+            return true;
+        });
+
+        if (horariosDeporte.length === 0) {
+            contenido.innerHTML = `<p class="text-center text-gray-500 py-8">No hay horarios disponibles para ${deporteNombre}${categoria ? ` (${categoria})` : ''}.</p>`;
+            return;
+        }
+
+        // Obtener los horarios ya inscritos en esta inscripción para excluirlos
+        const horariosInscritos = datosUsuario.horarios.filter(h => h.inscripcion_id === inscripcionId);
+        const clavesInscritas = new Set(horariosInscritos.map(h => `${h.dia}-${h.hora_inicio}`));
+
+        const horariosDisponibles = horariosDeporte.filter(h =>
+            !clavesInscritas.has(`${h.dia}-${h.hora_inicio}`)
+        );
+
+        if (horariosDisponibles.length === 0) {
+            contenido.innerHTML = `
+                <div class="text-center py-8">
+                    <span class="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600 mb-3 block">event_busy</span>
+                    <p class="text-gray-500">Ya estás inscrito en todos los horarios disponibles para ${deporteNombre}.</p>
+                </div>
+            `;
+            return;
+        }
+
+        contenido.innerHTML = `
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Selecciona el día que deseas agregar a tu inscripción de <strong>${deporteNombre}</strong>${categoria ? ` <span class="text-primary font-semibold">(${categoria})</span>` : ''}:
+            </p>
+            <div class="space-y-2">
+                ${horariosDisponibles.map(h => `
+                    <label class="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-all has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20">
+                        <input type="radio" name="horarioAgregar" value="${h.horario_id}"
+                               class="accent-blue-500 w-4 h-4 flex-shrink-0"
+                               onchange="document.getElementById('btnConfirmarAgregarHorario').disabled = false">
+                        <div class="flex-1">
+                            <span class="font-bold text-sm text-black dark:text-white">${h.dia}</span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400 ml-2">${h.hora_inicio} - ${h.hora_fin}</span>
+                            ${h.categoria ? `<span class="ml-2 text-xs text-primary font-semibold">(${h.categoria})</span>` : ''}
+                        </div>
+                        ${h.cupo_maximo > 0 ? `<span class="text-xs text-gray-400 flex-shrink-0">${h.cupo_maximo - (h.cupos_ocupados || 0)} cupos</span>` : ''}
+                    </label>
+                `).join('')}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error al cargar horarios:', error);
+        contenido.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar horarios. Intente nuevamente.</p>`;
+    }
+}
+
+function cerrarModalAgregarHorario() {
+    const modal = document.getElementById('modalAgregarHorario');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+}
+
+async function confirmarAgregarHorario(inscripcionId) {
+    const horarioSeleccionado = document.querySelector('input[name="horarioAgregar"]:checked');
+    if (!horarioSeleccionado) return;
+
+    const horarioId = parseInt(horarioSeleccionado.value);
+    const dni = datosUsuario.alumno.dni;
+
+    const btnConfirmar = document.getElementById('btnConfirmarAgregarHorario');
+    if (btnConfirmar) {
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>`;
+    }
+
+    try {
+        const res = await fetch('/api/agregar-horario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dni, inscripcion_id: inscripcionId, horario_id: horarioId })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            cerrarModalAgregarHorario();
+            const msgPrecio = data.nuevo_precio ? ` Mensualidad actualizada a S/.${data.nuevo_precio}.` : '';
+            mostrarNotificacion((data.message || 'Día agregado correctamente') + msgPrecio, 'success');
+            // Recargar datos del alumno
+            setTimeout(() => consultarPorDNI(dni), 800);
+        } else {
+            mostrarNotificacion(data.error || 'Error al agregar el día', 'error');
+            if (btnConfirmar) {
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerHTML = `<span class="material-symbols-outlined text-lg">add_circle</span>Agregar`;
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión. Intente nuevamente.', 'error');
+        if (btnConfirmar) {
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = `<span class="material-symbols-outlined text-lg">add_circle</span>Agregar`;
+        }
     }
 }
 

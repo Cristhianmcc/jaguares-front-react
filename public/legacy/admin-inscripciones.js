@@ -183,8 +183,21 @@ function renderizarInscripciones(inscripciones) {
               Ver Comprobante
             </a>
           ` : ''}
+
+          <button onclick="abrirModalObservacion('${ins.dni}', \`${(ins.notas_pago || '').replace(/`/g, "'")}\`)"
+                  class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-sm">edit_note</span>
+            ${ins.notas_pago ? 'Editar Observación' : 'Agregar Observación'}
+          </button>
         </div>
       </div>
+
+      ${ins.notas_pago ? `
+        <div class="mt-3 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg flex items-start gap-2">
+          <span class="material-symbols-outlined text-amber-600 dark:text-amber-400 text-sm mt-0.5 flex-shrink-0">sticky_note_2</span>
+          <p class="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">${ins.notas_pago}</p>
+        </div>
+      ` : ''}
       
       <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
         Registrado: ${formatearFecha(ins.created_at)}
@@ -1293,6 +1306,75 @@ async function ejecutarEliminarInscripciones(dni) {
   } catch (error) {
     console.error('Error:', error);
     mostrarNotificacion('Error de conexión al eliminar inscripciones', 'error');
+  }
+}
+
+function abrirModalObservacion(dni, notaActual) {
+  const existente = document.getElementById('modalObservacion');
+  if (existente) existente.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modalObservacion';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-4">
+          <div class="size-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">edit_note</span>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">DNI: ${dni}</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Motivo o nota de pago</label>
+        <textarea id="inputObservacion" rows="4"
+          class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+          placeholder="Ej: Paga S/.60 hasta el 15/03 y luego solo sábados...">${notaActual}</textarea>
+      </div>
+      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+        <button onclick="document.getElementById('modalObservacion').remove()"
+                class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+          Cancelar
+        </button>
+        <button onclick="guardarObservacion('${dni}')"
+                class="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+          <span class="material-symbols-outlined text-lg">save</span>
+          Guardar
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  setTimeout(() => document.getElementById('inputObservacion')?.focus(), 100);
+}
+
+async function guardarObservacion(dni) {
+  const notas = document.getElementById('inputObservacion')?.value?.trim() || '';
+  const btn = document.querySelector('#modalObservacion button:last-child');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
+
+  try {
+    const res = await fetch(`/api/admin/alumnos/${dni}/notas`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
+      body: JSON.stringify({ notas })
+    });
+    const data = await res.json();
+    document.getElementById('modalObservacion')?.remove();
+    if (data.success) {
+      mostrarNotificacion('Observación guardada correctamente', 'success');
+      cargarInscripciones(); // recargar la lista
+    } else {
+      mostrarNotificacion(data.error || 'Error al guardar', 'error');
+    }
+  } catch (e) {
+    mostrarNotificacion('Error de conexión', 'error');
+    document.getElementById('modalObservacion')?.remove();
   }
 }
 

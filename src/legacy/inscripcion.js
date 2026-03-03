@@ -199,7 +199,25 @@ async function verificarYaMostrarModal(dni) {
     const activas = inscripciones.filter(i => i.estado === 'activa' || i.estado === 'pagado' || i.estado === 'pendiente');
     if (activas.length === 0) return false;
 
-    // Tiene inscripción activa — mostrar modal
+    // Si viene desde consulta con ?nuevo_deporte=1, mostrar aviso NO bloqueante y dejar continuar
+    const esNuevoDeporte = new URLSearchParams(window.location.search).get('nuevo_deporte') === '1';
+    if (esNuevoDeporte) {
+      const deportesActivos = activas.map(i => i.deporte || i.nombre_deporte || '').filter(Boolean).join(', ');
+      const avisoHTML = `
+        <div id="avisoNuevoDeporte" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 flex items-start gap-3">
+          <span class="material-symbols-outlined text-blue-600 text-xl flex-shrink-0 mt-0.5">info</span>
+          <div>
+            <p class="text-sm font-semibold text-blue-800 dark:text-blue-200">Ya tienes una inscripción activa${deportesActivos ? ` en <strong>${deportesActivos}</strong>` : ''}</p>
+            <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">Puedes continuar para registrarte en un deporte adicional.</p>
+          </div>
+        </div>`;
+      document.getElementById('avisoNuevoDeporte')?.remove();
+      const ancla = document.getElementById('dni')?.closest('form') || document.body;
+      ancla.insertAdjacentHTML('afterbegin', avisoHTML);
+      return false; // NO bloquea — deja continuar
+    }
+
+    // Tiene inscripción activa — mostrar modal bloqueante
     const deportes = activas.map(i => i.deporte || i.nombre_deporte || '').filter(Boolean).join(', ');
     const hayPendiente = activas.some(i => i.estado === 'pendiente');
     const mensajeEstado = hayPendiente
@@ -458,6 +476,15 @@ export function initInscripcion() {
   document.getElementById('foto_carnet')?.addEventListener('change', (e) => manejarImagenSeleccionada(e, 'foto_carnet'));
 
   form?.addEventListener('submit', handleSubmit);
+
+  // Pre-llenar DNI si viene de ?dni=X&nuevo_deporte=1
+  const urlParams = new URLSearchParams(window.location.search);
+  const dniParam = urlParams.get('dni');
+  if (dniParam && dniInput) {
+    dniInput.value = dniParam;
+    // Auto-buscar para cargar datos del alumno (mostrará aviso no-bloqueante)
+    setTimeout(() => buscarDNI(), 400);
+  }
 
   window.eliminarImagen = eliminarImagen;
 

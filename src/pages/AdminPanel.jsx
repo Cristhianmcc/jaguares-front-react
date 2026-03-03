@@ -51,10 +51,14 @@ const html = `
                     Panel de <span class="text-primary">Control</span>
                 </h1>
                 <p class="text-text-muted dark:text-gray-400 mt-2">Gestión de inscripciones y usuarios</p>
-                <div class="mt-4">
+                <div class="mt-4 flex flex-wrap gap-3">
                     <a href="/admin-dashboard" class="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold text-sm transition-colors">
                         <span class="material-symbols-outlined">analytics</span>
                         Ver Dashboard Financiero
+                    </a>
+                    <a href="/admin-landing-editor" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition-colors">
+                        <span class="material-symbols-outlined">edit_note</span>
+                        Editor de Landing Page
                     </a>
                 </div>
             </div>

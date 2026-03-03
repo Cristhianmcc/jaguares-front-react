@@ -1,11 +1,92 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { HOME_INLINE_STYLES } from './homeInlineStyles.js';
 import HeroCarousel from '../components/HeroCarousel.jsx';
-import RankingSection from '../components/RankingSection.jsx';
-import DeportesSection from '../components/DeportesSection.jsx';
+import PartidosSection from '../components/PartidosSection.jsx';
+import NovedadesSection from '../components/NovedadesSection.jsx';
+import PatrocinadoresSection from '../components/PatrocinadoresSection.jsx';
+import EditableText from '../components/EditableText.jsx';
+// Secciones below-the-fold — lazy loaded para reducir el bundle inicial
+const RankingSection  = lazy(() => import('../components/RankingSection.jsx'));
+const DeportesSection = lazy(() => import('../components/DeportesSection.jsx'));
+import { useLandingEditor, useLandingContent, useSectionOrder } from '../context/LandingEditorContext.jsx';
 
 export default function Home() {
+  const editorCtx = useLandingEditor();
+  // Datos dinámicos desde la BD (fallback silencioso si la API falla)
+  const { data: landingData } = useLandingContent();
+  const { getSectionOrder, isSectionVisible } = useSectionOrder();
   const [showVideoModal, setShowVideoModal] = useState(false);
+
+  // Resolver datos: editor tiene prioridad → luego API → luego defaults hardcoded del componente
+  const slidesData    = editorCtx?.content?.hero?.slides ?? landingData?.hero?.slides ?? undefined;
+  const deportesData  = editorCtx?.content?.deportes     ?? landingData?.deportes     ?? undefined;
+  const partidosData  = editorCtx?.content?.partidos     ?? landingData?.partidos     ?? undefined;
+  const novedadesData  = editorCtx?.content?.novedades     ?? landingData?.novedades     ?? undefined;
+  const patrocinadoresData = editorCtx?.content?.patrocinadores ?? landingData?.patrocinadores ?? undefined;
+  const ctaData           = editorCtx?.content?.cta            ?? landingData?.cta            ?? undefined;
+  const galeriaData       = editorCtx?.content?.galeria        ?? landingData?.galeria        ?? undefined;
+  const generalData       = editorCtx?.content?.general        ?? landingData?.general        ?? undefined;
+  const tipografiaData    = editorCtx?.content?.tipografia     ?? landingData?.tipografia     ?? undefined;
+
+  // Inyectar fuentes personalizadas desde Google Fonts
+  useEffect(() => {
+    const fT = tipografiaData?.fuenteTitulos || 'Inter Tight';
+    const pT = tipografiaData?.pesoTitulos   || '700';
+    const fC = tipografiaData?.fuenteCuerpo  || 'DM Sans';
+    const toParam = (name) => name.replace(/ /g, '+');
+    const LINK_ID = 'jaguares-custom-fonts';
+    const STYLE_ID = 'jaguares-custom-typography';
+    // Google Fonts link
+    let link = document.getElementById(LINK_ID);
+    if (!link) {
+      link = document.createElement('link');
+      link.id = LINK_ID;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    const weights = [...new Set(['400', '600', pT])].join(';');
+    const families = fT === fC
+      ? `${toParam(fT)}:wght@${weights}`
+      : `${toParam(fT)}:wght@${weights}&family=${toParam(fC)}:wght@400;500;600`;
+    link.href = `https://fonts.googleapis.com/css2?family=${families}&display=swap`;
+    // Style override
+    let style = document.getElementById(STYLE_ID);
+    if (!style) {
+      style = document.createElement('style');
+      style.id = STYLE_ID;
+      document.head.appendChild(style);
+    }
+    style.textContent = `
+      .elementor-kit-15 {
+        --e-global-typography-primary-font-family: "${fT}" !important;
+        --e-global-typography-primary-font-weight: ${pT} !important;
+        --e-global-typography-accent-font-family: "${fT}" !important;
+        --e-global-typography-text-font-family: "${fC}" !important;
+        --e-global-typography-secondary-font-family: "${fC}" !important;
+      }
+      :root {
+        --wp--preset--font-family--h-1-font: "${fT}", sans-serif !important;
+        --wp--preset--font-family--p-font: "${fC}", sans-serif !important;
+      }
+      h1, h2, h3, h4, h5, h6,
+      .sc_item_title, .sc_item_title_text,
+      .elementor-heading-title,
+      .trx_addons_heading_title,
+      .sc_layouts_title_caption { font-family: "${fT}", sans-serif !important; font-weight: ${pT} !important; }
+      body, p, li, td, input, textarea, select, button, .sc_item_subtitle,
+      .elementor-widget-text-editor { font-family: "${fC}", sans-serif !important; }
+    `;
+    return () => {};
+  }, [tipografiaData]);
+
+  const DEFAULT_GALERIA = [
+    { imagen: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800', alt: 'Entrenamiento de fútbol' },
+    { imagen: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800', alt: 'Niños jugando fútbol' },
+    { imagen: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800', alt: 'Equipo de fútbol' },
+    { imagen: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800', alt: 'Copa de campeones' },
+    { imagen: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=800', alt: 'Partido de fútbol' },
+    { imagen: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=800', alt: 'Niños celebrando' },
+  ];
 
   // Inject SoccerClub CSS & classes only while Home is mounted
   useEffect(() => {
@@ -411,7 +492,7 @@ export default function Home() {
                   <span className="menu_mobile_close menu_button_close" tabIndex={0}><span className="menu_button_close_text">Cerrar</span><span className="menu_button_close_icon" /></span>
                 </div>
                 <div className="menu_mobile_content_wrap content_wrap">
-                  <div className="menu_mobile_content_wrap_inner"><nav className="menu_mobile_nav_area"><ul className="menu_mobile_nav" id="mobile-menu_mobile"><li className="menu-item current-menu-item"><a href="/"><span>Inicio</span></a></li><li className="menu-item"><a href="/inscripcion"><span>Inscripción</span></a></li><li className="menu-item"><a href="/consulta"><span>Consultar Estado</span></a></li><li className="menu-item menu-item-has-children"><a href="#"><span>Intranet</span></a><ul className="sub-menu"><li className="menu-item"><a href="/admin-login"><span>Administración</span></a></li><li className="menu-item"><a href="/profesor-dashboard"><span>Docentes</span></a></li></ul></li></ul></nav><div className="socials_mobile"><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href="https://www.facebook.com/Jaguarezdegalvez" rel="nofollow" target="_blank"><span className="social_icon social_icon_facebook-1" style={{}}><span className="screen-reader-text">facebook-1</span><span className="icon-facebook-1" /></span></a><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href="https://wa.me/51973324460" rel="nofollow" target="_blank"><span className="social_icon social_icon_whatsapp" style={{}}><span className="screen-reader-text">WhatsApp</span><span className="icon-whatsapp" /></span></a></div> </div>
+                  <div className="menu_mobile_content_wrap_inner"><nav className="menu_mobile_nav_area"><ul className="menu_mobile_nav" id="mobile-menu_mobile"><li className="menu-item current-menu-item"><a href="/"><span>Inicio</span></a></li><li className="menu-item"><a href="/inscripcion"><span>Inscripción</span></a></li><li className="menu-item"><a href="/consulta"><span>Consultar Estado</span></a></li><li className="menu-item menu-item-has-children"><a href="#"><span>Intranet</span></a><ul className="sub-menu"><li className="menu-item"><a href="/admin-login"><span>Administración</span></a></li><li className="menu-item"><a href="/profesor-dashboard"><span>Docentes</span></a></li></ul></li></ul></nav><div className="socials_mobile"><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href={generalData?.facebook || 'https://www.facebook.com/Jaguarezdegalvez'} rel="nofollow" target="_blank"><span className="social_icon social_icon_facebook-1" style={{}}><span className="screen-reader-text">facebook-1</span><span className="icon-facebook-1" /></span></a><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href={generalData?.whatsapp || 'https://wa.me/51973324460'} rel="nofollow" target="_blank"><span className="social_icon social_icon_whatsapp" style={{}}><span className="screen-reader-text">WhatsApp</span><span className="icon-whatsapp" /></span></a></div> </div>
                 </div>
               </div>
             </div>
@@ -421,9 +502,13 @@ export default function Home() {
                   <span className="soccerclub_skip_link_anchor" id="content_skip_link_anchor" />
                   <article className="post_item_single post_type_page post-5002 page type-page status-publish hentry" id="post-5002">
                     <div className="post_content entry-content">
-                      <div className="elementor elementor-5002" data-elementor-id={5002} data-elementor-type="wp-page">
+                      <div className="elementor elementor-5002" data-elementor-id={5002} data-elementor-type="wp-page" style={{display:'flex',flexDirection:'column'}}>
+                        {/* S:hero */}<div data-section="hero" style={{order:getSectionOrder('hero'),display:isSectionVisible('hero')?undefined:'none'}}>
                         {/* Hero Carousel Section */}
-                        <HeroCarousel />
+                        <HeroCarousel
+                          slidesData={slidesData}
+                          onUpdateSlide={editorCtx?.updateSlide}
+                        />
                         <section className="elementor-section elementor-top-section elementor-element elementor-element-eff7a27 scheme_default elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="eff7a27" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
                           <div className="elementor-container elementor-column-gap-extended">
                             <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-ac53fea sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="ac53fea">
@@ -439,83 +524,18 @@ export default function Home() {
                             </div>
                           </div>
                         </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-2263166 elementor-section-full_width scheme_default animation_type_sequental elementor-section-height-default elementor-section-height-default sc_fly_static elementor-invisible" data-animation-stagger data-animation-type="sequental" data-element_type="section" data-id={2263166} data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;soccerclub-fadein&quot;,&quot;animation_delay&quot;:100}">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-2ceb2c7 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="2ceb2c7">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-31b710a sc_fly_static elementor-widget elementor-widget-shortcode" data-element_type="widget" data-id="31b710a" data-widget_type="shortcode.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-shortcode"><div className="sportspress"><div className="sp-template sp-template-event-blocks">
-                                          <div className="sp-table-wrapper">
-                                            <table className="sp-event-blocks sp-data-table sp-paginated-table" data-sp-rows={5}><thead><tr><th /></tr></thead><tbody><tr className="sp-row sp-post alternate" itemScope itemType="http://schema.org/SportsEvent"><td><span className="team-logo logo-odd" title="Club de fútbol"><a href="/assets/soccerclub.axiomthemes.com/sport-team/soccerclub/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2023/09/team1-copyright.png" width={316} /></a></span><span className="team-logo logo-even" title="real madrid"><a href="/assets/soccerclub.axiomthemes.com/sport-team/real-madrid/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2024/12/team2-copyright.png" width={316} /></a></span><time className="sp-event-date" content="2024-08-25T20:00:00+00:00" dateTime="2024-08-25 20:00:00" itemProp="startDate"><a href="/assets/soccerclub.axiomthemes.com/sport-event/soccerclub-vs-real-madrid/index.html">25 de agosto de 2024</a></time><h5 className="sp-event-results"><a href="/assets/soccerclub.axiomthemes.com/sport-event/soccerclub-vs-real-madrid/index.html"><span className="sp-result ok">8:00 pm</span></a></h5><div className="sp-event-league">primera división</div><div className="sp-event-season">2023</div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place"><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">bentleigh</div></div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place" style={{display: 'none'}}><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">N / A</div></div><h4 className="sp-event-title" itemProp="name"><a href="/assets/soccerclub.axiomthemes.com/sport-event/soccerclub-vs-real-madrid/index.html">FútbolClub vs Real Madrid</a></h4></td></tr></tbody></table>
-                                          </div>
-                                        </div>
-                                      </div></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-0a3d8d1 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="0a3d8d1">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-f5d2451 sc_fly_static elementor-widget elementor-widget-shortcode" data-element_type="widget" data-id="f5d2451" data-widget_type="shortcode.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-shortcode"><div className="sportspress"><div className="sp-template sp-template-event-blocks">
-                                          <div className="sp-table-wrapper">
-                                            <table className="sp-event-blocks sp-data-table sp-paginated-table" data-sp-rows={5}><thead><tr><th /></tr></thead><tbody><tr className="sp-row sp-post alternate" itemScope itemType="http://schema.org/SportsEvent"><td><span className="team-logo logo-odd" title="Liverpool"><a href="/assets/soccerclub.axiomthemes.com/sport-team/liverpool/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2024/12/team3-copyright.png" width={316} /></a></span><span className="team-logo logo-even" title="FC Barcelona"><a href="/assets/soccerclub.axiomthemes.com/sport-team/fc-barcelona/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2024/12/team4-copyright.png" width={316} /></a></span><time className="sp-event-date" content="2024-09-28T11:33:47+00:00" dateTime="2024-09-28 11:33:47" itemProp="startDate"><a href="/assets/soccerclub.axiomthemes.com/sport-event/liverpool-vs-fc-barcelona/index.html">28 de septiembre de 2024</a></time><h5 className="sp-event-results"><a href="/assets/soccerclub.axiomthemes.com/sport-event/liverpool-vs-fc-barcelona/index.html"><span className="sp-result ok">1</span> - <span className="sp-result">0</span></a></h5><div className="sp-event-league">primera división</div><div className="sp-event-season">2023</div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place"><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">Kensington</div></div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place" style={{display: 'none'}}><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">N / A</div></div><h4 className="sp-event-title" itemProp="name"><a href="/assets/soccerclub.axiomthemes.com/sport-event/liverpool-vs-fc-barcelona/index.html">Liverpool-FC Barcelona</a></h4></td></tr></tbody></table>
-                                          </div>
-                                        </div>
-                                      </div></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-457500e sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="457500e">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-3dfab06 sc_fly_static elementor-widget elementor-widget-shortcode" data-element_type="widget" data-id="3dfab06" data-widget_type="shortcode.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-shortcode"><div className="sportspress"><div className="sp-template sp-template-event-blocks">
-                                          <div className="sp-table-wrapper">
-                                            <table className="sp-event-blocks sp-data-table sp-paginated-table" data-sp-rows={5}><thead><tr><th /></tr></thead><tbody><tr className="sp-row sp-post alternate" itemScope itemType="http://schema.org/SportsEvent"><td><span className="team-logo logo-odd" title="Chelsea"><a href="/assets/soccerclub.axiomthemes.com/sport-team/chelsea/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2024/12/team5-copyright.png" width={316} /></a></span><span className="team-logo logo-even" title="Manchester"><a href="/assets/soccerclub.axiomthemes.com/sport-team/manchester/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2024/12/team6-copyright.png" width={316} /></a></span><time className="sp-event-date" content="2024-07-18T06:08:20+00:00" dateTime="2024-07-18 06:08:20" itemProp="startDate"><a href="/assets/soccerclub.axiomthemes.com/sport-event/chelsea-vs-manchester/index.html">18 de julio de 2024</a></time><h5 className="sp-event-results"><a href="/assets/soccerclub.axiomthemes.com/sport-event/chelsea-vs-manchester/index.html"><span className="sp-result ok">2</span> - <span className="sp-result">3</span></a></h5><div className="sp-event-league">primera división</div><div className="sp-event-season">2023</div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place"><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">Nueva York</div></div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place" style={{display: 'none'}}><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">N / A</div></div><h4 className="sp-event-title" itemProp="name"><a href="/assets/soccerclub.axiomthemes.com/sport-event/chelsea-vs-manchester/index.html">Chelsea-Mánchester</a></h4></td></tr></tbody></table>
-                                          </div>
-                                        </div>
-                                      </div></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-72ffcb2 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="72ffcb2">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-046b2f3 sc_fly_static elementor-widget elementor-widget-shortcode" data-element_type="widget" data-id="046b2f3" data-widget_type="shortcode.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-shortcode"><div className="sportspress"><div className="sp-template sp-template-event-blocks">
-                                          <div className="sp-table-wrapper">
-                                            <table className="sp-event-blocks sp-data-table sp-paginated-table" data-sp-rows={5}><thead><tr><th /></tr></thead><tbody><tr className="sp-row sp-post alternate" itemScope itemType="http://schema.org/SportsEvent"><td><span className="team-logo logo-odd" title="Club de fútbol"><a href="/assets/soccerclub.axiomthemes.com/sport-team/soccerclub/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2023/09/team1-copyright.png" width={316} /></a></span><span className="team-logo logo-even" title="FC Bayern"><a href="/assets/soccerclub.axiomthemes.com/sport-team/fc-bayern/index.html"><img alt="" className="attachment-sportspress-fit-icon size-sportspress-fit-icon wp-post-image" decoding="async" height={312} loading="lazy" src="/assets/soccerclub.axiomthemes.com/wp-content/uploads/2024/12/team7-copyright.png" width={316} /></a></span><time className="sp-event-date" content="2024-10-26T11:40:27+00:00" dateTime="2024-10-26 11:40:27" itemProp="startDate"><a href="/assets/soccerclub.axiomthemes.com/sport-event/soccerclub-vs-fc-bayern/index.html">26 de octubre de 2024</a></time><h5 className="sp-event-results"><a href="/assets/soccerclub.axiomthemes.com/sport-event/soccerclub-vs-fc-bayern/index.html"><span className="sp-result ok">11:40 am</span></a></h5><div className="sp-event-league">primera división</div><div className="sp-event-season">2023</div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place"><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">bentleigh</div></div><div className="sp-event-venue" itemProp="location" itemScope itemType="http://schema.org/Place" style={{display: 'none'}}><div itemProp="address" itemScope itemType="http://schema.org/PostalAddress">N / A</div></div><h4 className="sp-event-title" itemProp="name"><a href="/assets/soccerclub.axiomthemes.com/sport-event/soccerclub-vs-fc-bayern/index.html">FútbolClub vs Bayern de Múnich</a></h4></td></tr></tbody></table>
-                                          </div>
-                                        </div>
-                                      </div></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-9185306 scheme_default elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id={9185306} data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-66707f2 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="66707f2">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-0047494 sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="0047494" data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
+                        </div>{/* E:hero */}
+                        {/* S:partidos */}<div data-section="partidos" style={{order:getSectionOrder('partidos'),display:isSectionVisible('partidos')?undefined:'none'}}>
+                        <PartidosSection partidosData={partidosData} onUpdatePartido={editorCtx?.updatePartido} />
+                        </div>{/* E:partidos */}
+                        {/* S:deportes */}<div data-section="deportes" style={{order:getSectionOrder('deportes'),display:isSectionVisible('deportes')?undefined:'none'}}>
                         {/* Sección de Deportes de Jaguares */}
-                        <DeportesSection />
+                        <Suspense fallback={null}>
+                        <DeportesSection
+                          deportesData={deportesData}
+                          onUpdateDeporte={editorCtx?.updateDeporte}
+                        />
+                        </Suspense>
 
                         <section className="elementor-section elementor-top-section elementor-element elementor-element-a64e0c3 elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="a64e0c3">
                           <div className="elementor-container elementor-column-gap-extended">
@@ -555,9 +575,15 @@ export default function Home() {
                           </div>
                         </section>
 
+                        </div>{/* E:deportes */}
+                        {/* S:ranking */}<div data-section="ranking" style={{order:getSectionOrder('ranking'),display:isSectionVisible('ranking')?undefined:'none'}}>
                         {/* Ranking Section */}
+                        <Suspense fallback={null}>
                         <RankingSection />
+                        </Suspense>
 
+                        </div>{/* E:ranking */}
+                        {/* S:estadisticas */}<div data-section="estadisticas" style={{order:getSectionOrder('estadisticas'),display:isSectionVisible('estadisticas')?undefined:'none'}}>
                         <section className="elementor-section elementor-top-section elementor-element elementor-element-b95cf93 scheme_light elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="b95cf93" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
                           <div className="elementor-container elementor-column-gap-extended">
                             <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-3372429 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id={3372429}>
@@ -584,6 +610,8 @@ export default function Home() {
                             </div>
                           </div>
                         </section>
+                        </div>{/* E:estadisticas */}
+                        {/* S:cta */}<div data-section="cta" style={{order:getSectionOrder('cta'),display:isSectionVisible('cta')?undefined:'none'}}>
                         <section className="elementor-section elementor-top-section elementor-element elementor-element-db214c6 scheme_dark elementor-section-boxed elementor-section-height-default elementor-section-height-default animation_type_block sc_fly_static elementor-invisible" data-animation-type="block" data-element_type="section" data-id="db214c6" data-mouse-helper="hover" data-mouse-helper-axis="xy" data-mouse-helper-bd-color data-mouse-helper-bd-width={-1} data-mouse-helper-bg-color="#FF5B4A" data-mouse-helper-callback data-mouse-helper-centered={1} data-mouse-helper-class data-mouse-helper-color data-mouse-helper-delay={0} data-mouse-helper-hide-cursor={0} data-mouse-helper-hide-helper={1} data-mouse-helper-icon data-mouse-helper-icon-color data-mouse-helper-icon-size data-mouse-helper-image data-mouse-helper-layout data-mouse-helper-magnet={0} data-mouse-helper-mode="multiply" data-mouse-helper-text data-mouse-helper-text-round={0} data-mouse-helper-text-size data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;soccerclub-fadein&quot;}">
                           <div className="elementor-background-overlay" />
                           <div className="elementor-container elementor-column-gap-default">
@@ -618,6 +646,8 @@ export default function Home() {
                             </div>
                           </div>
                         </section>
+                        </div>{/* E:cta */}
+                        {/* S:docentes */}<div data-section="docentes" style={{order:getSectionOrder('docentes'),display:isSectionVisible('docentes')?undefined:'none'}}>
                         <section className="elementor-section elementor-top-section elementor-element elementor-element-6b8f2b1 scheme_dark elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="6b8f2b1" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
                           <div className="elementor-container elementor-column-gap-extended">
                             <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-b8b65b6 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="b8b65b6">
@@ -699,195 +729,16 @@ export default function Home() {
                             </div>
                           </div>
                         </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-486ae5f scheme_light elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="486ae5f" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-c5120bb sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="c5120bb">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-03c8652 sc_height_huge sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="03c8652" data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="elementor-element elementor-element-68bcfd2 animation_type_block sc_fly_static elementor-invisible elementor-widget elementor-widget-trx_sc_title" data-animation-type="block" data-element_type="widget" data-id="68bcfd2" data-settings="{&quot;_animation&quot;:&quot;soccerclub-fadein&quot;}" data-widget_type="trx_sc_title.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="sc_title sc_title_default"><span className="sc_item_subtitle sc_title_subtitle sc_align_center sc_item_subtitle_above sc_item_title_style_default">Academia Jaguares</span><h1 className="sc_item_title sc_title_title sc_align_center sc_item_title_style_default sc_item_title_tag"><span className="sc_item_title_text">Últimas Novedades</span></h1></div> </div>
-                                </div>
-                                <div className="elementor-element elementor-element-f99c89f sc_height_small sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="f99c89f" data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="elementor-element elementor-element-02a0cf6 animation_type_sequental sc_style_default sc_fly_static elementor-invisible elementor-widget elementor-widget-trx_sc_blogger" data-animation-stagger data-animation-type="sequental" data-element_type="widget" data-id="02a0cf6" data-settings="{&quot;_animation&quot;:&quot;soccerclub-fadeinup&quot;,&quot;_animation_delay&quot;:100}" data-widget_type="trx_sc_blogger.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="sc_blogger sc_blogger_default sc_blogger_default_classic sc_item_filters_tabs_none alignnone"><div className="sc_blogger_slider sc_item_slider slider_swiper_outer slider_outer slider_outer_nocontrols slider_outer_pagination slider_outer_pagination_bullets slider_outer_pagination_pos_bottom_outside slider_outer_nocentered slider_outer_overflow_hidden slider_outer_multi">
-                                        <div className="slider_container swiper-slider-container slider_swiper slider_noresize slider_nocontrols slider_pagination slider_pagination_bullets slider_pagination_pos_bottom_outside slider_nocentered slider_overflow_hidden slider_multi" data-autoplay={1} data-direction="horizontal" data-effect="slide" data-free-mode={0} data-loop={1} data-mouse-wheel={0} data-pagination="bullets" data-slides-centered={0} data-slides-min-width={220} data-slides-overflow={0} data-slides-per-view={3} data-slides-per-view-breakpoints="{&quot;999999&quot;:3}" data-slides-space={30} data-slides-space-breakpoints="{&quot;999999&quot;:30}">
-                                          <div className="slides slider-wrapper swiper-wrapper sc_item_columns_3"><div className="slider-slide swiper-slide"><div className="sc_blogger_item sc_item_container post_container sc_blogger_item_default sc_blogger_item_default_classic sc_blogger_item_odd sc_blogger_item_align_none post_format_standard sc_blogger_item_with_image sc_blogger_item_no_excerpt sc_blogger_item_image_position_top post-19532 post type-post status-publish format-standard has-post-thumbnail hentry category-clubs tag-news tag-player tag-soccer tag-sports" data-item-number={1} data-post-id={19532}><div className="sc_blogger_item_body"><div className="post_featured with_thumb hover_link sc_item_featured sc_blogger_item_featured"><img alt="Inscripciones Abiertas 2026" className="attachment-soccerclub-thumb-square size-soccerclub-thumb-square wp-post-image" decoding="async" height={664} loading="lazy" src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=890&h=664&q=80" width={890} /> <div className="mask" />
-                                                    <a aria-hidden="true" className="link" href="/inscripcion" />
-                                                  </div><div className="sc_blogger_item_content entry-content"><div className="post_meta sc_blogger_item_meta post_meta_categories"><span className="post_meta_item post_categories cat_sep"><a href="/inscripcion" rel="category tag">Inscripciones</a></span></div><h5 className="sc_blogger_item_title entry-title" data-item-number={1}><a href="/inscripcion" rel="bookmark">¡Inscripciones abiertas para el período 2026!</a></h5><div className="post_meta sc_blogger_item_meta post_meta"><span className="post_meta_item post_date"><a href="/inscripcion">15 de febrero de 2026</a></span><a className="post_meta_item post_meta_comments icon-comment-light" href="/inscripcion"><span className="post_meta_number">24</span><span className="post_meta_label">Comentarios</span></a></div></div></div></div></div><div className="slider-slide swiper-slide"><div className="sc_blogger_item sc_item_container post_container sc_blogger_item_default sc_blogger_item_default_classic sc_blogger_item_even sc_blogger_item_align_none post_format_standard sc_blogger_item_with_image sc_blogger_item_no_excerpt sc_blogger_item_image_position_top post-19530 post type-post status-publish format-standard has-post-thumbnail hentry category-clubs tag-news tag-player tag-soccer tag-sports" data-item-number={2} data-post-id={19530}><div className="sc_blogger_item_body"><div className="post_featured with_thumb hover_link sc_item_featured sc_blogger_item_featured"><img alt="Campeonato Regional" className="attachment-soccerclub-thumb-square size-soccerclub-thumb-square wp-post-image" decoding="async" height={664} loading="lazy" src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?auto=format&fit=crop&w=890&h=664&q=80" width={890} /> <div className="mask" />
-                                                    <a aria-hidden="true" className="link" href="#" />
-                                                  </div><div className="sc_blogger_item_content entry-content"><div className="post_meta sc_blogger_item_meta post_meta_categories"><span className="post_meta_item post_categories cat_sep"><a href="#" rel="category tag">Torneos</a></span></div><h5 className="sc_blogger_item_title entry-title" data-item-number={2}><a href="#" rel="bookmark">Categoría Sub-12 clasifica al Campeonato Regional</a></h5><div className="post_meta sc_blogger_item_meta post_meta"><span className="post_meta_item post_date"><a href="#">10 de febrero de 2026</a></span><a className="post_meta_item post_meta_comments icon-comment-light" href="#"><span className="post_meta_number">18</span><span className="post_meta_label">Comentarios</span></a></div></div></div></div></div><div className="slider-slide swiper-slide"><div className="sc_blogger_item sc_item_container post_container sc_blogger_item_default sc_blogger_item_default_classic sc_blogger_item_odd sc_blogger_item_align_none post_format_standard sc_blogger_item_with_image sc_blogger_item_no_excerpt sc_blogger_item_image_position_top post-19528 post type-post status-publish format-standard has-post-thumbnail hentry category-clubs tag-news tag-player tag-soccer tag-sports" data-item-number={3} data-post-id={19528}><div className="sc_blogger_item_body"><div className="post_featured with_thumb hover_link sc_item_featured sc_blogger_item_featured"><img alt="Nuevos Entrenadores" className="attachment-soccerclub-thumb-square size-soccerclub-thumb-square wp-post-image" decoding="async" height={664} loading="lazy" src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=890&h=664&q=80" width={890} /> <div className="mask" />
-                                                    <a aria-hidden="true" className="link" href="#" />
-                                                  </div><div className="sc_blogger_item_content entry-content"><div className="post_meta sc_blogger_item_meta post_meta_categories"><span className="post_meta_item post_categories cat_sep"><a href="#" rel="category tag">Staff</a></span></div><h5 className="sc_blogger_item_title entry-title" data-item-number={3}><a href="#" rel="bookmark">Bienvenida a nuestros nuevos entrenadores certificados</a></h5><div className="post_meta sc_blogger_item_meta post_meta"><span className="post_meta_item post_date"><a href="#">5 de febrero de 2026</a></span><a className="post_meta_item post_meta_comments icon-comment-light" href="#"><span className="post_meta_number">12</span><span className="post_meta_label">Comentarios</span></a></div></div></div></div></div><div className="slider-slide swiper-slide"><div className="sc_blogger_item sc_item_container post_container sc_blogger_item_default sc_blogger_item_default_classic sc_blogger_item_even sc_blogger_item_align_none post_format_standard sc_blogger_item_with_image sc_blogger_item_no_excerpt sc_blogger_item_image_position_top post-19525 post type-post status-publish format-standard has-post-thumbnail hentry category-clubs tag-news tag-player tag-soccer tag-sports" data-item-number={4} data-post-id={19525}><div className="sc_blogger_item_body"><div className="post_featured with_thumb hover_link sc_item_featured sc_blogger_item_featured"><img alt="Clases de Funcional" className="attachment-soccerclub-thumb-square size-soccerclub-thumb-square wp-post-image" decoding="async" height={664} loading="lazy" src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=890&h=664&q=80" width={890} /> <div className="mask" />
-                                                    <a aria-hidden="true" className="link" href="#" />
-                                                  </div><div className="sc_blogger_item_content entry-content"><div className="post_meta sc_blogger_item_meta post_meta_categories"><span className="post_meta_item post_categories cat_sep"><a href="#" rel="category tag">Programas</a></span></div><h5 className="sc_blogger_item_title entry-title" data-item-number={4}><a href="#" rel="bookmark">Nuevos horarios de Entrenamiento Funcional Mixto</a></h5><div className="post_meta sc_blogger_item_meta post_meta"><span className="post_meta_item post_date"><a href="#">1 de febrero de 2026</a></span><a className="post_meta_item post_meta_comments icon-comment-light" href="#"><span className="post_meta_number">8</span><span className="post_meta_label">Comentarios</span></a></div></div></div></div></div></div></div><div className="slider_pagination_wrap swiper-pagination" /></div></div> </div>
-                                </div>
-                                <div className="elementor-element elementor-element-0eece5b sc_height_huge sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="0eece5b" data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-be0de5f elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="be0de5f">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-8848f29 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="8848f29">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-bf871ff sc_height_huge sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="bf871ff" data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-e8111c1 elementor-section-content-middle animation_type_sequental elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static elementor-invisible" data-animation-stagger data-animation-type="sequental" data-element_type="section" data-id="e8111c1" data-settings="{&quot;animation&quot;:&quot;soccerclub-fadeinup&quot;,&quot;animation_delay&quot;:100}">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-5743b5e sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="5743b5e">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-8086fbc sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="8086fbc" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 100 35" style={{ width: '120px', height: '50px', opacity: 0.4 }}>
-                                      <text x="50" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="24" fontWeight="bold" fill="#333">NIKE</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-327311a sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="327311a">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-b231dba sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="b231dba" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 120 35" style={{ width: '120px', height: '50px', opacity: 0.4 }}>
-                                      <text x="60" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="20" fontWeight="bold" fill="#333">ADIDAS</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-7b9c35c sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="7b9c35c">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-d39c438 sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="d39c438" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 100 35" style={{ width: '120px', height: '50px', opacity: 0.4 }}>
-                                      <text x="50" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="22" fontWeight="bold" fill="#333">PUMA</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-d2b5fbf sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="d2b5fbf">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-113cf48 sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="113cf48" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 120 35" style={{ width: '120px', height: '50px', opacity: 0.4 }}>
-                                      <text x="60" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="20" fontWeight="bold" fill="#333">REEBOK</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-3b3b627 elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="3b3b627">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-0714f4d sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="0714f4d">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-82a622d sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="82a622d" data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-0e337c2 elementor-section-content-middle animation_type_sequental elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static elementor-invisible" data-animation-stagger data-animation-type="sequental" data-element_type="section" data-id="0e337c2" data-settings="{&quot;animation&quot;:&quot;soccerclub-fadeinup&quot;,&quot;animation_delay&quot;:100}">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-2c99786 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="2c99786">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-ece757e sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="ece757e" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 160 35" style={{ width: '140px', height: '50px', opacity: 0.4 }}>
-                                      <text x="80" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="16" fontWeight="bold" fill="#333">NEW BALANCE</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-d17636d sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="d17636d">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-6f0c780 sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="6f0c780" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 120 35" style={{ width: '120px', height: '50px', opacity: 0.4 }}>
-                                      <text x="60" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="20" fontWeight="bold" fill="#333">UMBRO</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-b3e23e6 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="b3e23e6">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-38039e4 sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="38039e4" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 180 35" style={{ width: '160px', height: '50px', opacity: 0.4 }}>
-                                      <text x="90" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="14" fontWeight="bold" fill="#333">UNDER ARMOUR</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="elementor-column elementor-col-25 elementor-top-column elementor-element elementor-element-f0937cc sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="f0937cc">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-c84d798 sc_fly_static elementor-widget elementor-widget-image" data-element_type="widget" data-id="c84d798" data-widget_type="image.default">
-                                  <div className="elementor-widget-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80px' }}>
-                                    <svg viewBox="0 0 120 35" style={{ width: '120px', height: '50px', opacity: 0.4 }}>
-                                      <text x="60" y="25" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="20" fontWeight="bold" fill="#333">MIZUNO</text>
-                                    </svg>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-4f32361 elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="4f32361">
-                          <div className="elementor-container elementor-column-gap-extended">
-                            <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-9b7f4f7 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="9b7f4f7">
-                              <div className="elementor-widget-wrap elementor-element-populated">
-                                <div className="elementor-element elementor-element-4379225 sc_height_huge sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id={4379225} data-widget_type="spacer.default">
-                                  <div className="elementor-widget-container">
-                                    <div className="elementor-spacer">
-                                      <div className="elementor-spacer-inner" />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </section>
-                        <section className="elementor-section elementor-top-section elementor-element elementor-element-9250ba8 scheme_dark elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="9250ba8" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+                        </div>{/* E:docentes */}
+                        {/* S:novedades */}<div data-section="novedades" style={{order:getSectionOrder('novedades'),display:isSectionVisible('novedades')?undefined:'none'}}>
+                        <NovedadesSection novedadesData={novedadesData}
+                          onUpdateNovedades={editorCtx?.isEditable ? v => editorCtx.updateSection('novedades', v) : undefined} />
+                        </div>{/* E:novedades */}
+                        {/* S:patrocinadores */}<div data-section="patrocinadores" style={{order:getSectionOrder('patrocinadores'),display:isSectionVisible('patrocinadores')?undefined:'none'}}>
+                        <PatrocinadoresSection patrocinadoresData={patrocinadoresData} />
+                        </div>{/* E:patrocinadores */}
+                        {/* S:inscripcion */}<div data-section="inscripcion" style={{order:getSectionOrder('inscripcion'),display:isSectionVisible('inscripcion')?undefined:'none'}}>
+                        <section className="elementor-section elementor-top-section elementor-element elementor-element-9250ba8 scheme_dark elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="9250ba8" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}" style={ctaData?.imagen ? {backgroundImage:`url(${ctaData.imagen})`,backgroundPosition:'bottom center',backgroundRepeat:'no-repeat',backgroundSize:'cover'} : undefined}>
                           <div className="elementor-background-overlay" />
                           <div className="elementor-container elementor-column-gap-extended">
                             <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-02aa043 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="02aa043">
@@ -901,7 +752,19 @@ export default function Home() {
                                 </div>
                                 <div className="elementor-element elementor-element-057fb97 elementor-widget__width-initial elementor-widget-mobile__width-inherit animation_type_block sc_fly_static elementor-invisible elementor-widget elementor-widget-trx_sc_title" data-animation-type="block" data-element_type="widget" data-id="057fb97" data-settings="{&quot;_animation&quot;:&quot;soccerclub-fadeinright&quot;}" data-widget_type="trx_sc_title.default">
                                   <div className="elementor-widget-container">
-                                    <div className="sc_title sc_title_default"><span className="sc_item_subtitle sc_title_subtitle sc_item_subtitle_above sc_item_title_style_default">bienvenido</span><h1 className="sc_item_title sc_title_title sc_item_title_style_default sc_item_title_tag"><span className="sc_item_title_text">¡Experimente la verdadera alegría de los juegos de fútbol profesional!</span></h1><div className="sc_item_button sc_button_wrap sc_item_button sc_item_button_default sc_item_button_size_normal sc_title_button"><a className="sc_button sc_button_default sc_button_size_normal sc_button_icon_left" href="/inscripcion" style={{ backgroundColor: '#C59D5F', borderColor: '#C59D5F', color: '#fff' }}><span className="sc_button_text"><span className="sc_button_title">Inscríbete</span></span></a></div></div> </div>
+                                    <div className="sc_title sc_title_default"><EditableText tag="span" className="sc_item_subtitle sc_title_subtitle sc_item_subtitle_above sc_item_title_style_default"
+                                        value={ctaData?.subtitulo || 'bienvenido'}
+                                        onChange={editorCtx?.isEditable ? v => editorCtx.updateSection('cta', {...(ctaData||{}), subtitulo: v}) : undefined}
+                                        textStyle={(ctaData||{}).subtituloStyle || {}}
+                                        onStyleChange={editorCtx?.isEditable ? s => editorCtx.updateSection('cta', {...(ctaData||{}), subtituloStyle: s}) : undefined} /><h1 className="sc_item_title sc_title_title sc_item_title_style_default sc_item_title_tag"><EditableText tag="span" className="sc_item_title_text"
+                                          value={ctaData?.titulo || '¡Experimente la verdadera alegría de los juegos de fútbol profesional!'}
+                                          onChange={editorCtx?.isEditable ? v => editorCtx.updateSection('cta', {...(ctaData||{}), titulo: v}) : undefined}
+                                          textStyle={(ctaData||{}).tituloStyle || {}}
+                                          onStyleChange={editorCtx?.isEditable ? s => editorCtx.updateSection('cta', {...(ctaData||{}), tituloStyle: s}) : undefined} /></h1><div className="sc_item_button sc_button_wrap sc_item_button sc_item_button_default sc_item_button_size_normal sc_title_button"><a className="sc_button sc_button_default sc_button_size_normal sc_button_icon_left" href={ctaData?.botonEnlace || '/inscripcion'} style={{ backgroundColor: '#C59D5F', borderColor: '#C59D5F', color: '#fff' }}><span className="sc_button_text"><EditableText tag="span" className="sc_button_title"
+                                              value={ctaData?.botonTexto || 'Inscríbete'}
+                                              onChange={editorCtx?.isEditable ? v => editorCtx.updateSection('cta', {...(ctaData||{}), botonTexto: v}) : undefined}
+                                              textStyle={(ctaData||{}).botonTextoStyle || {}}
+                                              onStyleChange={editorCtx?.isEditable ? s => editorCtx.updateSection('cta', {...(ctaData||{}), botonTextoStyle: s}) : undefined} /></span></a></div></div> </div>
                                 </div>
                                 <div className="elementor-element elementor-element-b39ddd2 sc_fly_static elementor-widget elementor-widget-spacer" data-element_type="widget" data-id="b39ddd2" data-widget_type="spacer.default">
                                   <div className="elementor-widget-container">
@@ -916,6 +779,8 @@ export default function Home() {
                         </section>
                         {/* Spacer between sections */}
                         <div style={{ height: '80px' }}></div>
+                        </div>{/* E:inscripcion */}
+                        {/* S:galeria */}<div data-section="galeria" style={{order:getSectionOrder('galeria'),display:isSectionVisible('galeria')?undefined:'none'}}>
                         <section className="elementor-section elementor-top-section elementor-element elementor-element-a605069 elementor-section-boxed elementor-section-height-default elementor-section-height-default sc_fly_static" data-element_type="section" data-id="a605069">
                           <div className="elementor-container elementor-column-gap-extended">
                             <div className="elementor-column elementor-col-100 elementor-top-column elementor-element elementor-element-6b1d3b9 sc_content_align_inherit sc_layouts_column_icons_position_left sc_fly_static" data-element_type="column" data-id="6b1d3b9">
@@ -924,41 +789,18 @@ export default function Home() {
                                   <div className="elementor-widget-container">
                                     <div className="widget_area sc_widget_instagram"><aside className="widget widget_instagram"><div className="widget_instagram_wrap widget_instagram_type_alter">
                                           <div className="widget_instagram_images widget_instagram_images_columns_6">
-                                            <div className="widget_instagram_images_item_wrap trx_addons_inline_1074383333">
-                                              <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href="https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800" rel="magnific" title="Entrenamiento de fútbol">
-                                                <img alt="Entrenamiento de fútbol" decoding="async" height={370} loading="lazy" src="https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=370&h=370&fit=crop" width={370} style={{objectFit: 'cover'}} />
-                                              </a>
-                                            </div>
-                                            <div className="widget_instagram_images_item_wrap trx_addons_inline_2108297493">
-                                              <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=800" rel="magnific" title="Niños jugando fútbol">
-                                                <img alt="Niños jugando fútbol" decoding="async" height={370} loading="lazy" src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=370&h=370&fit=crop" width={370} style={{objectFit: 'cover'}} />
-                                              </a>
-                                            </div>
-                                            <div className="widget_instagram_images_item_wrap trx_addons_inline_1353036442">
-                                              <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800" rel="magnific" title="Equipo de fútbol">
-                                                <img alt="Equipo de fútbol" decoding="async" height={370} loading="lazy" src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=370&h=370&fit=crop" width={370} style={{objectFit: 'cover'}} />
-                                              </a>
-                                            </div>
-                                            <div className="widget_instagram_images_item_wrap trx_addons_inline_1824083338">
-                                              <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800" rel="magnific" title="Copa de campeones">
-                                                <img alt="Copa de campeones" decoding="async" height={370} loading="lazy" src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=370&h=370&fit=crop" width={370} style={{objectFit: 'cover'}} />
-                                              </a>
-                                            </div>
-                                            <div className="widget_instagram_images_item_wrap trx_addons_inline_752427438">
-                                              <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href="https://images.unsplash.com/photo-1551958219-acbc608c6377?w=800" rel="magnific" title="Partido de fútbol">
-                                                <img alt="Partido de fútbol" decoding="async" height={370} loading="lazy" src="https://images.unsplash.com/photo-1551958219-acbc608c6377?w=370&h=370&fit=crop" width={370} style={{objectFit: 'cover'}} />
-                                              </a>
-                                            </div>
-                                            <div className="widget_instagram_images_item_wrap trx_addons_inline_357026543">
-                                              <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=800" rel="magnific" title="Niños celebrando">
-                                                <img alt="Niños celebrando" decoding="async" height={370} loading="lazy" src="https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=370&h=370&fit=crop" width={370} style={{objectFit: 'cover'}} />
-                                              </a>
-                                            </div>
+                                            {(galeriaData?.items?.filter(x => x.imagen).length ? galeriaData.items : DEFAULT_GALERIA).map((item, idx) => (
+                                              <div key={idx} className="widget_instagram_images_item_wrap">
+                                                <a className="widget_instagram_images_item widget_instagram_images_item_type_image" href={item.imagen} rel="magnific" title={item.alt}>
+                                                  <img alt={item.alt} decoding="async" height={370} loading="lazy" src={item.imagen} width={370} style={{objectFit: 'cover'}} />
+                                                </a>
+                                              </div>
+                                            ))}
                                           </div>
                                           <div className="widget_instagram_follow_link_wrap">
-                                            <a className="widget_instagram_follow_link sc_button" href="https://www.facebook.com/Jaguarezdegalvez" rel="noopener noreferrer" target="_blank" style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+                                            <a className="widget_instagram_follow_link sc_button" href={generalData?.facebook || 'https://www.facebook.com/Jaguarezdegalvez'} rel="noopener noreferrer" target="_blank" style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
                                               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                                              Síguenos en Facebook
+                                              {galeriaData?.botonTexto || 'Síguenos en Facebook'}
                                             </a>
                                           </div>
                                         </div></aside></div> </div>
@@ -967,6 +809,7 @@ export default function Home() {
                             </div>
                           </div>
                         </section>
+                        </div>{/* E:galeria */}
                       </div>
                     </div>
                   </article>
@@ -998,7 +841,7 @@ export default function Home() {
                       <div className="elementor-widget-wrap elementor-element-populated">
                         <div className="sc_layouts_item elementor-element elementor-element-099e0d5 sc_fly_static elementor-widget elementor-widget-trx_sc_socials" data-element_type="widget" data-id="099e0d5" data-widget_type="trx_sc_socials.default">
                           <div className="elementor-widget-container">
-                            <div className="sc_socials modern_2 sc_socials_default sc_align_none"><div className="socials_wrap"><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href="https://www.facebook.com/Jaguarezdegalvez" rel="nofollow" target="_blank"><span className="social_icon social_icon_facebook-1" style={{}}><span className="screen-reader-text">facebook-1</span><span className="icon-facebook-1" /></span></a><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href="https://wa.me/51973324460" rel="nofollow" target="_blank"><span className="social_icon social_icon_whatsapp" style={{}}><span className="screen-reader-text">WhatsApp</span><span className="icon-whatsapp" /></span></a></div></div> </div>
+                            <div className="sc_socials modern_2 sc_socials_default sc_align_none"><div className="socials_wrap"><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href={generalData?.facebook || 'https://www.facebook.com/Jaguarezdegalvez'} rel="nofollow" target="_blank"><span className="social_icon social_icon_facebook-1" style={{}}><span className="screen-reader-text">facebook-1</span><span className="icon-facebook-1" /></span></a><a className="social_item social_item_style_icons sc_icon_type_icons social_item_type_icons" href={generalData?.whatsapp || 'https://wa.me/51973324460'} rel="nofollow" target="_blank"><span className="social_icon social_icon_whatsapp" style={{}}><span className="screen-reader-text">WhatsApp</span><span className="icon-whatsapp" /></span></a></div></div> </div>
                         </div>
                       </div>
                     </div>

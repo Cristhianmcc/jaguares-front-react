@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import EditableText from './EditableText.jsx';
 
 const slides = [
   {
@@ -57,7 +58,8 @@ const slides = [
   }
 ];
 
-export default function HeroCarousel() {
+export default function HeroCarousel({ slidesData, onUpdateSlide }) {
+  const activeSlides = slidesData ?? slides;
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -71,12 +73,12 @@ export default function HeroCarousel() {
   }, [isAnimating, currentSlide]);
 
   const nextSlide = useCallback(() => {
-    goToSlide((currentSlide + 1) % slides.length);
-  }, [currentSlide, goToSlide]);
+    goToSlide((currentSlide + 1) % activeSlides.length);
+  }, [currentSlide, goToSlide, activeSlides.length]);
 
   const prevSlide = useCallback(() => {
-    goToSlide((currentSlide - 1 + slides.length) % slides.length);
-  }, [currentSlide, goToSlide]);
+    goToSlide((currentSlide - 1 + activeSlides.length) % activeSlides.length);
+  }, [currentSlide, goToSlide, activeSlides.length]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -84,7 +86,7 @@ export default function HeroCarousel() {
     return () => clearInterval(interval);
   }, [nextSlide, isPaused]);
 
-  const slide = slides[currentSlide];
+  const slide = activeSlides[currentSlide];
 
   return (
     <section 
@@ -694,13 +696,28 @@ export default function HeroCarousel() {
         }
       `}</style>
 
+      {/* Preload de la primera imagen del hero para optimizar el LCP.
+          El fondo se aplica como CSS background-image, así que el browser
+          no lo prioriza por defecto — este <img> oculto lo fuerza. */}
+      {activeSlides[0]?.image && (
+        <img
+          src={activeSlides[0].image}
+          fetchpriority="high"
+          loading="eager"
+          decoding="sync"
+          alt=""
+          aria-hidden="true"
+          style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+        />
+      )}
+
       <div className="hero-carousel-slides">
-        {slides.map((s, index) => (
+        {activeSlides.map((s, index) => (
           <div 
             key={s.id} 
             className={`hero-carousel-slide ${index === currentSlide ? 'active' : ''}`}
           >
-            <div 
+            <div
               className="hero-carousel-bg"
               style={{ backgroundImage: `url(${s.image})` }}
             />
@@ -710,9 +727,18 @@ export default function HeroCarousel() {
 
         <div className="hero-carousel-content">
           <div className="hero-carousel-text" key={currentSlide}>
-            <div className="hero-carousel-subtitle">{slide.subtitle}</div>
-            <h1 className="hero-carousel-title">{slide.title}</h1>
-            <p className="hero-carousel-description">{slide.description}</p>
+            <EditableText tag="div" className="hero-carousel-subtitle" value={slide.subtitle}
+              onChange={onUpdateSlide ? v => onUpdateSlide(currentSlide, 'subtitle', v) : undefined}
+              textStyle={slide.subtitleStyle || {}}
+              onStyleChange={onUpdateSlide ? s => onUpdateSlide(currentSlide, 'subtitleStyle', s) : undefined} />
+            <EditableText tag="h1" className="hero-carousel-title" value={slide.title} multiline
+              onChange={onUpdateSlide ? v => onUpdateSlide(currentSlide, 'title', v) : undefined}
+              textStyle={slide.titleStyle || {}}
+              onStyleChange={onUpdateSlide ? s => onUpdateSlide(currentSlide, 'titleStyle', s) : undefined} />
+            <EditableText tag="p" className="hero-carousel-description" value={slide.description} multiline
+              onChange={onUpdateSlide ? v => onUpdateSlide(currentSlide, 'description', v) : undefined}
+              textStyle={slide.descriptionStyle || {}}
+              onStyleChange={onUpdateSlide ? s => onUpdateSlide(currentSlide, 'descriptionStyle', s) : undefined} />
             <div className="hero-carousel-buttons">
               <a href="/inscripcion" className="hero-carousel-cta">
                 ¡Inscríbete Ahora!
@@ -736,7 +762,10 @@ export default function HeroCarousel() {
         </div>
 
         <div className="hero-carousel-sport-badge" key={`badge-${currentSlide}`}>
-          <div className="hero-carousel-sport-name">{slide.sport}</div>
+          <EditableText tag="div" className="hero-carousel-sport-name" value={slide.sport}
+            onChange={onUpdateSlide ? v => onUpdateSlide(currentSlide, 'sport', v) : undefined}
+            textStyle={slide.sportStyle || {}}
+            onStyleChange={onUpdateSlide ? s => onUpdateSlide(currentSlide, 'sportStyle', s) : undefined} />
         </div>
       </div>
 
@@ -754,7 +783,7 @@ export default function HeroCarousel() {
 
       {/* Indicators */}
       <div className="hero-carousel-indicators">
-        {slides.map((s, index) => (
+        {activeSlides.map((s, index) => (
           <button
             key={s.id}
             className={`hero-carousel-indicator ${index === currentSlide ? 'active' : ''}`}
