@@ -2,6 +2,10 @@
  * Script para la página de consulta de estado
  */
 
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3002'
+    : 'https://api.jaguarescar.com';
+
 let datosUsuario = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1412,7 +1416,7 @@ async function ejecutarEliminarHorario(inscripcionId, horarioId) {
     if (btn) { btn.disabled = true; btn.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Eliminando...</span>`; }
 
     try {
-        const res = await fetch('/api/eliminar-horario', {
+        const res = await fetch(`${API_BASE}/api/eliminar-horario`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dni, inscripcion_id: inscripcionId, horario_id: horarioId })
@@ -1515,7 +1519,7 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
         // Filtrar por año de nacimiento si está disponible
         const fechaNac = datosUsuario?.alumno?.fecha_nacimiento;
         const anioNac = fechaNac ? new Date(fechaNac).getFullYear() : null;
-        const url = anioNac ? `/api/horarios?anio_nacimiento=${anioNac}` : '/api/horarios';
+        const url = anioNac ? `${API_BASE}/api/horarios?anio_nacimiento=${anioNac}` : `${API_BASE}/api/horarios`;
 
         const res = await fetch(url);
         const data = await res.json();
@@ -1604,7 +1608,7 @@ async function confirmarAgregarHorario(inscripcionId) {
     }
 
     try {
-        const res = await fetch('/api/agregar-horario', {
+        const res = await fetch(`${API_BASE}/api/agregar-horario`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dni, inscripcion_id: inscripcionId, horario_id: horarioId })
