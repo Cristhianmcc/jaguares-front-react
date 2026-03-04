@@ -1359,7 +1359,7 @@ async function guardarObservacion(dni) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
 
   try {
-    const res = await fetch(`/api/admin/alumnos/${dni}/notas`, {
+    const res = await fetch(`${API_BASE}/api/admin/alumnos/${dni}/notas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
       body: JSON.stringify({ notas })
