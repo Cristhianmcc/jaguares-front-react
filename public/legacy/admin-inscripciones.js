@@ -1360,7 +1360,7 @@ async function guardarObservacion(dni) {
 
   try {
     const res = await fetch(`/api/admin/alumnos/${dni}/notas`, {
-      method: 'PUT',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
       body: JSON.stringify({ notas })
     });
