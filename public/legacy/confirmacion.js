@@ -488,12 +488,13 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                     </div>
                                     <img id="imagenPreviewPlinConf" src="" alt="Preview" class="w-full max-h-20 object-contain rounded">
                                     <!-- Nro Operación dentro de Plin -->
-                                    <div class="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
-                                        <label class="text-[10px] font-bold text-green-700 dark:text-green-400 flex items-center gap-1 mb-1">
-                                            <span class="material-symbols-outlined text-xs">pin</span>
+                                    <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+                                        <label class="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1 mb-0.5">
+                                            <span class="material-symbols-outlined text-sm">pin</span>
                                             Nro. de Operación (obligatorio)
                                         </label>
-                                        <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2 bg-white dark:bg-black/20 border border-green-300 dark:border-green-700 rounded-lg text-sm font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-green-500 focus:ring-1 focus:ring-green-500/30 outline-none transition-all">
+                                        <p class="text-[11px] text-green-600/80 dark:text-green-400/70 mb-2 leading-tight">Es el número que aparece en tu comprobante de Yape/Plin al realizar el pago.</p>
+                                        <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-green-300 dark:border-green-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-green-500 focus:ring-2 focus:ring-green-500/30 outline-none transition-all">
                                     </div>
                                 </div>
                             </div>
@@ -576,12 +577,13 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                         </div>
                                         <img id="imagenPreviewBBVAConf" src="" alt="Preview" class="w-full max-h-20 object-contain rounded">
                                         <!-- Nro Operación dentro de BBVA -->
-                                        <div class="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800">
-                                            <label class="text-[10px] font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1 mb-1">
-                                                <span class="material-symbols-outlined text-xs">pin</span>
+                                        <div class="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                                            <label class="text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1 mb-0.5">
+                                                <span class="material-symbols-outlined text-sm">pin</span>
                                                 Nro. de Operación (obligatorio)
                                             </label>
-                                            <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2 bg-white dark:bg-black/20 border border-blue-300 dark:border-blue-700 rounded-lg text-sm font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 outline-none transition-all">
+                                            <p class="text-[11px] text-blue-600/80 dark:text-blue-400/70 mb-2 leading-tight">Es el número que aparece en tu voucher o constancia de transferencia BBVA.</p>
+                                            <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition-all">
                                         </div>
                                     </div>
                                 </div>
@@ -664,12 +666,13 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                         </div>
                                         <img id="imagenPreviewBCPConf" src="" alt="Preview" class="w-full max-h-20 object-contain rounded">
                                         <!-- Nro Operación dentro de BCP -->
-                                        <div class="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
-                                            <label class="text-[10px] font-bold text-red-700 dark:text-red-400 flex items-center gap-1 mb-1">
-                                                <span class="material-symbols-outlined text-xs">pin</span>
+                                        <div class="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
+                                            <label class="text-xs font-bold text-red-700 dark:text-red-400 flex items-center gap-1 mb-0.5">
+                                                <span class="material-symbols-outlined text-sm">pin</span>
                                                 Nro. de Operación (obligatorio)
                                             </label>
-                                            <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2 bg-white dark:bg-black/20 border border-red-300 dark:border-red-700 rounded-lg text-sm font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-red-500 focus:ring-1 focus:ring-red-500/30 outline-none transition-all">
+                                            <p class="text-[11px] text-red-600/80 dark:text-red-400/70 mb-2 leading-tight">Es el número que aparece en tu voucher o constancia de transferencia BCP.</p>
+                                            <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-red-300 dark:border-red-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 outline-none transition-all">
                                         </div>
                                     </div>
                                 </div>
@@ -746,12 +749,13 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                         </div>
                                         <img id="imagenPreviewEfectivoConf" src="" alt="Preview recibo" class="w-full max-h-20 object-contain rounded">
                                         <!-- Nro Operación dentro de Efectivo -->
-                                        <div class="mt-2 pt-2 border-t border-amber-200 dark:border-amber-800">
-                                            <label class="text-[10px] font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 mb-1">
-                                                <span class="material-symbols-outlined text-xs">pin</span>
+                                        <div class="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
+                                            <label class="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 mb-0.5">
+                                                <span class="material-symbols-outlined text-sm">pin</span>
                                                 Nro. de Operación / Recibo (obligatorio)
                                             </label>
-                                            <input type="text" data-numop="true" placeholder="Ej: 00012345, S/N" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2 bg-white dark:bg-black/20 border border-amber-300 dark:border-amber-700 rounded-lg text-sm font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 outline-none transition-all">
+                                            <p class="text-[11px] text-amber-600/80 dark:text-amber-400/70 mb-2 leading-tight">Es el número de la boleta o recibo que le dieron al pagar en efectivo. Si no tiene, escriba S/N.</p>
+                                            <input type="text" data-numop="true" placeholder="Ej: 00012345, S/N" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-amber-300 dark:border-amber-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none transition-all">
                                         </div>
                                     </div>
                                 </div>
