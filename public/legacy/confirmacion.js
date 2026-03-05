@@ -752,10 +752,10 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                         <div class="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
                                             <label class="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 mb-0.5">
                                                 <span class="material-symbols-outlined text-sm">pin</span>
-                                                Nro. de Operación / Recibo (obligatorio)
+                                                Nro. de Operación (obligatorio)
                                             </label>
-                                            <p class="text-[11px] text-amber-600/80 dark:text-amber-400/70 mb-2 leading-tight">Es el número de la boleta o recibo que le dieron al pagar en efectivo. Si no tiene, escriba S/N.</p>
-                                            <input type="text" data-numop="true" placeholder="Ej: 00012345, S/N" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-amber-300 dark:border-amber-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none transition-all">
+                                            <p class="text-[11px] text-amber-600/80 dark:text-amber-400/70 mb-2 leading-tight">Es el número que aparece en la boleta o recibo que le dieron al pagar en efectivo.</p>
+                                            <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-amber-300 dark:border-amber-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 outline-none transition-all">
                                         </div>
                                     </div>
                                 </div>

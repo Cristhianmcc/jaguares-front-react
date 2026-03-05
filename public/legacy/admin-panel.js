@@ -1988,8 +1988,11 @@ async function buscarNumeroOperacion() {
     contenedor.classList.remove('hidden');
 
     try {
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3002' : '';
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3002'
+                : 'https://api.jaguarescar.com');
         const resp = await fetch(`${API_BASE}/api/admin/buscar-numero-operacion?numero_operacion=${encodeURIComponent(valor)}`);
         const data = await resp.json();
 
