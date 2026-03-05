@@ -237,18 +237,27 @@ class AcademiaAPI {
     /**
      * Inscribe a un alumno en múltiples horarios
      */
-    async inscribirMultiple(alumno, horarios) {
+    async inscribirMultiple(alumno, horarios, comprobante) {
         try {
             if (!alumno || !horarios || horarios.length === 0) {
                 throw new Error('Datos de inscripción incompletos');
             }
 
+            // Armar payload: incluir comprobante si existe para que el servidor
+            // lo suba a Drive DESPUÉS de sincronizar la inscripción (evita 2 carpetas)
+            const payload = { alumno, horarios };
+            if (comprobante) {
+                payload.comprobante = {
+                    imagen: comprobante.base64,
+                    nombre_archivo: comprobante.nombre,
+                    metodo_pago: comprobante.banco || 'Plin/QR',
+                    numero_operacion: comprobante.numero_operacion || null
+                };
+            }
+
             const data = await this.request(API_CONFIG.endpoints.inscribirMultiple, {
                 method: 'POST',
-                body: JSON.stringify({
-                    alumno,
-                    horarios
-                })
+                body: JSON.stringify(payload)
             });
 
             // Invalidar caché de inscripciones de este DNI después de inscribir

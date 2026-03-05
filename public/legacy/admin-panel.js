@@ -1313,6 +1313,16 @@ function mostrarDetalleUsuario(data) {
 
     document.getElementById('detalleEstadoPago').innerHTML = `<span class="${estadoColor}">${estadoTexto}</span>`;
 
+    // Número de operación
+    const numOp = data.alumno.numero_operacion || data.pago.numero_operacion || null;
+    const detalleNumOp = document.getElementById('detalleNumeroOperacion');
+    if (detalleNumOp) {
+        detalleNumOp.textContent = numOp || 'No registrado';
+        detalleNumOp.className = numOp 
+            ? 'font-bold text-sm font-mono truncate text-amber-700 dark:text-amber-400' 
+            : 'font-bold text-sm truncate text-text-muted';
+    }
+
     
 
     // Generar grid 2x2 con todas las imgenes (Comprobante + 3 documentos)
@@ -1935,7 +1945,146 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }
 
+    // Enter en campo de búsqueda de número de operación
+    const inputNumOp = document.getElementById('inputBuscarNumOp');
+    if (inputNumOp) {
+        inputNumOp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') buscarNumeroOperacion();
+        });
+    }
+
 });
+
+// =====================================================================
+//  BÚSQUEDA DE NÚMERO DE OPERACIÓN (Anti-fraude)
+// =====================================================================
+
+function toggleSeccionNumOp() {
+    const contenido = document.getElementById('contenidoNumOp');
+    const icono = document.getElementById('iconToggleNumOp');
+    if (!contenido) return;
+    if (contenido.classList.contains('hidden')) {
+        contenido.classList.remove('hidden');
+        if (icono) icono.style.transform = 'rotate(180deg)';
+    } else {
+        contenido.classList.add('hidden');
+        if (icono) icono.style.transform = 'rotate(0deg)';
+    }
+}
+
+async function buscarNumeroOperacion() {
+    const input = document.getElementById('inputBuscarNumOp');
+    const contenedor = document.getElementById('resultadosNumOp');
+    if (!input || !contenedor) return;
+
+    const valor = input.value.trim();
+    if (valor.length < 2) {
+        contenedor.innerHTML = '<p class="text-sm text-red-600 font-semibold">Ingresa al menos 2 caracteres.</p>';
+        contenedor.classList.remove('hidden');
+        return;
+    }
+
+    contenedor.innerHTML = '<div class="flex items-center gap-2 text-text-muted"><span class="material-symbols-outlined animate-spin">progress_activity</span> Buscando...</div>';
+    contenedor.classList.remove('hidden');
+
+    try {
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3002' : '';
+        const resp = await fetch(`${API_BASE}/api/admin/buscar-numero-operacion?numero_operacion=${encodeURIComponent(valor)}`);
+        const data = await resp.json();
+
+        if (!data.success) {
+            contenedor.innerHTML = `<p class="text-sm text-red-600 font-semibold">${data.error || 'Error al buscar'}</p>`;
+            return;
+        }
+
+        if (data.total === 0) {
+            contenedor.innerHTML = `
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
+                    <span class="material-symbols-outlined text-4xl text-gray-400">search_off</span>
+                    <p class="text-sm text-text-muted mt-2">No se encontraron registros con ese número de operación.</p>
+                </div>`;
+            return;
+        }
+
+        let alertaHtml = '';
+        if (data.es_duplicado) {
+            alertaHtml = `
+                <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-lg p-4 mb-4 flex items-start gap-3">
+                    <span class="material-symbols-outlined text-red-600 text-2xl flex-shrink-0">warning</span>
+                    <div>
+                        <p class="font-bold text-red-800 dark:text-red-300 text-sm">${data.mensaje_duplicado}</p>
+                        <p class="text-xs text-red-700 dark:text-red-400 mt-1">Verifica los comprobantes antes de confirmar estos pagos.</p>
+                    </div>
+                </div>`;
+        }
+
+        let filasHtml = data.resultados.map(r => {
+            const estadoColor = r.estado_pago === 'confirmado' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' :
+                                r.estado_pago === 'rechazado' ? 'text-red-600 bg-red-50 dark:bg-red-900/20' :
+                                'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20';
+            const fecha = r.fecha_inscripcion ? new Date(r.fecha_inscripcion).toLocaleDateString('es-PE') : '-';
+            return `
+                <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-3 py-2 text-sm font-mono font-bold">${r.dni}</td>
+                    <td class="px-3 py-2 text-sm font-semibold">${r.nombres} ${r.apellidos}</td>
+                    <td class="px-3 py-2 text-sm font-mono font-bold text-primary">${r.numero_operacion || '-'}</td>
+                    <td class="px-3 py-2 text-sm">${r.deportes || '-'}</td>
+                    <td class="px-3 py-2"><span class="text-xs font-bold px-2 py-1 rounded-full ${estadoColor}">${r.estado_pago || 'pendiente'}</span></td>
+                    <td class="px-3 py-2 text-xs text-text-muted">${fecha}</td>
+                    <td class="px-3 py-2">
+                        ${r.comprobante_pago_url ? `<a href="${r.comprobante_pago_url}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">image</span>Ver</a>` : '<span class="text-xs text-text-muted">—</span>'}
+                    </td>
+                </tr>`;
+        }).join('');
+
+        contenedor.innerHTML = `
+            ${alertaHtml}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">DNI</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">Alumno</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">Nro. Operación</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">Deportes</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">Estado Pago</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">Fecha</th>
+                            <th class="px-3 py-2 text-left text-xs font-bold uppercase text-text-muted">Comprobante</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filasHtml}</tbody>
+                </table>
+            </div>
+            <p class="text-xs text-text-muted mt-2">${data.total} resultado(s) encontrado(s)</p>`;
+
+    } catch (err) {
+        console.error('Error buscando número de operación:', err);
+        contenedor.innerHTML = '<p class="text-sm text-red-600 font-semibold">Error de conexión al buscar.</p>';
+    }
+}
+
+// Copiar el nro operación del detalle al buscador y buscar duplicados automáticamente
+function copiarYBuscarNumOp() {
+    const numOp = document.getElementById('detalleNumeroOperacion')?.textContent;
+    if (!numOp || numOp === 'No registrado' || numOp === '-') return;
+    
+    // Abrir la sección si está cerrada
+    const contenido = document.getElementById('contenidoNumOp');
+    if (contenido && contenido.classList.contains('hidden')) {
+        toggleSeccionNumOp();
+    }
+    
+    // Poner el valor y buscar
+    const input = document.getElementById('inputBuscarNumOp');
+    if (input) {
+        input.value = numOp;
+        // Scroll suave a la sección
+        document.getElementById('inputBuscarNumOp').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Buscar después de un breve delay para que el scroll termine
+        setTimeout(() => buscarNumeroOperacion(), 300);
+    }
+}
 
 
 

@@ -191,6 +191,35 @@ const html = `
                 </div>
             </div>
 
+            <!-- Buscador de Número de Operación (Anti-fraude) -->
+            <div class="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-xl mb-6 border-l-4 border-amber-500">
+                <div class="flex items-center gap-3 mb-4 cursor-pointer" onclick="toggleSeccionNumOp()">
+                    <span class="material-symbols-outlined text-2xl text-amber-600">search</span>
+                    <h2 class="text-xl font-bold text-black dark:text-white uppercase tracking-tight flex-1">
+                        Verificar Número de Operación
+                    </h2>
+                    <span id="iconToggleNumOp" class="material-symbols-outlined text-2xl text-text-muted transition-transform">expand_more</span>
+                </div>
+                <div id="contenidoNumOp" class="hidden">
+                    <p class="text-sm text-text-muted dark:text-gray-400 mb-4">Busca si un número de operación ya fue usado por otro alumno para evitar pagos duplicados.</p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 flex-1">
+                            <span class="material-symbols-outlined text-amber-600">pin</span>
+                            <input type="text" id="inputBuscarNumOp" placeholder="Ingresa el número de operación..." 
+                                   maxlength="50"
+                                   class="bg-transparent border-none focus:outline-none text-sm font-semibold w-full text-black dark:text-white" />
+                        </div>
+                        <button id="btnBuscarNumOp" onclick="buscarNumeroOperacion()" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 justify-center">
+                            <span class="material-symbols-outlined">search</span>
+                            Buscar
+                        </button>
+                    </div>
+                    <div id="resultadosNumOp" class="mt-4 hidden">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-xl mb-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <h2 class="text-xl font-bold text-black dark:text-white uppercase tracking-tight">
@@ -365,6 +394,16 @@ const html = `
                                     <p class="text-xs text-text-muted">Estado</p>
                                     <p class="font-bold text-sm truncate" id="detalleEstadoPago">-</p>
                                 </div>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <span class="material-symbols-outlined text-amber-600 text-sm">pin</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs text-text-muted">Nro. Operación</p>
+                                    <p class="font-bold text-sm font-mono truncate" id="detalleNumeroOperacion">-</p>
+                                </div>
+                                <button onclick="copiarYBuscarNumOp()" class="p-1 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors" title="Buscar duplicados">
+                                    <span class="material-symbols-outlined text-amber-600 text-sm">search</span>
+                                </button>
                             </div>
                         </div>
                     </div>
