@@ -905,7 +905,19 @@ async function confirmarInscripcion() {
         // Recopilar comprobante si el usuario lo subió
         const comprobanteASubir = capturaConfirmacion || comprobanteBBVAConf || comprobanteBCPConf || comprobanteEfectivoConf;
         
-        // Validar número de operación si hay comprobante
+        // VALIDAR: El comprobante de pago es obligatorio
+        if (!comprobanteASubir) {
+            cerrarLoaderInscripcion();
+            btn.disabled = false;
+            btn.innerHTML = `<span>Confirmar y Finalizar</span><span class="material-symbols-outlined">check_circle</span>`;
+            Utils.mostrarNotificacion('Debes subir el comprobante de pago antes de finalizar. Elige tu método de pago y sube la imagen del voucher.', 'error');
+            // Hacer scroll hacia la sección de métodos de pago
+            var btnPlin = document.querySelector('[onclick="toggleMetodoPagoConf(\'plin\')"]');
+            if (btnPlin) btnPlin.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        // Validar número de operación (obligatorio junto con el comprobante)
         if (comprobanteASubir) {
             const numOp = numeroOperacionConf.trim();
             if (!numOp) {
