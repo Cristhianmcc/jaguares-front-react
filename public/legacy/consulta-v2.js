@@ -990,6 +990,21 @@ function abrirModalSubirComprobante() {
                 <div id="previsualizacionComprobante" class="hidden">
                     <img id="imgPreview" src="" alt="Vista previa" class="w-full h-48 object-contain rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-base">pin</span>
+                            Número de operación <span class="text-red-500">*</span>
+                        </span>
+                    </label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Es el código que aparece en tu voucher de Yape, Plin, transferencia bancaria o recibo de efectivo.</p>
+                    <input type="text"
+                           id="inputNumOpTardio"
+                           placeholder="Ej: 00012345678"
+                           maxlength="50"
+                           class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono font-bold text-text-main dark:text-white bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all">
+                </div>
                 
                 <button onclick="subirComprobanteTardio()" 
                         id="btnSubirComprobante"
@@ -1048,6 +1063,18 @@ async function subirComprobanteTardio() {
         mostrarNotificacion('Por favor selecciona un comprobante', 'error');
         return;
     }
+
+    const numOp = (document.getElementById('inputNumOpTardio')?.value || '').trim();
+    if (!numOp) {
+        const inputNumOp = document.getElementById('inputNumOpTardio');
+        if (inputNumOp) {
+            inputNumOp.style.borderColor = '#dc2626';
+            inputNumOp.focus();
+            setTimeout(() => { inputNumOp.style.borderColor = ''; }, 3000);
+        }
+        mostrarNotificacion('Debes ingresar el número de operación de tu comprobante', 'error');
+        return;
+    }
     
     const dni = window.dniUsuarioActual;
     const btn = document.getElementById('btnSubirComprobante');
@@ -1063,7 +1090,8 @@ async function subirComprobanteTardio() {
         const resultado = await academiaAPI.subirComprobanteTardio(dni, {
             imagen: base64,
             nombre_archivo: file.name,
-            metodo_pago: 'Transferencia/Plin'
+            metodo_pago: 'Transferencia/Plin',
+            numero_operacion: numOp
         });
         
         if (resultado.success) {
