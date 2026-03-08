@@ -7,6 +7,7 @@ export default function ProfesorDashboard() {
     const [clases, setClases] = useState([]);
     const [loading, setLoading] = useState(true);
     const [diaActual, setDiaActual] = useState('');
+    const [fechaFormateada, setFechaFormateada] = useState('');
 
     const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -24,8 +25,11 @@ export default function ProfesorDashboard() {
                 return;
             }
             setProfesorData(data);
-            const hoy = dias[new Date().getDay()];
+            const hoyDate = new Date();
+            const hoy = dias[hoyDate.getDay()];
             setDiaActual(hoy);
+            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            setFechaFormateada(`${hoyDate.getDate()} de ${meses[hoyDate.getMonth()]} de ${hoyDate.getFullYear()}`);
         } catch (e) {
             window.location.href = '/admin-login';
         }
@@ -36,7 +40,7 @@ export default function ProfesorDashboard() {
         if (!profesorData) return;
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/api/profesor/mis-clases?dia=${dia}`, {
+            const response = await fetch(`${API_BASE}/api/profesor/mis-clases?dia=${dia}&fecha=${getFechaLocalPeru()}`, {
                 headers: { 'Authorization': `Bearer ${profesorData.token}` }
             });
             const data = await response.json();
@@ -153,10 +157,18 @@ export default function ProfesorDashboard() {
                 {/* Lista de clases */}
                 <div className="bg-white dark:bg-surface-dark rounded-xl shadow-md overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                        <h2 className="text-lg font-bold text-black dark:text-white flex items-center gap-2">
-                            <span className="material-symbols-outlined">calendar_today</span>
-                            Mis Clases - {diaActual}
-                        </h2>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <h2 className="text-lg font-bold text-black dark:text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined">calendar_today</span>
+                                Mis Clases - {diaActual}
+                            </h2>
+                            {fechaFormateada && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-sm">today</span>
+                                    Hoy: {fechaFormateada}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
                     {loading ? (
@@ -183,6 +195,12 @@ export default function ProfesorDashboard() {
                                                 <p className="text-sm text-gray-500">
                                                     {clase.categoria} • {clase.hora_inicio} - {clase.hora_fin}
                                                 </p>
+                                                {clase.asistencia_hoy && (
+                                                    <p className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1 mt-1">
+                                                        <span className="material-symbols-outlined text-xs">check_circle</span>
+                                                        Asistencia tomada hoy
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4">

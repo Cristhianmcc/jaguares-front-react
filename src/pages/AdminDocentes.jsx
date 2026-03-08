@@ -506,6 +506,7 @@ export default function AdminDocentes() {
     (async () => {
       try {
         await loadScript('/legacy/api-service.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
         await loadScript('/legacy/admin-docentes.js');
         document.dispatchEvent(new Event('DOMContentLoaded'));
       } catch (err) {

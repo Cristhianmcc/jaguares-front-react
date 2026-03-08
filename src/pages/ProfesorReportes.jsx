@@ -58,6 +58,7 @@ export default function ProfesorReportes() {
     (async () => {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
+        await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
         await loadScript('/legacy/profesor-reportes.js');
         document.dispatchEvent(new Event('DOMContentLoaded'));
       } catch (err) {

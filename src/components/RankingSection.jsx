@@ -334,20 +334,55 @@ export default function RankingSection() {
           object-fit: cover;
         }
 
+        .ranking-row-name-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
         .ranking-row-name {
           font-family: 'Inter Tight', sans-serif;
           font-size: 15px;
           font-weight: 700;
           color: #1a1a1a;
           text-transform: uppercase;
+          line-height: 1.1;
+        }
+        .ranking-row-name-sport {
+          font-family: 'Inter Tight', sans-serif;
+          font-size: 11px;
+          font-weight: 500;
+          color: rgba(0,0,0,0.55);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .ranking-row-points {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 58px;
+          height: 58px;
+          border-radius: 50%;
+          background: #1a3a5c;
+          flex-shrink: 0;
+          border: 2px solid #C59D5F;
+        }
+        .ranking-row-points-num {
           font-family: 'Inter Tight', sans-serif;
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 800;
-          color: #1a1a1a;
-          text-align: right;
+          color: #ffffff;
+          line-height: 1;
+        }
+        .ranking-row-points-label {
+          font-family: 'Inter Tight', sans-serif;
+          font-size: 8px;
+          font-weight: 700;
+          color: #C59D5F;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          line-height: 1;
         }
 
         /* Estados */
@@ -494,9 +529,15 @@ export default function RankingSection() {
                           onError={(e) => { e.target.src = defaultAvatar(player.nombre_corto); }}
                         />
                       </div>
-                      <span className="ranking-row-name">{player.nombre_corto}</span>
+                      <div className="ranking-row-name-wrap">
+                        <span className="ranking-row-name">{player.nombre_corto}</span>
+                        {player.deporte && <span className="ranking-row-name-sport">{player.deporte}</span>}
+                      </div>
                     </div>
-                    <span className="ranking-row-points">{player.puntos}</span>
+                    <div className="ranking-row-points">
+                        <span className="ranking-row-points-num">{player.puntos}</span>
+                        <span className="ranking-row-points-label">PTS</span>
+                      </div>
                   </div>
                 ))}
               </div>

@@ -348,6 +348,7 @@ async function cargarAlumnos() {
             // Mostrar alumnos
             renderizarAlumnos();
             alumnosContainer.classList.remove('hidden');
+            cargarHistorialAsistencias(horarioSeleccionado.horario_id);
         } else {
             sinAlumnos.classList.remove('hidden');
             document.getElementById('bannerYaRegistrada').classList.add('hidden');
@@ -529,11 +530,112 @@ function cerrarModal() {
 }
 
 /**
- * Cargar clase directa desde URL
+ * Cargar clase directa desde URL (viene del dashboard con horario_id)
  */
 async function cargarClaseDirecta(horarioId) {
-    // Implementar carga directa si es necesario
-    console.log('Cargando clase directa:', horarioId);
+    // Ocultar el bloque de filtros — el profesor ya eligió la clase desde el dashboard
+    const filtersBlock = document.getElementById('filtrosClase');
+    if (filtersBlock) filtersBlock.classList.add('hidden');
+
+    const loadingContainer = document.getElementById('loadingContainer');
+    const alumnosContainer = document.getElementById('alumnosContainer');
+    const sinAlumnos = document.getElementById('sinAlumnos');
+    const infoClase = document.getElementById('infoClase');
+
+    loadingContainer.classList.remove('hidden');
+    alumnosContainer.classList.add('hidden');
+    sinAlumnos.classList.add('hidden');
+    infoClase.classList.add('hidden');
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const { token } = JSON.parse(session);
+
+        const fechaHoy = getFechaLocalPeru();
+        const response = await fetch(`${API_BASE}/api/profesor/alumnos-clase/${horarioId}?fecha=${fechaHoy}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        loadingContainer.classList.add('hidden');
+
+        if (data.success && data.alumnos && data.alumnos.length > 0) {
+            alumnosClase = data.alumnos;
+            horarioSeleccionado = data.horario;
+
+            asistenciaYaRegistrada = data.alumnos.some(a => a.asistencia_registrada);
+            actualizarEstadoBotonGuardar();
+
+            document.getElementById('claseNombre').textContent = `${horarioSeleccionado.deporte} - ${horarioSeleccionado.categoria}`;
+            document.getElementById('claseDetalle').textContent = `${horarioSeleccionado.dia} | ${horarioSeleccionado.hora_inicio} - ${horarioSeleccionado.hora_fin}`;
+            infoClase.classList.remove('hidden');
+
+            renderizarAlumnos();
+            alumnosContainer.classList.remove('hidden');
+            cargarHistorialAsistencias(horarioId);
+        } else if (data.success && (!data.alumnos || data.alumnos.length === 0)) {
+            sinAlumnos.classList.remove('hidden');
+        } else {
+            mostrarError(data.error || 'No se pudo cargar la clase');
+        }
+    } catch (error) {
+        document.getElementById('loadingContainer').classList.add('hidden');
+        mostrarError('Error al cargar la clase');
+        console.error('Error en cargarClaseDirecta:', error);
+    }
+}
+
+/**
+ * Cargar historial de fechas con asistencia registrada para un horario
+ */
+async function cargarHistorialAsistencias(horarioId) {
+    const container = document.getElementById('historialContainer');
+    const lista = document.getElementById('historialLista');
+    if (!container || !lista) return;
+    container.classList.add('hidden');
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const { token } = JSON.parse(session);
+
+        const response = await fetch(`${API_BASE}/api/profesor/historial-asistencias/${horarioId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!data.success || !data.historial || data.historial.length === 0) return;
+
+        lista.innerHTML = '';
+        const diasNombres = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const mesesNombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+        data.historial.forEach(item => {
+            const fecha = new Date(item.fecha + 'T12:00:00');
+            const fechaTexto = `${diasNombres[fecha.getDay()]} ${fecha.getDate()} ${mesesNombres[fecha.getMonth()]} ${fecha.getFullYear()}`;
+            const pct = item.total > 0 ? Math.round((item.presentes / item.total) * 100) : 0;
+            const pctColor = pct >= 75 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-500';
+
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/60';
+            div.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary text-base">event</span>
+                    <span class="text-sm font-semibold text-black dark:text-white">${fechaTexto}</span>
+                </div>
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="text-green-600 font-bold">${item.presentes} presentes</span>
+                    <span class="text-red-500">${item.ausentes} ausentes</span>
+                    <span class="${pctColor} font-black w-12 text-right">${pct}%</span>
+                </div>
+            `;
+            lista.appendChild(div);
+        });
+
+        container.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error al cargar historial:', error);
+    }
 }
 
 /**

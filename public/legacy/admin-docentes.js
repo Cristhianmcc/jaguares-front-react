@@ -774,52 +774,183 @@ async function cargarReporteAsistencias() {
     }
 }
 
-// Exportar asistencias a Excel
+// Exportar asistencias a Excel con ExcelJS (estilos completos)
 async function exportarExcel() {
     const fechaInicio = document.getElementById('reporte-fecha-inicio').value;
-    const fechaFin = document.getElementById('reporte-fecha-fin').value;
-    const deporteId = document.getElementById('reporte-deporte').value;
-    const categoria = document.getElementById('reporte-categoria').value;
-    const dia = document.getElementById('reporte-dia').value;
-    
+    const fechaFin    = document.getElementById('reporte-fecha-fin').value;
+    const deporteId   = document.getElementById('reporte-deporte').value;
+    const categoria   = document.getElementById('reporte-categoria').value;
+    const dia         = document.getElementById('reporte-dia').value;
+
     if (!fechaInicio || !fechaFin) {
         mostrarToast('Seleccione fechas de inicio y fin', 'error');
         return;
     }
-    
+
+    const btn = document.getElementById('btn-exportar-excel');
+    if (btn) btn.setAttribute('disabled', 'true');
+    mostrarToast('Generando Excel...', 'info');
+
     try {
         const token = getToken();
-        let url = `${API_BASE_URL}/api/admin/exportar-asistencias-excel?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+        let url = `${API_BASE_URL}/api/admin/exportar-asistencias-json?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
         if (deporteId) url += `&deporte_id=${deporteId}`;
         if (categoria) url += `&categoria=${encodeURIComponent(categoria)}`;
         if (dia)       url += `&dia=${encodeURIComponent(dia)}`;
-        
-        mostrarToast('Generando Excel...', 'info');
-        
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            const blob = await response.blob();
-            const urlBlob = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = urlBlob;
-            a.download = `Asistencias_${fechaInicio}_${fechaFin}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(urlBlob);
-            
-            mostrarToast('Archivo descargado correctamente', 'success');
-        } else {
-            const error = await response.json();
-            mostrarToast(error.error || 'Error al exportar', 'error');
+
+        const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            mostrarToast(data.error || 'Error al obtener datos', 'error');
+            return;
         }
+
+        if (!data.rows || data.rows.length === 0) {
+            mostrarToast('No hay registros en ese período', 'warning');
+            return;
+        }
+
+        await generarExcelAdmin(data);
+        mostrarToast('Archivo descargado correctamente', 'success');
     } catch (error) {
         console.error('Error al exportar Excel:', error);
         mostrarToast('Error al exportar Excel', 'error');
+    } finally {
+        if (btn) btn.removeAttribute('disabled');
     }
+}
+
+async function generarExcelAdmin(data) {
+    const ExcelJS = window.ExcelJS;
+    const { rows, filtros } = data;
+
+    // Paleta (misma que profesor)
+    const C = {
+        gold: 'C59D5F', goldDark: 'B08546',
+        darkBg: '1A1A1A', darkBg2: '374151',
+        white: 'FFFFFF', grayLight: 'F9FAFB', grayMid: 'F3F4F6',
+        grayText: '6B7280', grayBorder: 'D1D5DB',
+        greenBg: 'DCFCE7', greenFg: '166534', greenLightBg: 'F0FDF4',
+        redBg: 'FEE2E2', redFg: '991B1B', redLightBg: 'FFF1F2',
+    };
+    const fill     = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+    const thin     = (c)    => ({ style: 'thin',   color: { argb: c || C.grayBorder } });
+    const medium   = (c)    => ({ style: 'medium', color: { argb: c || C.goldDark } });
+    const allThin  = ()     => ({ top: thin(), left: thin(), bottom: thin(), right: thin() });
+    const allBold  = ()     => ({ top: medium(), left: medium(), bottom: medium(), right: medium() });
+
+    const fechaLabel = `${filtros.fecha_inicio} al ${filtros.fecha_fin}`;
+    const totalCols  = 9; // Fecha | Deporte | Categoría | Día | Horario | Alumno | DNI | Asistencia | —
+    // We'll use 8 data cols
+    const NCOLS = 8;
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'JAGUARES';
+    workbook.created = new Date();
+    const ws = workbook.addWorksheet('Asistencias', {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+    });
+
+    // Fila 1: Título
+    ws.mergeCells(1, 1, 1, NCOLS);
+    const r1 = ws.getCell(1, 1);
+    r1.value     = 'JAGUARES — REPORTE DE ASISTENCIAS';
+    r1.font      = { name: 'Calibri', size: 16, bold: true, color: { argb: C.gold } };
+    r1.fill      = fill(C.darkBg);
+    r1.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 30;
+
+    // Fila 2: Período y filtros
+    ws.mergeCells(2, 1, 2, NCOLS);
+    const partes = [`Período: ${fechaLabel}`];
+    if (filtros.categoria) partes.push(`Categoría: ${filtros.categoria}`);
+    if (filtros.dia)       partes.push(`Día: ${filtros.dia}`);
+    const r2 = ws.getCell(2, 1);
+    r2.value     = partes.join('   │   ');
+    r2.font      = { name: 'Calibri', size: 11, bold: true, color: { argb: C.white } };
+    r2.fill      = fill(C.darkBg2);
+    r2.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 22;
+
+    // Fila 3: Fecha generación + total
+    ws.mergeCells(3, 1, 3, NCOLS);
+    const presentes = rows.filter(r => r.presente == 1).length;
+    const r3 = ws.getCell(3, 1);
+    r3.value     = `Generado: ${new Date().toLocaleDateString('es-ES')}   │   Total registros: ${rows.length}   │   Presentes: ${presentes}   │   Ausentes: ${rows.length - presentes}`;
+    r3.font      = { name: 'Calibri', size: 10, italic: true, color: { argb: '4B5563' } };
+    r3.fill      = fill(C.grayLight);
+    r3.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(3).height = 18;
+
+    ws.getRow(4).height = 6; // separador
+
+    // Fila 5: Encabezados
+    const headers = ['Fecha', 'Deporte', 'Categoría', 'Día', 'Horario', 'Alumno', 'DNI', 'Asistencia'];
+    const headerRow = ws.getRow(5);
+    headerRow.height = 26;
+    headers.forEach((txt, i) => {
+        const cell = headerRow.getCell(i + 1);
+        cell.value     = txt;
+        cell.font      = { name: 'Calibri', size: 10, bold: true, color: { argb: C.white } };
+        cell.fill      = fill(C.gold);
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border    = allBold();
+    });
+
+    // Filas de datos
+    rows.forEach((row, idx) => {
+        const rn   = 6 + idx;
+        const r    = ws.getRow(rn);
+        r.height   = 19;
+        const par  = idx % 2 === 0;
+        const bgFila = par ? C.white : C.grayMid;
+
+        const set = (col, value, opts = {}) => {
+            const cell = r.getCell(col);
+            cell.value     = value;
+            cell.font      = { name: 'Calibri', size: 10, color: { argb: opts.fg || '1A1A1A' }, bold: !!opts.bold };
+            cell.fill      = fill(opts.bg || bgFila);
+            cell.alignment = { vertical: 'middle', horizontal: opts.h || 'left' };
+            cell.border    = allThin();
+        };
+
+        const d = new Date(row.fecha);
+        const fechaStr = `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
+
+        set(1, fechaStr,                      { h: 'center' });
+        set(2, row.deporte);
+        set(3, row.categoria,                 { h: 'center' });
+        set(4, row.dia,                       { h: 'center' });
+        set(5, `${row.hora_inicio}–${row.hora_fin}`, { h: 'center' });
+        set(6, row.alumno.trim());
+        set(7, row.dni,                       { h: 'center' });
+
+        const presente = row.presente == 1;
+        set(8, presente ? 'Presente' : 'Ausente', {
+            h: 'center',
+            bold: true,
+            bg:  presente ? (par ? C.greenLightBg : C.greenBg) : (par ? C.redLightBg : C.redBg),
+            fg:  presente ? C.greenFg : C.redFg,
+        });
+    });
+
+    // Anchos de columna
+    [10, 20, 14, 9, 14, 38, 12, 12].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+
+    // Descargar
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = `Asistencias_${filtros.fecha_inicio}_${filtros.fecha_fin}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // Eliminar docente — modal
