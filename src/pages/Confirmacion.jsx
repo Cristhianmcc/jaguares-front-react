@@ -117,9 +117,9 @@ export default function Confirmacion() {
 
     (async () => {
       try {
-        await loadScript('/legacy/api-service.js');
-        await loadScript('/legacy/confirmacion.js');
-        await loadScript('/legacy/mobile-menu.js');
+        await loadScript('/legacy/api-service.js?v=3');
+        await loadScript('/legacy/confirmacion.js?v=3');
+        await loadScript('/legacy/mobile-menu.js?v=3');
         if (typeof window.cargarDatosConfirmacion === 'function') {
           window.cargarDatosConfirmacion();
         }
