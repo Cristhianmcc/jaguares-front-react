@@ -435,7 +435,7 @@ export function initInscripcion() {
   }
   if (selAnio) {
     const anioActual = new Date().getFullYear();
-    for (let y = anioActual - 2; y >= 1980; y--) {
+    for (let y = anioActual - 2; y >= 1950; y--) {
       const opt = document.createElement('option');
       opt.value = y;
       opt.textContent = y;
