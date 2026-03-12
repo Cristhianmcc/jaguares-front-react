@@ -509,14 +509,26 @@ function mostrarEstadisticas(stats) {
     const promedio = total > 0 ? ((stats.total_presentes / total) * 100).toFixed(1) : 0;
     document.getElementById('promedioAsistencia').textContent = promedio + '%';
     
-    // Gráfica de tendencia
-    if (stats.por_fecha && stats.por_fecha.length > 0) {
-        crearGraficoTendencia(stats.por_fecha);
-    }
-    
-    // Tabla detalle por alumno
+    // Tabla detalle por alumno (se renderiza ANTES que el gráfico para no depender de él)
     if (stats.por_alumno && stats.por_alumno.length > 0) {
         renderizarTablaAlumnos(stats.por_alumno);
+    }
+
+    // Gráfica de tendencia (dentro de requestAnimationFrame para que el canvas tenga dimensiones)
+    if (stats.por_fecha && stats.por_fecha.length > 0) {
+        requestAnimationFrame(() => {
+            try {
+                crearGraficoTendencia(stats.por_fecha);
+            } catch (e) {
+                console.warn('No se pudo renderizar el gráfico de tendencia:', e);
+                const wrapper = document.getElementById('graficoAsistencia')?.parentElement;
+                if (wrapper) wrapper.classList.add('hidden');
+            }
+        });
+    } else {
+        // Ocultar la sección de gráfico si no hay datos por fecha
+        const wrapper = document.getElementById('graficoAsistencia')?.parentElement;
+        if (wrapper) wrapper.classList.add('hidden');
     }
 }
 

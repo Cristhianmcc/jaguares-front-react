@@ -2404,8 +2404,44 @@ function renderNiveles(niveles) {
     document.getElementById('tablaNivelesContainer').classList.remove('hidden');
 }
 
+const COLORES_NIVEL = [
+    { clase: 'bg-red-500',    hex: '#ef4444', label: 'Rojo' },
+    { clase: 'bg-orange-500', hex: '#f97316', label: 'Naranja' },
+    { clase: 'bg-amber-400',  hex: '#fbbf24', label: 'Ámbar' },
+    { clase: 'bg-yellow-400', hex: '#facc15', label: 'Amarillo' },
+    { clase: 'bg-lime-500',   hex: '#84cc16', label: 'Lima' },
+    { clase: 'bg-green-500',  hex: '#22c55e', label: 'Verde' },
+    { clase: 'bg-teal-500',   hex: '#14b8a6', label: 'Teal' },
+    { clase: 'bg-cyan-500',   hex: '#06b6d4', label: 'Cyan' },
+    { clase: 'bg-blue-500',   hex: '#3b82f6', label: 'Azul' },
+    { clase: 'bg-indigo-500', hex: '#6366f1', label: 'Índigo' },
+    { clase: 'bg-violet-500', hex: '#8b5cf6', label: 'Violeta' },
+    { clase: 'bg-purple-500', hex: '#a855f7', label: 'Morado' },
+    { clase: 'bg-pink-500',   hex: '#ec4899', label: 'Rosa' },
+    { clase: 'bg-rose-500',   hex: '#f43f5e', label: 'Rosado' },
+    { clase: 'bg-gray-400',   hex: '#9ca3af', label: 'Gris' },
+    { clase: 'bg-gray-700',   hex: '#374151', label: 'Gris oscuro' },
+];
+
+function seleccionarColorNivel(clase, btn) {
+    document.getElementById('nivel_color_barra').value = clase;
+    document.querySelectorAll('.nivel-color-btn').forEach(b => {
+        b.style.outline = 'none';
+        b.style.transform = 'scale(1)';
+    });
+    btn.style.outline = '3px solid #111';
+    btn.style.outlineOffset = '2px';
+    btn.style.transform = 'scale(1.2)';
+    const color = COLORES_NIVEL.find(c => c.clase === clase);
+    document.getElementById('nivel_color_preview').innerHTML =
+        `Seleccionado: <span class="font-semibold">${color ? color.label : clase}</span>`;
+}
+
 function abrirModalNivel(nivelId = null) {
     const nivel = nivelId ? nivelesData.find(n => n.nivel_id === nivelId) : null;
+    const colorActual = (nivel && nivel.color_barra) ? nivel.color_barra : 'bg-teal-500';
+    const colorActualInfo = COLORES_NIVEL.find(c => c.clase === colorActual);
+
     const modal = document.createElement('div');
     modal.id = 'modalNivel';
     modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
@@ -2423,13 +2459,18 @@ function abrirModalNivel(nivelId = null) {
                     <input id="nivel_nombre" value="${nivel ? nivel.nombre : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: Competitivo">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold mb-1">Color barra (clase Tailwind)</label>
-                    <input id="nivel_color_barra" value="${nivel ? nivel.color_barra : 'bg-gray-500'}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: bg-blue-500">
-                    <p class="text-xs text-gray-400 mt-1">Opciones: bg-teal-500, bg-blue-500, bg-pink-500, bg-amber-400, bg-purple-500</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1">Color texto (clase Tailwind)</label>
-                    <input id="nivel_color_texto" value="${nivel ? nivel.color_texto : 'text-gray-600'}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: text-blue-600">
+                    <label class="block text-sm font-semibold mb-2">Color de la barra</label>
+                    <input type="hidden" id="nivel_color_barra" value="${colorActual}">
+                    <div class="flex flex-wrap gap-2">
+                        ${COLORES_NIVEL.map(c => `
+                            <button type="button" title="${c.label}"
+                                onclick="seleccionarColorNivel('${c.clase}', this)"
+                                class="nivel-color-btn w-8 h-8 rounded-full transition-transform"
+                                style="background-color:${c.hex}; ${colorActual === c.clase ? 'outline:3px solid #111; outline-offset:2px; transform:scale(1.2);' : ''}">
+                            </button>
+                        `).join('')}
+                    </div>
+                    <p id="nivel_color_preview" class="text-xs text-gray-500 mt-2">Seleccionado: <span class="font-semibold">${colorActualInfo ? colorActualInfo.label : colorActual}</span></p>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="block text-sm font-semibold mb-1">Orden</label><input id="nivel_orden" type="number" min="0" value="${nivel ? nivel.orden : 0}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></div>
@@ -2446,10 +2487,14 @@ function abrirModalNivel(nivelId = null) {
 }
 
 async function guardarNivel(nivelId) {
+    const colorBarra = document.getElementById('nivel_color_barra').value.trim() || 'bg-teal-500';
+    // Derivar color de texto automáticamente según luminosidad del color
+    const COLORES_CLAROS = ['bg-amber-400', 'bg-yellow-400', 'bg-lime-500', 'bg-gray-400'];
+    const colorTexto = COLORES_CLAROS.includes(colorBarra) ? 'text-gray-900' : 'text-white';
     const body = {
         nombre: document.getElementById('nivel_nombre').value.trim(),
-        color_barra: document.getElementById('nivel_color_barra').value.trim() || 'bg-gray-500',
-        color_texto: document.getElementById('nivel_color_texto').value.trim() || 'text-gray-600',
+        color_barra: colorBarra,
+        color_texto: colorTexto,
         activo: document.getElementById('nivel_activo').checked,
         orden: parseInt(document.getElementById('nivel_orden').value) || 0
     };

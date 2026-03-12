@@ -1059,27 +1059,14 @@ function continuarConfirmacion() {
         const plan = primerHorario?.plan || 'Económico';
         const cantidad = horariosDeporte.length;
         
-        // MAMAS FIT: mínimo 2 días
-        if (esMamasFit && cantidad < 2) {
-            mostrarModal(`${deporte} requiere mínimo 2 clases por semana (Recomendado 3 para mejores resultados)`, 'warning');
-            return;
-        }
-        
-        // Premium: mínimo 2 días, permite hasta 3
-        if (plan === 'Premium' && cantidad < 2) {
-            mostrarModal(`${deporte} con plan Premium requiere mínimo 2 clases por semana`, 'warning');
-            return;
-        }
-        
-        // Económico: mínimo 2 días
-        if (plan === 'Económico' && cantidad < 2) {
-            mostrarModal(`${deporte} con plan Económico requiere mínimo 2 clases por semana`, 'warning');
-            return;
-        }
-        
-        // Estándar: mínimo 2 días
-        if ((plan === 'Estándar' || plan === 'Estándar') && cantidad < 2) {
-            mostrarModal(`${deporte} con Plan Estándar requiere mínimo 2 clases por semana`, 'warning');
+        // Validar mínimo de días usando el valor de la BD (o fallback del objeto PLANES)
+        const configPlanValidar = PLANES[esMamasFit ? 'MAMAS FIT' : plan];
+        const minimoRequerido = configPlanValidar
+            ? (configPlanValidar.minimo_dias || configPlanValidar.dias_minimo || 1)
+            : 1;
+        if (cantidad < minimoRequerido) {
+            const unidad = minimoRequerido === 1 ? 'clase' : 'clases';
+            mostrarModal(`${deporte} con plan ${plan} requiere mínimo ${minimoRequerido} ${unidad} por semana`, 'warning');
             return;
         }
     }
