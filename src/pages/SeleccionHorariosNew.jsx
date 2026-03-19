@@ -10,7 +10,7 @@ const html = `
                     <!-- Logo centrado en móvil -->
                     <div class="flex items-center gap-3 flex-1 justify-center lg:justify-start">
                         <img src="assets/logo.ico" alt="Logo Jaguares" class="h-10 w-auto object-contain">
-                        <h2 class="text-xl lg:text-2xl font-black italic uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
+                        <h2 class="text-xl lg:text-2xl font-black uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
                     </div>
                     
                     <!-- Botón hamburguesa -->
@@ -65,7 +65,7 @@ const html = `
                     <!-- Header -->
                     <div class="flex flex-col gap-4 p-4">
                         <div class="flex flex-col gap-3">
-                            <h1 class="text-text-main dark:text-white text-4xl md:text-5xl font-black leading-tight tracking-tighter uppercase italic">
+                            <h1 class="text-text-main dark:text-white text-4xl md:text-5xl font-black leading-tight tracking-tighter uppercase">
                                 SELECCIONA TU <span class="text-primary">DEPORTE</span>
                             </h1>
                             <p class="text-text-muted dark:text-gray-400 text-base md:text-lg font-medium leading-relaxed max-w-3xl">
@@ -142,7 +142,7 @@ const html = `
 
                         <!-- Tabla de Cronograma -->
                         <div class="overflow-x-auto rounded-xl border-2 border-border-light dark:border-border-dark bg-white dark:bg-surface-dark shadow-lg">
-                            <table class="w-full">
+                            <table class="w-full cronograma-tabla">
                                 <thead>
                                     <tr class="bg-black dark:bg-primary">
                                         <th class="px-4 py-3 text-left text-sm font-black uppercase tracking-wide text-white dark:text-black sticky left-0 bg-black dark:bg-primary z-10">Horario</th>
@@ -182,7 +182,7 @@ const html = `
         </div>
 
         <!-- Footer con resumen -->
-        <div class="sticky bottom-0 z-50 w-full px-4 md:px-10 lg:px-20 py-4 bg-surface-light dark:bg-surface-dark border-t border-border-light dark:border-border-dark shadow-[0_-5px_30px_rgba(0,0,0,0.1)]">
+        <div class="sticky bottom-0 z-50 w-full px-4 md:px-10 lg:px-20 py-4 bg-surface-light dark:bg-surface-dark border-t border-border-light dark:border-border-dark shadow-[0_-5px_30px_rgba(0,0,0,0.1)] seleccion-footer-solid">
             <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-4 w-full sm:w-auto">
                     <div class="flex flex-col">
@@ -251,7 +251,7 @@ export default function SeleccionHorariosNew() {
     document.documentElement.classList.add('light');
     document.documentElement.classList.remove('dark');
 
-    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main dark:text-white font-display overflow-x-hidden antialiased selection:bg-primary selection:text-white';
+    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main dark:text-white font-sans seleccion-readable overflow-x-hidden antialiased selection:bg-primary selection:text-white';
 
     let cancelled = false;
 

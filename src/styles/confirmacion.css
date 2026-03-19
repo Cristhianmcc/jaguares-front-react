@@ -17,4 +17,54 @@
         .scrollbar-thin::-webkit-scrollbar-thumb:hover {
             background: rgba(197, 157, 95, 0.8);
         }
+
+        body.confirmacion-readable {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body.confirmacion-readable .font-black {
+            font-weight: 700 !important;
+        }
+
+        body.confirmacion-readable .font-bold {
+            font-weight: 600 !important;
+        }
+
+        body.confirmacion-readable .italic {
+            font-style: normal !important;
+        }
+
+        body.confirmacion-readable .gold-text-gradient {
+            background: none !important;
+            -webkit-text-fill-color: initial !important;
+            color: #ea580c !important;
+        }
+
+        #contenidoConfirmacion {
+            align-items: start;
+        }
+
+        @media (min-width: 1024px) {
+            #contenidoConfirmacion {
+                grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr) !important;
+                gap: 1.5rem !important;
+            }
+
+            /* col-span-2 en grid de 3 cols → ocupa cols 1 y 2; con override de 2 cols → forzar a col 1 */
+            #contenidoConfirmacion > .lg\:col-span-2 {
+                grid-column: 1 / 2 !important;
+            }
+
+            #contenidoConfirmacion > *:nth-child(n+3) {
+                grid-column: 1 / -1 !important;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            #contenidoConfirmacion {
+                grid-template-columns: 1fr !important;
+            }
+        }
     

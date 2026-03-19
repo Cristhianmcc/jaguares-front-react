@@ -13,32 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700;900&family=Manrope:wght@400;700;800&family=Noto+Sans:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="icon" href="/assets/logo.ico" />
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
       window.API_BASE_OVERRIDE = "%VITE_API_BASE%";
-    </script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: { DEFAULT: '#C59D5F', dark: '#B08546', light: '#E3C58E' },
-              secondary: '#1A1A1A',
-              'background-light': '#FFFFFF',
-              'background-dark': '#0A0A0A',
-              'surface-light': '#F9F9F9',
-              'surface-dark': '#1A1A1A',
-              'text-main': '#1A1A1A',
-              'text-muted': '#6B6B6B',
-              'border-color': '#E5E5E5'
-            },
-            fontFamily: {
-              display: ['Lexend', 'sans-serif']
-            }
-          }
-        }
-      }
     </script>
     <!-- Override crítico: asegura que los sliders del tema SoccerClub sean visibles -->
     <!-- Solo aplica cuando las clases del tema están presentes en el body -->
@@ -87,9 +63,6 @@
       /* Instagram widget: mostrar en grilla horizontal */
       .widget_instagram_images { display: flex !important; flex-wrap: wrap !important; gap: 4px !important; width: 100% !important; }
       .widget_instagram_images_item_wrap { flex: 1 1 calc(16.666% - 4px) !important; min-width: 0 !important; }
-      .widget_instaglogo.ico" rel="icon" type="image/x-icon"/>
-<link href="/assets/logo.ico" rel="apple-touch-icon"/>
-<meta content="/assets/logo.ico
       /* Responsive */
       @media (max-width: 1024px) {
         .sc_team_slider .slides { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }

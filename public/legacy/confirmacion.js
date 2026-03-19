@@ -427,28 +427,28 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                 <!-- ACORDEÓN: PLIN CON QR -->
                 <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
                     <!-- HEADER PLIN -->
-                    <button onclick="toggleMetodoPagoConf('plin')" class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition-all">
+                    <button onclick="toggleMetodoPagoConf('plin')" class="w-full flex items-center justify-between p-4 transition-all" style="background:linear-gradient(90deg,#16a34a 0%,#15803d 100%);">
                         <div class="flex items-center gap-3">
                             <img src="assets/plinlogo.png" alt="Plin" class="h-8 object-contain bg-white rounded-lg px-2 py-1">
                             <div class="text-left">
-                                <p class="text-white font-black text-lg">PLIN</p>
-                                <p class="text-green-100 text-xs">Pago con QR Inmediato</p>
+                                <p class="font-black text-lg" style="color:#ffffff;">PLIN</p>
+                                <p class="text-xs" style="color:#dcfce7;">Pago con QR Inmediato</p>
                             </div>
                         </div>
-                        <span id="iconPlinConf" class="material-symbols-outlined text-white text-2xl transition-transform">expand_more</span>
+                        <span id="iconPlinConf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
                     </button>
                     
                     <!-- CONTENIDO PLIN (OCULTO POR DEFECTO) -->
                     <div id="contentPlinConf" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-green-200 dark:border-green-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
                         <div class="flex flex-col gap-3">
                             <!-- BOTÓN QR -->
-                            <button onclick="abrirModalQRConf('assets/plinqr.jpeg', 'Plin')" class="flex flex-col items-center gap-3 p-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] group w-full">
+                            <button onclick="abrirModalQRConf('assets/plinqr.jpeg', 'Plin')" class="flex flex-col items-center gap-3 p-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] group w-full" style="background:linear-gradient(145deg,#16a34a 0%,#166534 100%);">
                                 <div class="size-12 bg-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                                     <span class="material-symbols-outlined text-green-600 text-4xl font-bold">qr_code_scanner</span>
                                 </div>
                                 <div class="text-center">
-                                    <p class="text-lg font-black text-white mb-1">VER QR</p>
-                                    <p class="text-xs text-green-100 font-medium">Toca para abrir</p>
+                                    <p class="text-lg font-black mb-1" style="color:#ffffff;">VER QR</p>
+                                    <p class="text-xs font-medium" style="color:#dcfce7;">Toca para abrir</p>
                                 </div>
                             </button>
                             
@@ -486,7 +486,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                             <span class="material-symbols-outlined text-sm">delete</span>
                                         </button>
                                     </div>
-                                    <img id="imagenPreviewPlinConf" src="" alt="Preview" class="w-full max-h-20 object-contain rounded">
+                                    <img id="imagenPreviewPlinConf" src="" alt="Preview" class="w-full object-contain rounded" style="max-height:180px;display:block;">
                                     <!-- Nro Operación dentro de Plin -->
                                     <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
                                         <label class="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1 mb-0.5">
@@ -505,15 +505,15 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                 <!-- ACORDEÓN: BBVA -->
                 <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
                     <!-- HEADER BBVA -->
-                    <button onclick="toggleMetodoPagoConf('bbva')" class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all">
+                    <button onclick="toggleMetodoPagoConf('bbva')" class="w-full flex items-center justify-between p-4 transition-all" style="background:linear-gradient(90deg,#2563eb 0%,#1d4ed8 100%);">
                         <div class="flex items-center gap-3">
                             <img src="assets/logo-bbva.jpg" alt="BBVA" class="h-8 object-contain bg-white rounded-lg px-2 py-1">
                             <div class="text-left">
-                                <p class="text-white font-black text-lg">BBVA</p>
-                                <p class="text-blue-100 text-xs">Transferencia Bancaria</p>
+                                <p class="font-black text-lg" style="color:#ffffff;">BBVA</p>
+                                <p class="text-xs" style="color:#dbeafe;">Transferencia Bancaria</p>
                             </div>
                         </div>
-                        <span id="iconBbvaConf" class="material-symbols-outlined text-white text-2xl transition-transform">expand_more</span>
+                        <span id="iconBbvaConf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
                     </button>
                     
                     <!-- CONTENIDO BBVA (OCULTO POR DEFECTO) -->
@@ -575,7 +575,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                                 <span class="material-symbols-outlined text-sm">delete</span>
                                             </button>
                                         </div>
-                                        <img id="imagenPreviewBBVAConf" src="" alt="Preview" class="w-full max-h-20 object-contain rounded">
+                                        <img id="imagenPreviewBBVAConf" src="" alt="Preview" class="w-full object-contain rounded" style="max-height:180px;display:block;">
                                         <!-- Nro Operación dentro de BBVA -->
                                         <div class="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
                                             <label class="text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1 mb-0.5">
@@ -595,15 +595,15 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                 <!-- ACORDEÓN: BCP -->
                 <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
                     <!-- HEADER BCP -->
-                    <button onclick="toggleMetodoPagoConf('bcp')" class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 transition-all">
+                    <button onclick="toggleMetodoPagoConf('bcp')" class="w-full flex items-center justify-between p-4 transition-all" style="background:linear-gradient(90deg,#dc2626 0%,#ea580c 100%);">
                         <div class="flex items-center gap-3">
                             <img src="assets/logo-bcp.jpg" alt="BCP" class="h-8 object-contain bg-white rounded-lg px-2 py-1">
                             <div class="text-left">
-                                <p class="text-white font-black text-lg">BCP</p>
-                                <p class="text-orange-100 text-xs">Transferencia Bancaria</p>
+                                <p class="font-black text-lg" style="color:#ffffff;">BCP</p>
+                                <p class="text-xs" style="color:#ffedd5;">Transferencia Bancaria</p>
                             </div>
                         </div>
-                        <span id="iconBcpConf" class="material-symbols-outlined text-white text-2xl transition-transform">expand_more</span>
+                        <span id="iconBcpConf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
                     </button>
                     
                     <!-- CONTENIDO BCP (OCULTO POR DEFECTO) -->
@@ -664,7 +664,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                                 <span class="material-symbols-outlined text-sm">delete</span>
                                             </button>
                                         </div>
-                                        <img id="imagenPreviewBCPConf" src="" alt="Preview" class="w-full max-h-20 object-contain rounded">
+                                        <img id="imagenPreviewBCPConf" src="" alt="Preview" class="w-full object-contain rounded" style="max-height:180px;display:block;">
                                         <!-- Nro Operación dentro de BCP -->
                                         <div class="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
                                             <label class="text-xs font-bold text-red-700 dark:text-red-400 flex items-center gap-1 mb-0.5">
@@ -703,17 +703,17 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                 <!-- ACORDEÓN: PAGO EN EFECTIVO / RECIBO -->
                 <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
                     <!-- HEADER EFECTIVO -->
-                    <button onclick="toggleMetodoPagoConf('efectivo')" class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 transition-all">
+                    <button onclick="toggleMetodoPagoConf('efectivo')" class="w-full flex items-center justify-between p-4 transition-all" style="background:linear-gradient(90deg,#f59e0b 0%,#eab308 100%);">
                         <div class="flex items-center gap-3">
                             <div class="size-9 bg-white rounded-lg flex items-center justify-center px-1">
                                 <span class="material-symbols-outlined text-amber-600 text-3xl">payments</span>
                             </div>
                             <div class="text-left">
-                                <p class="text-white font-black text-lg">EFECTIVO EN OFICINA</p>
-                                <p class="text-yellow-100 text-xs">Sube tu recibo de pago</p>
+                                <p class="font-black text-lg" style="color:#ffffff;">EFECTIVO EN OFICINA</p>
+                                <p class="text-xs" style="color:#fef9c3;">Sube tu recibo de pago</p>
                             </div>
                         </div>
-                        <span id="iconEfectivoConf" class="material-symbols-outlined text-white text-2xl transition-transform">expand_more</span>
+                        <span id="iconEfectivoConf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
                     </button>
                     <div id="contentEfectivoConf" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-amber-200 dark:border-amber-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
                         <div class="space-y-3">
@@ -747,7 +747,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                                 <span class="material-symbols-outlined text-sm">delete</span>
                                             </button>
                                         </div>
-                                        <img id="imagenPreviewEfectivoConf" src="" alt="Preview recibo" class="w-full max-h-20 object-contain rounded">
+                                        <img id="imagenPreviewEfectivoConf" src="" alt="Preview recibo" class="w-full object-contain rounded" style="max-height:180px;display:block;">
                                         <!-- Nro Operación dentro de Efectivo -->
                                         <div class="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
                                             <label class="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1 mb-0.5">
@@ -829,7 +829,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                         <input type="file" id="inputCapturaPagoConf" accept="image/*" class="hidden" onchange="handleCapturaPagoConf(event)">
                         
                         <!-- Botón para subir captura -->
-                        <button id="btnSubirCapturaConf" onclick="document.getElementById('inputCapturaPagoConf').click()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold text-sm transition-all shadow-lg hover:scale-[1.02]">
+                        <button id="btnSubirCapturaConf" onclick="document.getElementById('inputCapturaPagoConf').click()" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all shadow-lg hover:scale-[1.02]" style="background:#2563eb;color:#ffffff;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
                             <span class="material-symbols-outlined text-xl">add_photo_alternate</span>
                             <span>Subir Captura de Pago</span>
                         </button>
@@ -845,7 +845,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                     <span class="material-symbols-outlined text-base">delete</span>
                                 </button>
                             </div>
-                            <img id="imagenPreviewConf" src="" alt="Preview" class="w-full max-h-40 object-contain rounded-lg">
+                            <img id="imagenPreviewConf" src="" alt="Preview" class="w-full object-contain rounded-lg" style="max-height:260px;display:block;">
                             <p class="text-[10px] text-text-main/50 dark:text-white/50 mt-2 text-center" id="nombreArchivoConf"></p>
                         </div>
                     </div>

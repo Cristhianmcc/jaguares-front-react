@@ -1,4 +1,39 @@
+.animate-fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+body.inscripcion-readable {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+}
+
+body.inscripcion-readable .font-black {
+        font-weight: 700 !important;
+}
+
+body.inscripcion-readable .font-bold {
+        font-weight: 600 !important;
+}
+
+body.inscripcion-readable .italic {
+        font-style: normal !important;
+}
+
+body.inscripcion-readable .ins-season-badge {
+        background-image: none !important;
+        background-color: #ea580c !important;
+        color: #fff7ed !important;
+        border: 1px solid #c2410c;
+        box-shadow: 0 6px 14px rgba(234, 88, 12, 0.28) !important;
+}
+
+body.inscripcion-readable .ins-step-progress-fill {
+        background-image: none !important;
+        background-color: #f97316 !important;
+}
+
+body.inscripcion-readable [class*="bg-gradient-to-r"][class*="from-primary"][class*="to-primary-dark"] {
+        background-image: none !important;
+        background-color: #ea580c !important;
+}
     

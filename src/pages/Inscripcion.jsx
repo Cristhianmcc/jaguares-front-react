@@ -12,7 +12,7 @@ const html = `
                 <!-- Logo centrado en móvil -->
                 <div class="flex items-center gap-3 text-text-main dark:text-white flex-1 justify-center lg:justify-start">
                     <img src="assets/logo.ico" alt="Logo Jaguares" class="h-10 w-auto object-contain">
-                    <h2 class="text-xl lg:text-2xl font-black italic uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
+                    <h2 class="text-xl lg:text-2xl font-black uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
                 </div>
                 
                 <!-- Botón hamburguesa -->
@@ -50,11 +50,11 @@ const html = `
             <div class="flex flex-col gap-6">
                 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-6">
                     <div>
-                        <h1 class="text-black dark:text-white text-4xl md:text-5xl font-black italic uppercase tracking-tight">Inscripción <span class="text-primary">2026</span></h1>
+                        <h1 class="text-black dark:text-white text-4xl md:text-5xl font-black uppercase tracking-tight">Inscripción <span class="text-primary">2026</span></h1>
                         <p class="text-text-muted dark:text-gray-400 text-lg font-medium mt-2">Comienza tu camino al alto rendimiento.</p>
                     </div>
                     <div class="hidden md:block">
-                        <span class="px-4 py-2 bg-gradient-to-r from-primary to-primary-dark text-white rounded-md text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20">Temporada Anual</span>
+                        <span class="ins-season-badge px-4 py-2 bg-gradient-to-r from-primary to-primary-dark text-white rounded-md text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20">Temporada Anual</span>
                     </div>
                 </div>
 
@@ -68,7 +68,7 @@ const html = `
                         <span class="text-text-muted dark:text-gray-500 text-xs font-bold uppercase">Paso 1 de 3</span>
                     </div>
                     <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mb-2 overflow-hidden">
-                        <div class="bg-gradient-to-r from-primary to-primary-dark h-1.5 rounded-full" style="width: 33%"></div>
+                        <div class="ins-step-progress-fill bg-gradient-to-r from-primary to-primary-dark h-1.5 rounded-full" style="width: 33%"></div>
                     </div>
                     <div class="flex justify-between text-[10px] uppercase font-bold tracking-wider text-text-muted/60 dark:text-gray-600 mt-2">
                         <span class="text-primary">Datos Personales</span>
@@ -385,7 +385,7 @@ const html = `
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-3">
                     <img src="assets/logo.ico" alt="Logo Jaguares" class="size-6 object-contain">
-                    <span class="text-white text-sm font-black uppercase italic">JAGUARES</span>
+                    <span class="text-white text-sm font-black uppercase">JAGUARES</span>
                 </div>
                 <p class="text-gray-400 text-sm">© 2025 JAGUARES. Todos los derechos reservados.</p>
             </div>
@@ -402,7 +402,7 @@ export default function Inscripcion() {
     document.documentElement.classList.add('light');
     document.documentElement.classList.remove('dark');
 
-    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200';
+    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-sans inscripcion-readable min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200';
 
     const cleanupIns = initInscripcion();
     const cleanupMenu = initMobileMenu();

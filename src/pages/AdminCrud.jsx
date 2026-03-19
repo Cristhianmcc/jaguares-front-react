@@ -923,7 +923,7 @@ export default function AdminCrud() {
     document.documentElement.classList.add('light');
     document.documentElement.classList.remove('dark');
 
-    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen flex flex-col';
+    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-sans admin-readable min-h-screen flex flex-col';
 
     if ('$inlineStyle') {
       const styleEl = document.createElement('style');

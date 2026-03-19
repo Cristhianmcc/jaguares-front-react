@@ -224,10 +224,14 @@ function renderizarCalendario() {
         
         const horaDiv = document.createElement('div');
         if (esSlotBase) {
-            horaDiv.className = 'bg-gradient-to-br from-primary to-primary-dark text-white p-3 rounded-lg font-bold text-center shadow-md relative';
+            horaDiv.className = 'text-white p-3 rounded-lg font-bold text-center shadow-md relative';
+            horaDiv.style.background = '#f97316'; // branding naranja principal
+            horaDiv.style.border = '1px solid #ea580c';
         } else {
             // Hora personalizada - color diferente (amarillo/naranja)
-            horaDiv.className = 'bg-gradient-to-br from-yellow-500 to-orange-500 text-white p-3 rounded-lg font-bold text-center shadow-md relative';
+            horaDiv.className = 'text-white p-3 rounded-lg font-bold text-center shadow-md relative';
+            horaDiv.style.background = '#fb923c'; // naranja medio para horas personalizadas
+            horaDiv.style.border = '1px solid #f97316';
         }
         
         // Contar cuántos horarios hay en esta hora
@@ -1139,14 +1143,13 @@ async function eliminarTodosHorariosDeHora(hora) {
     const horariosEnHora = horariosData.filter(h => h.hora_inicio === hora && h.estado === 'activo');
     
     if (horariosEnHora.length === 0) {
-        alert('No hay horarios activos en esta franja horaria');
+        mostrarNotificacion('No hay horarios activos en esta franja horaria', 'warning');
         return;
     }
     
-    const deportes = horariosEnHora.map(h => h.deporte).join(', ');
-    if (!confirm(`¿Eliminar ${horariosEnHora.length} horario(s) de las ${hora}?
-
-Deportes: ${deportes}`)) return;
+    const deportesUnicos = [...new Set(horariosEnHora.map(h => normalizeText(h.deporte)).filter(Boolean))];
+    const confirmado = await mostrarModalConfirmarEliminarHorariosHora(hora, horariosEnHora.length, deportesUnicos);
+    if (!confirmado) return;
     
     try {
         let eliminados = 0;
@@ -1159,10 +1162,77 @@ Deportes: ${deportes}`)) return;
             if (data.success) eliminados++;
         }
         
-        alert(`o. ${eliminados} horario(s) eliminados`);
+        if (eliminados > 0) {
+            mostrarModalExito('Horarios Eliminados', `Se eliminaron ${eliminados} horario(s) de las ${hora}`, 'delete_sweep');
+        } else {
+            mostrarNotificacion('No se pudo eliminar ningún horario', 'warning');
+        }
         cargarCalendario();
     } catch (error) {
-        alert('O Error de conexión');
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+let _resolverModalEliminarHora = null;
+
+function mostrarModalConfirmarEliminarHorariosHora(hora, cantidad, deportes = []) {
+    return new Promise((resolve) => {
+        _resolverModalEliminarHora = resolve;
+
+        const modalAnterior = document.getElementById('modalConfirmarEliminarHorariosHora');
+        if (modalAnterior) modalAnterior.remove();
+
+        const listaDeportes = deportes.length > 0
+            ? deportes.map(dep => `<li class="text-sm" style="color:#1f2937;">- ${dep}</li>`).join('')
+            : '<li class="text-sm" style="color:#1f2937;">- Sin deporte especificado</li>';
+
+        const modalHTML = `
+            <div id="modalConfirmarEliminarHorariosHora" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 animate-fade-in" style="background:rgba(0,0,0,.82);backdrop-filter:blur(4px);" onclick="cerrarModalEliminarHorariosHora(false, event)">
+                <div class="rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border" style="background:#ffffff;border-color:#cbd5e1;box-shadow:0 28px 60px rgba(0,0,0,.45);" onclick="event.stopPropagation()">
+                    <div class="px-6 py-5" style="background:#c2410c;">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:#fff7ed;">
+                                <span class="material-symbols-outlined text-3xl" style="color:#c2410c;">warning</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold" style="color:#ffffff;">Eliminar Horarios</h3>
+                                <p class="text-sm font-semibold" style="color:#ffedd5;">Franja ${hora}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6" style="background:#f8fafc;">
+                        <p class="font-semibold mb-3" style="color:#0f172a;">¿Eliminar ${cantidad} horario(s) de las ${hora}?</p>
+                        <div class="rounded-lg p-3 mb-4" style="background:#fff7ed;border:1px solid #fdba74;">
+                            <p class="text-xs font-bold uppercase mb-2" style="color:#c2410c;">Deportes afectados</p>
+                            <ul class="space-y-1 max-h-32 overflow-auto">${listaDeportes}</ul>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="button" onclick="cerrarModalEliminarHorariosHora(false)" class="flex-1 px-4 py-2.5 rounded-lg font-semibold transition-colors" style="background:#e2e8f0;color:#0f172a;">Cancelar</button>
+                            <button type="button" onclick="cerrarModalEliminarHorariosHora(true)" class="flex-1 px-4 py-2.5 rounded-lg font-semibold transition-colors" style="background:#dc2626;color:#ffffff;">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        document.body.style.overflow = 'hidden';
+    });
+}
+
+function cerrarModalEliminarHorariosHora(confirmado, event = null) {
+    if (event && event.target && event.target.id !== 'modalConfirmarEliminarHorariosHora') return;
+
+    const modal = document.getElementById('modalConfirmarEliminarHorariosHora');
+    if (modal) {
+        modal.remove();
+    }
+    document.body.style.overflow = '';
+
+    if (_resolverModalEliminarHora) {
+        const resolver = _resolverModalEliminarHora;
+        _resolverModalEliminarHora = null;
+        resolver(Boolean(confirmado));
     }
 }
 
@@ -1441,17 +1511,17 @@ function mostrarNotificacion(Mensaje, tipo = 'info') {
 
 function mostrarModalExito(titulo, Mensaje, icono = 'check_circle') {
     const modalHTML = `
-        <div id="modalExitoPersonalizado" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in">
-            <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-md w-full transform animate-scale-in">
-                <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-8 rounded-t-2xl text-center">
-                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 animate-bounce-in">
-                        <span class="material-symbols-outlined text-6xl text-green-500">${icono}</span>
+        <div id="modalExitoPersonalizado" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in" style="background:rgba(0,0,0,.78);">
+            <div class="rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform animate-scale-in border" style="background:#ffffff;border-color:#cbd5e1;box-shadow:0 28px 60px rgba(0,0,0,.42);">
+                <div class="px-6 py-8 text-center" style="background:#16a34a;">
+                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 animate-bounce-in" style="background:#f0fdf4;">
+                        <span class="material-symbols-outlined text-6xl" style="color:#16a34a;">${icono}</span>
                     </div>
-                    <h3 class="text-2xl font-bold text-white">${titulo}</h3>
+                    <h3 class="text-2xl font-bold" style="color:#ffffff;">${titulo}</h3>
                 </div>
-                <div class="p-6 text-center">
-                    <p class="text-gray-700 dark:text-gray-300 text-lg mb-6">${Mensaje}</p>
-                    <button onclick="cerrarModalExito()" class="w-full px-6 py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black font-bold rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                <div class="p-6 text-center" style="background:#f8fafc;">
+                    <p class="text-lg mb-6" style="color:#334155;">${Mensaje}</p>
+                    <button onclick="cerrarModalExito()" class="w-full px-6 py-3 font-bold rounded-lg transition-all transform hover:scale-[1.01] shadow-lg" style="background:#f59e0b;color:#111827;">
                         ¡Entendido!
                     </button>
                 </div>
@@ -2404,44 +2474,8 @@ function renderNiveles(niveles) {
     document.getElementById('tablaNivelesContainer').classList.remove('hidden');
 }
 
-const COLORES_NIVEL = [
-    { clase: 'bg-red-500',    hex: '#ef4444', label: 'Rojo' },
-    { clase: 'bg-orange-500', hex: '#f97316', label: 'Naranja' },
-    { clase: 'bg-amber-400',  hex: '#fbbf24', label: 'Ámbar' },
-    { clase: 'bg-yellow-400', hex: '#facc15', label: 'Amarillo' },
-    { clase: 'bg-lime-500',   hex: '#84cc16', label: 'Lima' },
-    { clase: 'bg-green-500',  hex: '#22c55e', label: 'Verde' },
-    { clase: 'bg-teal-500',   hex: '#14b8a6', label: 'Teal' },
-    { clase: 'bg-cyan-500',   hex: '#06b6d4', label: 'Cyan' },
-    { clase: 'bg-blue-500',   hex: '#3b82f6', label: 'Azul' },
-    { clase: 'bg-indigo-500', hex: '#6366f1', label: 'Índigo' },
-    { clase: 'bg-violet-500', hex: '#8b5cf6', label: 'Violeta' },
-    { clase: 'bg-purple-500', hex: '#a855f7', label: 'Morado' },
-    { clase: 'bg-pink-500',   hex: '#ec4899', label: 'Rosa' },
-    { clase: 'bg-rose-500',   hex: '#f43f5e', label: 'Rosado' },
-    { clase: 'bg-gray-400',   hex: '#9ca3af', label: 'Gris' },
-    { clase: 'bg-gray-700',   hex: '#374151', label: 'Gris oscuro' },
-];
-
-function seleccionarColorNivel(clase, btn) {
-    document.getElementById('nivel_color_barra').value = clase;
-    document.querySelectorAll('.nivel-color-btn').forEach(b => {
-        b.style.outline = 'none';
-        b.style.transform = 'scale(1)';
-    });
-    btn.style.outline = '3px solid #111';
-    btn.style.outlineOffset = '2px';
-    btn.style.transform = 'scale(1.2)';
-    const color = COLORES_NIVEL.find(c => c.clase === clase);
-    document.getElementById('nivel_color_preview').innerHTML =
-        `Seleccionado: <span class="font-semibold">${color ? color.label : clase}</span>`;
-}
-
 function abrirModalNivel(nivelId = null) {
     const nivel = nivelId ? nivelesData.find(n => n.nivel_id === nivelId) : null;
-    const colorActual = (nivel && nivel.color_barra) ? nivel.color_barra : 'bg-teal-500';
-    const colorActualInfo = COLORES_NIVEL.find(c => c.clase === colorActual);
-
     const modal = document.createElement('div');
     modal.id = 'modalNivel';
     modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
@@ -2459,18 +2493,13 @@ function abrirModalNivel(nivelId = null) {
                     <input id="nivel_nombre" value="${nivel ? nivel.nombre : ''}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: Competitivo">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Color de la barra</label>
-                    <input type="hidden" id="nivel_color_barra" value="${colorActual}">
-                    <div class="flex flex-wrap gap-2">
-                        ${COLORES_NIVEL.map(c => `
-                            <button type="button" title="${c.label}"
-                                onclick="seleccionarColorNivel('${c.clase}', this)"
-                                class="nivel-color-btn w-8 h-8 rounded-full transition-transform"
-                                style="background-color:${c.hex}; ${colorActual === c.clase ? 'outline:3px solid #111; outline-offset:2px; transform:scale(1.2);' : ''}">
-                            </button>
-                        `).join('')}
-                    </div>
-                    <p id="nivel_color_preview" class="text-xs text-gray-500 mt-2">Seleccionado: <span class="font-semibold">${colorActualInfo ? colorActualInfo.label : colorActual}</span></p>
+                    <label class="block text-sm font-semibold mb-1">Color barra (clase Tailwind)</label>
+                    <input id="nivel_color_barra" value="${nivel ? nivel.color_barra : 'bg-gray-500'}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: bg-blue-500">
+                    <p class="text-xs text-gray-400 mt-1">Opciones: bg-teal-500, bg-blue-500, bg-pink-500, bg-amber-400, bg-purple-500</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">Color texto (clase Tailwind)</label>
+                    <input id="nivel_color_texto" value="${nivel ? nivel.color_texto : 'text-gray-600'}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600" placeholder="Ej: text-blue-600">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="block text-sm font-semibold mb-1">Orden</label><input id="nivel_orden" type="number" min="0" value="${nivel ? nivel.orden : 0}" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"></div>
@@ -2487,14 +2516,10 @@ function abrirModalNivel(nivelId = null) {
 }
 
 async function guardarNivel(nivelId) {
-    const colorBarra = document.getElementById('nivel_color_barra').value.trim() || 'bg-teal-500';
-    // Derivar color de texto automáticamente según luminosidad del color
-    const COLORES_CLAROS = ['bg-amber-400', 'bg-yellow-400', 'bg-lime-500', 'bg-gray-400'];
-    const colorTexto = COLORES_CLAROS.includes(colorBarra) ? 'text-gray-900' : 'text-white';
     const body = {
         nombre: document.getElementById('nivel_nombre').value.trim(),
-        color_barra: colorBarra,
-        color_texto: colorTexto,
+        color_barra: document.getElementById('nivel_color_barra').value.trim() || 'bg-gray-500',
+        color_texto: document.getElementById('nivel_color_texto').value.trim() || 'text-gray-600',
         activo: document.getElementById('nivel_activo').checked,
         orden: parseInt(document.getElementById('nivel_orden').value) || 0
     };

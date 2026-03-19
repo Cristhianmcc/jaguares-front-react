@@ -145,7 +145,10 @@ function renderizarInscripciones(inscripciones) {
           </button>
           
           <button onclick="verAsistenciasAlumno('${ins.dni}', '${ins.nombres} ${ins.apellidos}')" 
-                  class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+              class="px-4 py-2 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              style="background:#4f46e5;"
+              onmouseover="this.style.background='#4338ca'"
+              onmouseout="this.style.background='#4f46e5'">
             <span class="material-symbols-outlined text-sm">event_available</span>
             Ver Asistencias
           </button>
@@ -185,7 +188,10 @@ function renderizarInscripciones(inscripciones) {
           ` : ''}
 
           <button onclick="abrirModalObservacion('${ins.dni}', \`${(ins.notas_pago || '').replace(/`/g, "'")}\`)"
-                  class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+              class="px-4 py-2 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              style="background:#f59e0b;"
+              onmouseover="this.style.background='#d97706'"
+              onmouseout="this.style.background='#f59e0b'">
             <span class="material-symbols-outlined text-sm">edit_note</span>
             ${ins.notas_pago ? 'Editar Observación' : 'Agregar Observación'}
           </button>
@@ -1058,10 +1064,10 @@ async function verAsistenciasAlumno(dni, nombre) {
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
     modal.innerHTML = `
         <div class="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
-            <div class="bg-purple-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0">
+          <div class="text-white px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0" style="background:#4f46e5;">
                 <div>
                     <h3 class="text-lg font-bold">Asistencias</h3>
-                    <p class="text-purple-200 text-sm">${nombre} &bull; DNI: ${dni}</p>
+              <p class="text-sm" style="color:#e0e7ff;">${nombre} &bull; DNI: ${dni}</p>
                 </div>
                 <button onclick="document.getElementById('modalAsistenciasAlumno').remove()" class="hover:bg-white/20 rounded-full p-1">
                     <span class="material-symbols-outlined">close</span>
@@ -1069,7 +1075,7 @@ async function verAsistenciasAlumno(dni, nombre) {
             </div>
             <div id="asistenciasBody" class="flex-1 overflow-y-auto p-5">
                 <div class="flex justify-center py-10">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2" style="border-color:#4f46e5;"></div>
                 </div>
             </div>
         </div>`;

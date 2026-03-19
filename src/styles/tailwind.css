@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 96%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 24 95% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 96%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 24 100% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 24 95% 53%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(24 95% 53%), hsl(35 100% 55%));
+    --gradient-hero: linear-gradient(180deg, hsla(0 0% 0% / 0.1) 0%, hsla(0 0% 0% / 0.85) 100%);
+    --shadow-glow: 0 0 40px hsla(24 95% 53% / 0.3);
+    --shadow-card: 0 8px 32px hsla(0 0% 0% / 0.4);
+
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  .glow-theme {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  .glow-theme h1, .glow-theme h2, .glow-theme h3, .glow-theme h4 {
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+  }
+}
+
+@layer utilities {
+  body.admin-readable,
+  body.profesor-readable {
+    font-family: var(--font-body), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body.admin-readable .font-black,
+  body.profesor-readable .font-black {
+    font-weight: 700 !important;
+  }
+
+  body.admin-readable .italic,
+  body.profesor-readable .italic {
+    font-style: normal !important;
+  }
+
+  body.admin-readable .backdrop-blur-sm,
+  body.profesor-readable .backdrop-blur-sm {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body.admin-readable [class*="bg-gradient-to-"] {
+    background-image: none !important;
+    background-color: rgb(249 250 251) !important;
+  }
+
+  body.admin-readable.dark [class*="bg-gradient-to-"] {
+    background-image: none !important;
+    background-color: rgb(31 41 55) !important;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 500,
+      "GRAD" 0,
+      "opsz" 24;
+    line-height: 1;
+    vertical-align: middle;
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+}

@@ -204,7 +204,7 @@ export default function AdminUsuarios() {
     document.documentElement.classList.add('light');
     document.documentElement.classList.remove('dark');
 
-    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen';
+    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-sans admin-readable min-h-screen';
 
     let cancelled = false;
 

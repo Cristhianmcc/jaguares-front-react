@@ -220,7 +220,7 @@ function loadScript(src) {
 
 export default function AdminReubicaciones() {
   useEffect(() => {
-    document.body.className = 'bg-gray-100 dark:bg-gray-950 min-h-screen';
+    document.body.className = 'bg-gray-100 dark:bg-gray-950 font-sans admin-readable min-h-screen';
 
     if ('$inlineStyle') {
       const styleEl = document.createElement('style');

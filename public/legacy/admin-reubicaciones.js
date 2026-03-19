@@ -252,20 +252,22 @@ function filtrarPorDia(dia) {
 
 function crearColumnaCategoria(categoria, index, iconoDeporte) {
     const colores = [
-        { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', header: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300' },
-        { bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', header: 'bg-green-500', text: 'text-green-700 dark:text-green-300' },
-        { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', header: 'bg-purple-500', text: 'text-purple-700 dark:text-purple-300' },
-        { bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', header: 'bg-orange-500', text: 'text-orange-700 dark:text-orange-300' },
-        { bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-200 dark:border-pink-800', header: 'bg-pink-500', text: 'text-pink-700 dark:text-pink-300' },
-        { bg: 'bg-cyan-50 dark:bg-cyan-900/20', border: 'border-cyan-200 dark:border-cyan-800', header: 'bg-cyan-500', text: 'text-cyan-700 dark:text-cyan-300' },
+        { bg: '#eff6ff', border: '#bfdbfe', header: '#3b82f6', text: '#1d4ed8' },
+        { bg: '#f0fdf4', border: '#bbf7d0', header: '#22c55e', text: '#15803d' },
+        { bg: '#faf5ff', border: '#e9d5ff', header: '#a855f7', text: '#7e22ce' },
+        { bg: '#fff7ed', border: '#fed7aa', header: '#f97316', text: '#c2410c' },
+        { bg: '#fdf2f8', border: '#fbcfe8', header: '#ec4899', text: '#be185d' },
+        { bg: '#ecfeff', border: '#a5f3fc', header: '#06b6d4', text: '#0e7490' },
     ];
     
     const color = colores[index % colores.length];
     
     const columna = document.createElement('div');
-    columna.className = `rounded-xl border-2 ${color.border} ${color.bg} overflow-hidden`;
+    columna.className = 'rounded-xl border-2 overflow-hidden';
+    columna.style.backgroundColor = color.bg;
+    columna.style.borderColor = color.border;
     columna.innerHTML = `
-        <div class="${color.header} text-white px-4 py-3">
+        <div class="text-white px-4 py-3" style="background:${color.header};">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined">${iconoDeporte || 'sports'}</span>
@@ -323,7 +325,7 @@ function crearCardAlumno(alumno, color) {
                 <span class="material-symbols-outlined text-xs">calendar_today</span>
                 <span>${alumno.dias || 'Sin días'}</span>
             </div>
-            ${alumno.edad ? `<div class="mt-1 text-xs ${color.text}">${alumno.edad} años</div>` : ''}
+            ${alumno.edad ? `<div class="mt-1 text-xs" style="color:${color.text};">${alumno.edad} años</div>` : ''}
         </div>
     `;
 }

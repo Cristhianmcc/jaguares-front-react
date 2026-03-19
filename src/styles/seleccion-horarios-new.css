@@ -39,4 +39,47 @@
         .sport-card.active {
             border-width: 3px;
         }
+
+        body.seleccion-readable {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body.seleccion-readable .font-black {
+            font-weight: 700 !important;
+        }
+
+        body.seleccion-readable .font-bold {
+            font-weight: 600 !important;
+        }
+
+        body.seleccion-readable .italic {
+            font-style: normal !important;
+        }
+
+        /* Separadores verticales visibles en el calendario de horarios */
+        .cronograma-tabla thead th + th,
+        .cronograma-tabla tbody td + td {
+            border-left: 1.5px solid #b8c0cc;
+        }
+
+        .dark .cronograma-tabla thead th + th,
+        .dark .cronograma-tabla tbody td + td {
+            border-left-color: #4b5563;
+        }
+
+        .seleccion-footer-solid {
+            background-color: #f8fafc !important;
+            border-top: 2px solid #d1d5db !important;
+            box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.16) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+
+        .dark .seleccion-footer-solid {
+            background-color: #111827 !important;
+            border-top-color: #374151 !important;
+            box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.45) !important;
+        }
     

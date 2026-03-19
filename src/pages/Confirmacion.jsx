@@ -10,7 +10,7 @@ const html = `
                     <!-- Logo centrado en móvil -->
                     <div class="flex items-center gap-3 flex-1 justify-center lg:justify-start">
                         <img src="assets/logo.ico" alt="Logo Jaguares" class="h-10 w-auto object-contain">
-                        <h2 class="text-xl lg:text-2xl font-black italic uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
+                        <h2 class="text-xl lg:text-2xl font-black uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
                     </div>
                     
                     <!-- Botón hamburguesa -->
@@ -40,21 +40,21 @@ const html = `
         </header>
 
         <main class="layout-container flex h-full grow flex-col">
-            <div class="px-4 md:px-20 lg:px-40 flex flex-1 justify-center py-8">
-                <div class="layout-content-container flex flex-col max-w-[1024px] flex-1">
+            <div class="px-4 md:px-8 lg:px-12 xl:px-20 flex flex-1 justify-center py-8">
+                <div class="layout-content-container flex flex-col max-w-[1280px] flex-1">
                     <div class="flex flex-col gap-3 p-4 mb-8">
                         <div class="flex gap-6 justify-between items-center">
                             <p class="text-secondary dark:text-gray-300 text-sm font-bold uppercase tracking-widest">Paso 3 de 3</p>
                             <span class="text-xs font-black text-primary tracking-widest uppercase bg-secondary px-3 py-1 rounded">Confirmación Final</span>
                         </div>
                         <div class="rounded-full bg-[#e5e0d6] dark:bg-[#333] overflow-hidden h-1.5">
-                            <div class="h-full rounded-full gold-gradient shadow-[0_0_15px_rgba(198,156,90,0.4)]" style="width: 100%;"></div>
+                            <div class="h-full rounded-full bg-primary shadow-[0_0_12px_rgba(234,88,12,0.25)]" style="width: 100%;"></div>
                         </div>
                     </div>
 
                     <div class="flex flex-wrap justify-between gap-3 px-4 mb-4">
                         <div class="flex min-w-72 flex-col gap-2">
-                            <h1 class="text-secondary dark:text-white text-4xl md:text-5xl font-black leading-tight tracking-[-0.033em] uppercase italic">
+                            <h1 class="text-secondary dark:text-white text-4xl md:text-5xl font-black leading-tight tracking-[-0.033em] uppercase">
                                 Confirma tu <span class="gold-text-gradient">Inscripción</span>
                             </h1>
                             <p class="text-zinc-600 dark:text-gray-400 text-lg font-medium leading-normal max-w-2xl">
@@ -73,7 +73,7 @@ const html = `
                             <span class="font-bold text-sm uppercase">Volver</span>
                         </button>
 
-                        <button id="btnConfirmarInscripcion" onclick="confirmarInscripcion()" class="flex items-center gap-2 px-8 py-3 rounded-lg bg-gradient-to-r from-primary to-primary-dark text-black font-bold text-sm uppercase tracking-wider hover:brightness-110 transition-all shadow-lg shadow-primary/20">
+                        <button id="btnConfirmarInscripcion" onclick="confirmarInscripcion()" class="flex items-center gap-2 px-8 py-3 rounded-lg bg-primary text-white font-bold text-sm uppercase tracking-wider hover:bg-primary-dark transition-all shadow-lg shadow-primary/25">
                             <span>Confirmar y Finalizar</span>
                             <span class="material-symbols-outlined">check_circle</span>
                         </button>
@@ -111,7 +111,7 @@ export default function Confirmacion() {
     document.documentElement.classList.add('light');
     document.documentElement.classList.remove('dark');
 
-    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 font-display overflow-x-hidden transition-colors duration-200';
+    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main dark:text-gray-100 font-sans confirmacion-readable overflow-x-hidden transition-colors duration-200';
 
     let cancelled = false;
 

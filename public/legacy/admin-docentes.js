@@ -295,7 +295,7 @@ function renderizarDocentes(lista) {
                     <button onclick="abrirModalToggleDocente(${docente.admin_id}, '${docente.estado}')" class="p-2 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors text-yellow-600" title="${docente.estado === 'activo' ? 'Desactivar' : 'Activar'}">
                         <span class="material-symbols-outlined">${docente.estado === 'activo' ? 'person_off' : 'person'}</span>
                     </button>
-                    <button onclick="resetearPassword(${docente.admin_id})" class="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors text-purple-500" title="Resetear contrase\u00f1a">
+                    <button onclick="resetearPassword(${docente.admin_id})" class="p-2 rounded-lg transition-colors" style="color:#8b5cf6;" onmouseover="this.style.background='#f3e8ff'" onmouseout="this.style.background='transparent'" title="Resetear contrase\u00f1a">
                         <span class="material-symbols-outlined">lock_reset</span>
                     </button>
                     <button onclick="abrirModalEliminarDocente(${docente.admin_id}, '${docente.nombre_completo}')" class="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-500" title="Eliminar docente">

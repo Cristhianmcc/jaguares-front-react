@@ -11,7 +11,7 @@ const html = `
                 <!-- Logo centrado en móvil -->
                 <div class="flex items-center gap-3 text-text-main dark:text-white flex-1 justify-center lg:justify-start">
                     <img src="assets/logo.ico" alt="Logo Jaguares" class="h-10 w-auto object-contain">
-                    <h2 class="text-xl lg:text-2xl font-black italic uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
+                    <h2 class="text-xl lg:text-2xl font-black uppercase tracking-wider text-black dark:text-white">JAGUARES</h2>
                 </div>
                 
                 <!-- Botón hamburguesa -->
@@ -67,7 +67,7 @@ const html = `
                     </div>
                 </div>
                 <div>
-                    <h1 class="text-black dark:text-white text-4xl md:text-5xl font-black italic uppercase tracking-tight mb-3">
+                    <h1 class="text-black dark:text-white text-4xl md:text-5xl font-black uppercase tracking-tight mb-3">
                         Consulta tu <span class="text-primary">Estado</span>
                     </h1>
                     <p class="text-text-muted dark:text-gray-400 text-lg font-medium">
@@ -114,7 +114,7 @@ const html = `
             <div class="flex flex-col gap-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-6">
                     <div>
-                        <h1 class="text-black dark:text-white text-4xl md:text-5xl font-black italic uppercase tracking-tight">
+                        <h1 class="text-black dark:text-white text-4xl md:text-5xl font-black uppercase tracking-tight">
                             Tu <span class="text-primary">Inscripción</span>
                         </h1>
                         <p class="text-text-muted dark:text-gray-400 text-lg font-medium mt-2">Estado de tu cuenta y horarios registrados</p>
@@ -312,7 +312,7 @@ const html = `
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center gap-3">
                     <img src="assets/logo.ico" alt="Logo Jaguares" class="size-6 object-contain">
-                    <span class="text-white text-sm font-black uppercase italic">JAGUARES</span>
+                    <span class="text-white text-sm font-black uppercase">JAGUARES</span>
                 </div>
                 <p class="text-gray-400 text-sm">© 2025 JAGUARES. Todos los derechos reservados.</p>
             </div>
@@ -347,7 +347,7 @@ export default function Consulta() {
     document.documentElement.classList.add('light');
     document.documentElement.classList.remove('dark');
 
-    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-display min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200';
+    document.body.className = 'bg-background-light dark:bg-background-dark text-text-main font-sans admin-readable min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200';
 
     let cancelled = false;
 

@@ -1,0 +1,105 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+
+import imgFutbol from "@/assets/hero-futbol.jpg";
+import imgVoley from "@/assets/hero-voley.jpg";
+import imgBasquet from "@/assets/hero-basquet.jpg";
+import imgMamasFit from "@/assets/hero-mamasfit.jpg";
+import imgFuncional from "@/assets/hero-funcional.jpg";
+import imgFutFem from "@/assets/hero-futfem.jpg";
+import imgHero from "@/assets/hero-sports.jpg";
+
+const galleryItems = [
+  { src: imgFutbol, alt: "Entrenamiento de fútbol", category: "Fútbol" },
+  { src: imgVoley, alt: "Partido de vóley", category: "Vóley" },
+  { src: imgBasquet, alt: "Práctica de básquet", category: "Básquet" },
+  { src: imgMamasFit, alt: "Clase de mamás fit", category: "Mamás Fit" },
+  { src: imgFuncional, alt: "Entrenamiento funcional", category: "Funcional" },
+  { src: imgFutFem, alt: "Fútbol femenino", category: "Fútbol Fem." },
+  { src: imgHero, alt: "Instalaciones deportivas", category: "General" },
+  { src: imgFutbol, alt: "Cancha de fútbol", category: "Fútbol" },
+];
+
+const GallerySection = () => {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  return (
+    <section id="galeria" className="px-6 py-24 md:px-16 lg:px-24">
+      <div className="mx-auto max-w-7xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+            Nuestros momentos
+          </p>
+          <h2 className="mt-2 font-display text-5xl md:text-7xl">
+            GALERÍA <span className="text-gradient">JAGUARES</span>
+          </h2>
+        </motion.div>
+
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 md:gap-4">
+          {galleryItems.map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.03 }}
+              onClick={() => setSelected(index)}
+              className={`group relative cursor-pointer overflow-hidden rounded-xl ${
+                index === 0 || index === 5 ? "row-span-2" : ""
+              }`}
+            >
+              <img
+                src={item.src}
+                alt={item.alt}
+                className="h-full min-h-[200px] w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="rounded-full bg-primary/80 px-3 py-1 text-xs font-semibold text-primary-foreground">
+                  {item.category}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {selected !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelected(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-6 backdrop-blur-md"
+          >
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute right-6 top-6 rounded-full bg-secondary p-2 text-foreground"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <motion.img
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              src={galleryItems[selected].src}
+              alt={galleryItems[selected].alt}
+              className="max-h-[80vh] max-w-full rounded-2xl object-contain"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+};
+
+export default GallerySection;

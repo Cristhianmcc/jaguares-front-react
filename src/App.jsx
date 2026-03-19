@@ -20,11 +20,20 @@ import ProfesorAsistencias from './pages/ProfesorAsistencias.jsx';
 import ProfesorRanking from './pages/ProfesorRanking.jsx';
 import ProfesorReportes from './pages/ProfesorReportes.jsx';
 import AdminLandingEditor from './pages/AdminLandingEditor.jsx';
+import DisciplineDetail from './pages/DisciplineDetail.jsx';
 
 export default function App() {
   const route = useMemo(() => {
     const rawPath = window.location.pathname || '/';
     const normalized = rawPath.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
+
+    const disciplineMatch = normalized.match(/^\/disciplina\/([^/]+)$/);
+    if (disciplineMatch) {
+      return {
+        name: 'disciplina-detail',
+        slug: decodeURIComponent(disciplineMatch[1]).toLowerCase()
+      };
+    }
 
     const routes = new Map([
       ['/', 'home'],
@@ -50,25 +59,26 @@ export default function App() {
       ['/admin-landing-editor', 'admin-landing-editor']
     ]);
 
-    return routes.get(normalized) || 'home';
+    return { name: routes.get(normalized) || 'home' };
   }, []);
 
-  if (route === 'inscripcion') return <Inscripcion />;
-  if (route === 'seleccion-horarios-new') return <SeleccionHorariosNew />;
-  if (route === 'confirmacion') return <Confirmacion />;
-  if (route === 'exito') return <Exito />;
-  if (route === 'consulta') return <Consulta />;
-  if (route === 'admin-login') return <AdminLogin />;
-  if (route === 'seleccion-horarios') return <SeleccionHorarios />;
-  if (route === 'profesor-dashboard') return <ProfesorDashboard />;
-  if (route === 'profesor-asistencias') return <ProfesorAsistencias />;
-  if (route === 'profesor-ranking') return <ProfesorRanking />;
-  if (route === 'profesor-reportes') return <ProfesorReportes />;
+  if (route.name === 'disciplina-detail') return <DisciplineDetail slug={route.slug} />;
+  if (route.name === 'inscripcion') return <Inscripcion />;
+  if (route.name === 'seleccion-horarios-new') return <SeleccionHorariosNew />;
+  if (route.name === 'confirmacion') return <Confirmacion />;
+  if (route.name === 'exito') return <Exito />;
+  if (route.name === 'consulta') return <Consulta />;
+  if (route.name === 'admin-login') return <AdminLogin />;
+  if (route.name === 'seleccion-horarios') return <SeleccionHorarios />;
+  if (route.name === 'profesor-dashboard') return <ProfesorDashboard />;
+  if (route.name === 'profesor-asistencias') return <ProfesorAsistencias />;
+  if (route.name === 'profesor-ranking') return <ProfesorRanking />;
+  if (route.name === 'profesor-reportes') return <ProfesorReportes />;
 
   // Editor de Landing Page — pantalla completa sin chatbot superpuesto
-  if (route === 'admin-landing-editor') return <AdminLandingEditor />;
+  if (route.name === 'admin-landing-editor') return <AdminLandingEditor />;
 
-  if (route === 'home') return <Home />;
+  if (route.name === 'home') return <Home />;
 
   // Para rutas admin, envolver con el chatbot flotante
   const paginaAdmin = {
@@ -79,7 +89,7 @@ export default function App() {
     'admin-reubicaciones': <AdminReubicaciones />,
     'admin-dashboard': <AdminDashboard />,
     'admin-legacy': <AdminLegacy />,
-  }[route];
+  }[route.name];
 
   if (paginaAdmin) {
     return (
