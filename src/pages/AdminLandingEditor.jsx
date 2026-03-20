@@ -3,7 +3,7 @@ import { LandingEditorContext } from '../context/LandingEditorContext.jsx';
 import SectionOrderPanel from '../components/SectionOrderPanel.jsx';
 import Home from './Home.jsx';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
 // ─────────────────────────────────────────────────────────────
 // Helpers

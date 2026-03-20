@@ -23,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { DEFAULT_SECTION_STRUCTURE } from '../context/LandingEditorContext.jsx';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
 function getToken() {
   return localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token') || '';

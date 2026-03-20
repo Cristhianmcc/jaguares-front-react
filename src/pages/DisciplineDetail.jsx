@@ -5,7 +5,7 @@ import GlowNavbar from "../components/glow/GlowNavbar.jsx";
 import GlowFooter from "../components/glow/GlowFooter.jsx";
 import { getDisciplineBySlug, toDisciplineSlug } from "../data/sportHubDisciplines.js";
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
 const defaultHeroImages = {
   futbol: "/assets/glow/hero-futbol.jpg",

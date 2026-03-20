@@ -30,7 +30,7 @@ export function useLandingEditor() {
  *
  * @returns {{ data: object|null, loading: boolean }}
  */
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
 // Fetcher genérico para SWR — lanza error si la respuesta no es ok
 const swrFetcher = (url) =>
