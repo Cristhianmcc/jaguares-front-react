@@ -217,10 +217,19 @@ const GlowRanking = () => {
     fetchRanking();
   }, []);
 
+  const formatName = (fullName) => {
+    if (!fullName) return "Alumno";
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length <= 1) return parts[0];
+    const firstName = parts[0];
+    const lastInitial = parts[parts.length - 1][0].toUpperCase();
+    return `${firstName} ${lastInitial}.`;
+  };
+
   const normalized = useMemo(() => {
     return ranking.map((r, index) => ({
       rank: index + 1,
-      name: r.nombre_completo || r.nombre_corto || r.name || "Alumno",
+      name: formatName(r.nombre_completo || r.nombre_corto || r.name),
       discipline: r.deporte || r.categoria || r.discipline || "General",
       points: Number(r.puntaje_global ?? r.puntos ?? r.points ?? 0)
     }));
