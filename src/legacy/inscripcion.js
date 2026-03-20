@@ -330,6 +330,16 @@ async function buscarDNI() {
 async function handleSubmit(e) {
   e.preventDefault();
 
+  // Validar aceptacion de politica de privacidad
+  const privacyCheck = document.getElementById('privacyAccept');
+  if (privacyCheck && !privacyCheck.checked) {
+    const helper = document.getElementById('privacy-helper');
+    if (helper) helper.classList.remove('hidden');
+    privacyCheck.focus();
+    getUtils().mostrarNotificacion('Debes aceptar la politica de privacidad para continuar', 'error');
+    return;
+  }
+
   const dni = document.getElementById('dni').value.trim();
   const tipoDoc = document.getElementById('tipo_documento')?.value || 'DNI';
 

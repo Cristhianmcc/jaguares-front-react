@@ -21,6 +21,7 @@ import ProfesorRanking from './pages/ProfesorRanking.jsx';
 import ProfesorReportes from './pages/ProfesorReportes.jsx';
 import AdminLandingEditor from './pages/AdminLandingEditor.jsx';
 import DisciplineDetail from './pages/DisciplineDetail.jsx';
+import PoliticaPrivacidad from './pages/PoliticaPrivacidad.jsx';
 
 export default function App() {
   const route = useMemo(() => {
@@ -56,7 +57,8 @@ export default function App() {
       ['/profesor-asistencias', 'profesor-asistencias'],
       ['/profesor-ranking', 'profesor-ranking'],
       ['/profesor-reportes', 'profesor-reportes'],
-      ['/admin-landing-editor', 'admin-landing-editor']
+      ['/admin-landing-editor', 'admin-landing-editor'],
+      ['/politica-privacidad', 'politica-privacidad']
     ]);
 
     return { name: routes.get(normalized) || 'home' };
@@ -64,6 +66,7 @@ export default function App() {
 
   if (route.name === 'disciplina-detail') return <DisciplineDetail slug={route.slug} />;
   if (route.name === 'inscripcion') return <Inscripcion />;
+  if (route.name === 'politica-privacidad') return <PoliticaPrivacidad />;
   if (route.name === 'seleccion-horarios-new') return <SeleccionHorariosNew />;
   if (route.name === 'confirmacion') return <Confirmacion />;
   if (route.name === 'exito') return <Exito />;

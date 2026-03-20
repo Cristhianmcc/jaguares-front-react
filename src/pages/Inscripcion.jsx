@@ -364,6 +364,20 @@ const html = `
                         </p>
                     </div>
 
+                    <!-- Politica de Privacidad -->
+                    <div class="bg-gray-50 dark:bg-[#1a1a1a] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <label class="flex items-start gap-3 cursor-pointer group">
+                            <input type="checkbox" id="privacyAccept" class="mt-1 h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer accent-orange-500" required />
+                            <span class="text-sm text-text-muted dark:text-gray-400 leading-relaxed">
+                                He leido y acepto la 
+                                <a href="/politica-privacidad" target="_blank" class="text-primary font-semibold underline hover:text-primary-dark transition-colors">Politica de Privacidad</a>
+                                y autorizo el tratamiento de mis datos personales conforme a la Ley N.° 29733 de Proteccion de Datos Personales.
+                                <span class="text-red-500">*</span>
+                            </span>
+                        </label>
+                        <p class="text-xs text-red-500 hidden mt-2 ml-8" id="privacy-helper">Debes aceptar la politica de privacidad para continuar</p>
+                    </div>
+
                     <div class="flex justify-between items-center pt-6 border-t border-gray-200 dark:border-gray-800">
                         <button type="button" onclick="window.location.href='/'" class="flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-700 text-text-main dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
                             <span class="material-symbols-outlined">arrow_back</span>

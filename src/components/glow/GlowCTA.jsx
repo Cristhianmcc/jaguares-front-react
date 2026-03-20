@@ -7,9 +7,9 @@ const GlowCTA = ({ ctaData, onUpdateCTA }) => {
   const defaultCta = {
     titulo: "SUMATE A\nJAGUARES",
     descripcion: "Empieza hoy tu camino deportivo. Inscripciones abiertas para todas las disciplinas.",
-    ubicacion: "Av. Deportiva 1234, Buenos Aires",
-    telefono: "+54 11 1234-5678",
-    email: "info@academiafit.com"
+    ubicacion: "Lima, Peru",
+    telefono: "+51 973 324 460",
+    email: "fcrealjosegalvez10@gmail.com"
   };
 
   const withFallback = (value, fallback) => {
