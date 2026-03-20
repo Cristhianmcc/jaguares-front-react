@@ -8,12 +8,12 @@ const GlowHero = ({ slidesData, onUpdateSlide }) => {
 
   // Fallback igual al slider de sport-hub cuando no hay datos del backend.
   const defaultSlides = [
-    { image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&q=80", title: "FUTBOL", subtitle: "Formacion tecnica y tactica de alto nivel", description: "Formacion tecnica y tactica de alto nivel" },
-    { image: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=1920&q=80", title: "VOLEY", subtitle: "Domina la cancha con tecnica profesional", description: "Domina la cancha con tecnica profesional" },
-    { image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1920&q=80", title: "BASQUET", subtitle: "Juga en equipo y competi al maximo", description: "Juga en equipo y competi al maximo" },
-    { image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=1920&q=80", title: "MAMAS FIT", subtitle: "Energia, bienestar y comunidad", description: "Energia, bienestar y comunidad" },
-    { image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80", title: "FUNCIONAL MIXTO", subtitle: "Fuerza, cardio y movilidad combinados", description: "Fuerza, cardio y movilidad combinados" },
-    { image: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=1920&q=80", title: "FUTBOL FEMENINO", subtitle: "El futbol femenino crece con nosotras", description: "El futbol femenino crece con nosotras" }
+    { image: "/assets/glow/hero-futbol.jpg", title: "FUTBOL", subtitle: "Formacion tecnica y tactica de alto nivel", description: "Formacion tecnica y tactica de alto nivel" },
+    { image: "/assets/glow/hero-voley.jpg", title: "VOLEY", subtitle: "Domina la cancha con tecnica profesional", description: "Domina la cancha con tecnica profesional" },
+    { image: "/assets/glow/hero-basquet.jpg", title: "BASQUET", subtitle: "Juga en equipo y competi al maximo", description: "Juga en equipo y competi al maximo" },
+    { image: "/assets/glow/hero-mamasfit.jpg", title: "MAMAS FIT", subtitle: "Energia, bienestar y comunidad", description: "Energia, bienestar y comunidad" },
+    { image: "/assets/glow/hero-funcional.jpg", title: "FUNCIONAL MIXTO", subtitle: "Fuerza, cardio y movilidad combinados", description: "Fuerza, cardio y movilidad combinados" },
+    { image: "/assets/glow/hero-futfem.jpg", title: "FUTBOL FEMENINO", subtitle: "El futbol femenino crece con nosotras", description: "El futbol femenino crece con nosotras" }
   ];
 
   const slides = slidesData?.length > 0 ? slidesData : defaultSlides;
