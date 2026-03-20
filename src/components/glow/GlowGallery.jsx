@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
-const galleryItems = [
+const defaultGalleryItems = [
   { src: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1600&q=80", alt: "Entrenamiento de basquet", category: "Basquet" },
   { src: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1600&q=80", alt: "Partido de voley", category: "Voley" },
   { src: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1600&q=80", alt: "Partido de futbol", category: "Futbol" },
@@ -13,11 +13,16 @@ const galleryItems = [
   { src: "https://images.unsplash.com/photo-1543357480-c60d400e2ef9?auto=format&fit=crop&w=1600&q=80", alt: "Sesion de entrenamiento", category: "General" }
 ];
 
-const GlowGallery = () => {
+const GlowGallery = ({ galeriaData, onUpdate }) => {
   const [selected, setSelected] = useState(null);
 
+  // Map from backend format { items: [{imagen, alt}], botonTexto } to display format
+  const galleryItems = (galeriaData?.items && galeriaData.items.length > 0)
+    ? galeriaData.items.map(it => ({ src: it.imagen || '', alt: it.alt || '', category: '' }))
+    : defaultGalleryItems;
+
   return (
-    <section id="galeria" className="px-6 py-24 md:px-16 lg:px-24">
+    <section id="galeria" data-section="galeria" className="px-6 py-24 md:px-16 lg:px-24">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

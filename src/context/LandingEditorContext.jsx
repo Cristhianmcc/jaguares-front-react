@@ -64,17 +64,13 @@ export function useLandingContent() {
 
 /** Orden por defecto = orden actual visible en Home.jsx */
 export const DEFAULT_SECTION_STRUCTURE = [
-  { section_slug: 'hero',           orden: 10,  visible: 1, label: 'Hero / Carrusel'   },
-  { section_slug: 'partidos',       orden: 20,  visible: 1, label: 'Partidos'          },
-  { section_slug: 'deportes',       orden: 30,  visible: 1, label: 'Deportes'          },
-  { section_slug: 'ranking',        orden: 40,  visible: 1, label: 'Ranking'           },
-  { section_slug: 'estadisticas',   orden: 50,  visible: 1, label: 'Estadísticas'      },
-  { section_slug: 'cta',            orden: 60,  visible: 1, label: 'CTA / Video'       },
-  { section_slug: 'docentes',       orden: 70,  visible: 1, label: 'Docentes'          },
-  { section_slug: 'novedades',      orden: 80,  visible: 1, label: 'Novedades'         },
-  { section_slug: 'patrocinadores', orden: 90,  visible: 1, label: 'Patrocinadores'    },
-  { section_slug: 'inscripcion',    orden: 100, visible: 1, label: 'Inscripción CTA'   },
-  { section_slug: 'galeria',        orden: 110, visible: 1, label: 'Galería / Instagram'},
+  { section_slug: 'hero',           orden: 10,  visible: 1, label: 'Hero / Carrusel'     },
+  { section_slug: 'deportes',       orden: 20,  visible: 1, label: 'Deportes'            },
+  { section_slug: 'galeria',        orden: 30,  visible: 1, label: 'Galería / Instagram'  },
+  { section_slug: 'docentes',       orden: 40,  visible: 1, label: 'Docentes'            },
+  { section_slug: 'estadisticas',   orden: 50,  visible: 1, label: 'Sobre Nosotros'      },
+  { section_slug: 'cta',            orden: 60,  visible: 1, label: 'CTA / Contacto'      },
+  { section_slug: 'footer',         orden: 70,  visible: 1, label: 'Footer'              },
 ];
 
 /**

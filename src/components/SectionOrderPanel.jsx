@@ -104,7 +104,7 @@ function SortableRow({ section, onToggleVisible }) {
           flexShrink: 0,
         }}
       >
-        {section.visible ? '👁 Visible' : '🚫 Oculta'}
+        {section.visible ? 'Visible' : 'Oculta'}
       </button>
     </div>
   );
@@ -128,11 +128,20 @@ export default function SectionOrderPanel({ onOrderChange }) {
       .then(r => r.json())
       .then(({ success, sections: list }) => {
         if (success && Array.isArray(list) && list.length > 0) {
+          // Solo mantener secciones del diseño actual
+          const validSlugs = new Set(DEFAULT_SECTION_STRUCTURE.map(d => d.section_slug));
+          const filtered = list.filter(s => validSlugs.has(s.section_slug));
           // Enriquecer con labels
-          const enriched = list.map(s => ({
+          const enriched = filtered.map(s => ({
             ...s,
             label: DEFAULT_SECTION_STRUCTURE.find(d => d.section_slug === s.section_slug)?.label || s.section_slug,
           }));
+          // Agregar secciones nuevas que no estén en BD
+          DEFAULT_SECTION_STRUCTURE.forEach(d => {
+            if (!enriched.find(e => e.section_slug === d.section_slug)) {
+              enriched.push({ ...d });
+            }
+          });
           // Ordenar
           const sorted = [...enriched].sort((a, b) => a.orden - b.orden);
           setSections(sorted);
@@ -232,7 +241,7 @@ export default function SectionOrderPanel({ onOrderChange }) {
   return (
     <div>
       <p style={{ fontSize: 12, color: '#64748b', marginTop: 0, marginBottom: 14, lineHeight: 1.5 }}>
-        Arrastra las secciones para cambiar su orden en la landing pública. Pulsa 👁 para mostrar/ocultar.
+        Arrastra las secciones para cambiar su orden en la landing pública. Pulsa el botón para mostrar/ocultar.
         Guarda cuando termines para que los cambios sean visibles.
       </p>
 
@@ -248,7 +257,7 @@ export default function SectionOrderPanel({ onOrderChange }) {
             border: 'none', borderRadius: 7, cursor: isDirty && !saving ? 'pointer' : 'default',
           }}
         >
-          {saving ? '⏳ Guardando…' : '💾 Guardar orden'}
+          {saving ? 'Guardando…' : 'Guardar orden'}
         </button>
         <button
           onClick={fetchStructure}

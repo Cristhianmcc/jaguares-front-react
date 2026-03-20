@@ -14,14 +14,19 @@ const getIcon = (title) => {
   return Dribbble;
 };
 
-const getColors = (title) => {
+const getDefaultImage = (title) => {
   const t = (title || '').toLowerCase();
-  if (t.includes('vóley') || t.includes('voley')) return "from-blue-500/20 to-blue-600/5";
-  if (t.includes('básquet') || t.includes('basquet')) return "from-orange-500/20 to-orange-600/5";
-  if (t.includes('mamás') || t.includes('mamas')) return "from-pink-500/20 to-pink-600/5";
-  if (t.includes('femenino')) return "from-purple-500/20 to-purple-600/5";
-  if (t.includes('funcional')) return "from-amber-500/20 to-amber-600/5";
-  return "from-green-500/20 to-green-600/5";
+  if (t.includes('vóley') || t.includes('voley'))
+    return "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800&q=80&fit=crop";
+  if (t.includes('básquet') || t.includes('basquet'))
+    return "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80&fit=crop";
+  if (t.includes('mamás') || t.includes('mamas'))
+    return "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80&fit=crop";
+  if (t.includes('femenino'))
+    return "https://images.unsplash.com/photo-1607962837359-5e7e89f86776?w=800&q=80&fit=crop";
+  if (t.includes('funcional'))
+    return "https://images.unsplash.com/photo-1534258936925-c58bed479fcb?w=800&q=80&fit=crop";
+  return "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80&fit=crop";
 };
 
 const GlowDisciplines = ({ deportesData, onUpdate }) => {
@@ -37,7 +42,7 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
   const disciplines = deportesData?.length > 0 ? deportesData : fallbackDisciplines;
 
   return (
-    <section id="disciplinas" className="px-6 py-24 md:px-16 lg:px-24">
+    <section id="disciplinas" data-section="deportes" className="px-6 py-24 md:px-16 lg:px-24">
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -50,15 +55,15 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
             Nuestras disciplinas
           </p>
           <h2 className="mt-2 font-display text-5xl md:text-7xl uppercase">
-            Elegí tu <span className="text-gradient">Deporte</span>
+            Elige tu <span className="text-gradient">Deporte</span>
           </h2>
         </motion.div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {disciplines.map((discipline, index) => {
             const Icon = getIcon(discipline.titulo);
-            const colorClass = getColors(discipline.titulo);
-            
+            const bgImage = discipline.imagen || getDefaultImage(discipline.titulo);
+
             return (
               <motion.div
                 key={discipline.id || index}
@@ -66,18 +71,24 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className="group relative h-full overflow-hidden rounded-2xl border border-border bg-card p-8 shadow-card transition-colors hover:border-primary/30"
+                whileHover={{ y: -8 }}
+                className="group relative min-h-[17rem] cursor-pointer overflow-hidden rounded-2xl border border-border shadow-card transition-all hover:border-primary/40 hover:shadow-xl"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-0 transition-opacity group-hover:opacity-100`} />
-                <div className="relative z-10">
-                  <div className="mb-6 inline-flex rounded-xl bg-secondary p-3 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                    <Icon className="h-7 w-7" />
+                <img
+                  src={bgImage}
+                  alt={discipline.titulo}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                <div className="absolute inset-0 bg-primary/0 transition-colors duration-500 group-hover:bg-primary/10" />
+                <div className="relative z-10 flex min-h-[17rem] flex-col justify-end p-8">
+                  <div className="mb-4 inline-flex w-fit rounded-xl border border-primary/40 bg-primary/20 p-3 text-primary backdrop-blur-sm">
+                    <Icon className="h-6 w-6" />
                   </div>
-                  
-                  <EditableText 
-                    tag="h3" 
-                    className="font-display text-3xl" 
+                  <EditableText
+                    tag="h3"
+                    className="font-display text-3xl text-white"
                     value={discipline.titulo}
                     onChange={onUpdate ? v => {
                       const newData = [...deportesData];
@@ -85,10 +96,9 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
                       if(idx !== -1) { newData[idx] = { ...newData[idx], titulo: v }; onUpdate(newData); }
                     } : undefined}
                   />
-
-                  <EditableText 
-                    tag="p" 
-                    className="mt-3 text-sm leading-relaxed text-muted-foreground" 
+                  <EditableText
+                    tag="p"
+                    className="mt-2 text-sm leading-relaxed text-white/70"
                     value={discipline.descripcion}
                     multiline
                     onChange={onUpdate ? v => {
@@ -97,7 +107,10 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
                       if(idx !== -1) { newData[idx] = { ...newData[idx], descripcion: v }; onUpdate(newData); }
                     } : undefined}
                   />
-                  <a href={`/disciplina/${toDisciplineSlug(discipline.slug || discipline.titulo || discipline.id)}`} className="mt-4 inline-block text-sm font-semibold text-primary">
+                  <a
+                    href={`/disciplina/${toDisciplineSlug(discipline.slug || discipline.titulo || discipline.id)}`}
+                    className="mt-4 inline-block text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                  >
                     Ver categorías y horarios →
                   </a>
                 </div>

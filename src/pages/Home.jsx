@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLandingEditor, useLandingContent, useSectionOrder } from '../context/LandingEditorContext.jsx';
 
@@ -19,11 +19,15 @@ export default function Home() {
   
   const [showVideoModal, setShowVideoModal] = useState(false);
 
-  const sections = landingData?.sections || {};
-  const slidesData = sections.hero?.slides || [];
-  const deportesData = sections.deportes || [];
-  const docentesData = sections.docentes || [];
-  const ctaData = sections.cta || {};
+  // Editor mode: datos del context; Public mode: datos de la API
+  const src = editorCtx?.content || landingData || {};
+  const slidesData = src.hero?.slides || [];
+  const deportesData = src.deportes || [];
+  const docentesData = src.docentes || [];
+  const ctaData = src.cta || {};
+  const estadisticasData = src.estadisticas || {};
+  const galeriaData = src.galeria || null;
+  const generalData = src.general || {};
 
   const reveal = {
     initial: { opacity: 0, y: 36 },
@@ -37,24 +41,26 @@ export default function Home() {
     transition: { ...reveal.transition, delay: index * 0.08 }
   });
 
+  const isEdit = editorCtx?.isEditable;
+
   return (
     <div className="glow-theme min-h-screen bg-background">
       <GlowNavbar />
       <GlowHero
         slidesData={slidesData}
-        onUpdateSlide={editorCtx?.isEditable ? editorCtx.updateSlide : undefined}
+        onUpdateSlide={isEdit ? editorCtx.updateSlide : undefined}
       />
 
       {isSectionVisible('deportes') && (
         <motion.div {...revealByIndex(0)}>
           <GlowDisciplines
             deportesData={deportesData}
-            onUpdate={editorCtx?.isEditable ? (v) => editorCtx.updateSection('deportes', v) : undefined}
+            onUpdate={isEdit ? (v) => editorCtx.updateSection('deportes', v) : undefined}
           />
         </motion.div>
       )}
 
-      {(isSectionVisible('ranking') || isSectionVisible('partidos')) && (
+      {isSectionVisible('ranking') && (
         <motion.div {...revealByIndex(1)}>
           <GlowRanking />
         </motion.div>
@@ -62,27 +68,36 @@ export default function Home() {
 
       {isSectionVisible('galeria') && (
         <motion.div {...revealByIndex(2)}>
-          <GlowGallery />
+          <GlowGallery
+            galeriaData={galeriaData}
+            onUpdate={isEdit ? (v) => editorCtx.updateSection('galeria', v) : undefined}
+          />
         </motion.div>
       )}
 
       {isSectionVisible('docentes') && (
         <motion.div {...revealByIndex(3)}>
-          <GlowTeachers docentesData={docentesData} />
+          <GlowTeachers
+            docentesData={docentesData}
+            onUpdate={isEdit ? (v) => editorCtx.updateSection('docentes', v) : undefined}
+          />
         </motion.div>
       )}
 
       {isSectionVisible('estadisticas') && (
-        <motion.div id="nosotros" {...revealByIndex(4)}>
-          <GlowAbout />
+        <motion.div id="nosotros" {...revealByIndex(5)}>
+          <GlowAbout
+            estadisticasData={estadisticasData}
+            onUpdate={isEdit ? (v) => editorCtx.updateSection('estadisticas', v) : undefined}
+          />
         </motion.div>
       )}
 
       {isSectionVisible('cta') && (
-        <motion.div {...revealByIndex(5)}>
+        <motion.div {...revealByIndex(7)}>
           <GlowCTA
             ctaData={ctaData}
-            onUpdateCTA={editorCtx?.isEditable ? (field, value) => {
+            onUpdateCTA={isEdit ? (field, value) => {
               const newData = { ...ctaData, [field]: value };
               editorCtx.updateSection('cta', newData);
             } : undefined}
@@ -90,7 +105,7 @@ export default function Home() {
         </motion.div>
       )}
 
-      <GlowFooter />
+      <GlowFooter generalData={generalData} />
       
       {showVideoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowVideoModal(false)}>
@@ -98,7 +113,7 @@ export default function Home() {
             <button className="absolute -top-10 right-0 text-white hover:text-primary transition-colors font-bold text-xl" onClick={() => setShowVideoModal(false)}>
               Cerrar X
             </button>
-            <iframe src={landingData?.general?.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"} className="w-full h-full border-0" allowFullScreen />
+            <iframe src={generalData?.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"} className="w-full h-full border-0" allowFullScreen />
           </div>
         </div>
       )}

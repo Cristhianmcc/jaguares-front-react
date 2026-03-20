@@ -33,7 +33,7 @@ const GlowHero = ({ slidesData, onUpdateSlide }) => {
   const slideId = currentSlide.id;
 
   return (
-    <section className="relative h-screen w-full overflow-hidden">
+    <section data-section="hero" className="relative h-screen w-full overflow-hidden">
       {/* Carousel images */}
       <AnimatePresence mode="wait">
         <motion.div

@@ -63,7 +63,11 @@ function FieldColor({ label, value, onChange }) {
 function FieldImage({ label, value, onChange }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [imgBroken, setImgBroken] = useState(false);
   const fileRef = useRef(null);
+
+  // Reset broken state cuando cambia la URL
+  useEffect(() => { setImgBroken(false); }, [value]);
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -96,11 +100,12 @@ function FieldImage({ label, value, onChange }) {
     <div style={{ marginBottom: 14 }}>
       <label style={styles.label}>{label}</label>
       {/* Preview */}
-      {value && (
+      {value && !imgBroken && (
         <img
           src={value} alt="preview"
           style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 8, marginBottom: 8, border: '1px solid #e2e8f0' }}
-          onError={e => { e.target.style.display = 'none'; }}
+          onError={() => setImgBroken(true)}
+          onLoad={() => setImgBroken(false)}
         />
       )}
       {/* Input URL */}
@@ -278,18 +283,14 @@ function TextStyleControls({ textStyle = {}, onStyleChange }) {
 // ─────────────────────────────────────────────────────────────
 const TABS = [
   { id: 'hero',         label: 'Hero' },
-  { id: 'partidos',     label: 'Partidos' },
   { id: 'deportes',     label: 'Deportes' },
-  { id: 'estadisticas', label: 'Estadísticas' },
   { id: 'docentes',     label: 'Docentes' },
-  { id: 'novedades',       label: 'Novedades' },
-  { id: 'patrocinadores', label: 'Patrocinadores' },
   { id: 'galeria',      label: 'Galería' },
+  { id: 'estadisticas', label: 'Sobre Nosotros' },
   { id: 'cta',          label: 'CTA' },
-  { id: 'tipografia',   label: 'Tipografía' },
   { id: 'general',      label: 'General' },
-  { id: 'versiones',    label: '🕐 Versiones' },
-  { id: 'orden',        label: '↕ Orden' },
+  { id: 'versiones',    label: 'Versiones' },
+  { id: 'orden',        label: 'Orden' },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -338,25 +339,117 @@ function DeportesPanel({ data, onChange }) {
     onChange(updated);
   };
 
+  const addCategory = (depIdx) => {
+    const dep = data[depIdx];
+    const cats = Array.isArray(dep.categories) ? dep.categories : [];
+    updateDeporte(depIdx, 'categories', [...cats, { name: '', ages: '', schedule: [''] }]);
+  };
+
+  const updateCategory = (depIdx, catIdx, field, val) => {
+    const cats = [...(data[depIdx].categories || [])];
+    cats[catIdx] = { ...cats[catIdx], [field]: val };
+    updateDeporte(depIdx, 'categories', cats);
+  };
+
+  const removeCategory = (depIdx, catIdx) => {
+    const cats = (data[depIdx].categories || []).filter((_, i) => i !== catIdx);
+    updateDeporte(depIdx, 'categories', cats);
+  };
+
+  const addSchedule = (depIdx, catIdx) => {
+    const cats = [...(data[depIdx].categories || [])];
+    cats[catIdx] = { ...cats[catIdx], schedule: [...(cats[catIdx].schedule || []), ''] };
+    updateDeporte(depIdx, 'categories', cats);
+  };
+
+  const updateSchedule = (depIdx, catIdx, sIdx, val) => {
+    const cats = [...(data[depIdx].categories || [])];
+    const sched = [...(cats[catIdx].schedule || [])];
+    sched[sIdx] = val;
+    cats[catIdx] = { ...cats[catIdx], schedule: sched };
+    updateDeporte(depIdx, 'categories', cats);
+  };
+
+  const removeSchedule = (depIdx, catIdx, sIdx) => {
+    const cats = [...(data[depIdx].categories || [])];
+    cats[catIdx] = { ...cats[catIdx], schedule: (cats[catIdx].schedule || []).filter((_, i) => i !== sIdx) };
+    updateDeporte(depIdx, 'categories', cats);
+  };
+
+  const addGalleryImage = (depIdx) => {
+    const gallery = Array.isArray(data[depIdx].gallery) ? data[depIdx].gallery : [];
+    updateDeporte(depIdx, 'gallery', [...gallery, '']);
+  };
+
+  const updateGalleryImage = (depIdx, gIdx, val) => {
+    const gallery = [...(data[depIdx].gallery || [])];
+    gallery[gIdx] = val;
+    updateDeporte(depIdx, 'gallery', gallery);
+  };
+
+  const removeGalleryImage = (depIdx, gIdx) => {
+    updateDeporte(depIdx, 'gallery', (data[depIdx].gallery || []).filter((_, i) => i !== gIdx));
+  };
+
   return (
     <div>
-      <p style={styles.hint}>Edita las tarjetas de disciplinas deportivas.</p>
+      <p style={styles.hint}>Edita tarjetas y páginas de detalle de cada disciplina.</p>
       {data.map((dep, idx) => (
-        <SectionCard key={dep.id} title={`Deporte ${idx + 1}${dep.destacado ? ' ⭐ (Destacado)' : ''}`}>
-          <FieldText label="Categoría / Badge" value={dep.categoria}
-            onChange={v => updateDeporte(idx, 'categoria', v)}
-            textStyle={dep.categoriaStyle||{}} onStyleChange={s => updateDeporte(idx,'categoriaStyle',s)} />
-          <FieldText label="Fecha / Días" value={dep.fecha}
-            onChange={v => updateDeporte(idx, 'fecha', v)}
-            textStyle={dep.fechaStyle||{}} onStyleChange={s => updateDeporte(idx,'fechaStyle',s)} />
+        <SectionCard key={dep.id} title={`Deporte ${idx + 1} — ${dep.titulo || ''}`}>
           <FieldText label="Título" value={dep.titulo}
             onChange={v => updateDeporte(idx, 'titulo', v)}
             textStyle={dep.tituloStyle||{}} onStyleChange={s => updateDeporte(idx,'tituloStyle',s)} />
-          <FieldTextarea label="Descripción" value={dep.descripcion}
+          <FieldTextarea label="Descripción corta (tarjeta)" value={dep.descripcion}
             onChange={v => updateDeporte(idx, 'descripcion', v)}
             textStyle={dep.descripcionStyle||{}} onStyleChange={s => updateDeporte(idx,'descripcionStyle',s)} />
-          <FieldImage label="Imagen" value={dep.imagen}
+          <FieldImage label="Imagen (tarjeta)" value={dep.imagen}
             onChange={v => updateDeporte(idx, 'imagen', v)} />
+
+          <Divider />
+          <p style={{ ...styles.label, color: '#f59e0b', margin: '8px 0' }}>PÁGINA DE DETALLE</p>
+          <FieldText label="Ruta (slug)" value={dep.slug}
+            onChange={v => updateDeporte(idx, 'slug', v)} />
+          <FieldTextarea label="Descripción larga" value={dep.longDescription} rows={4}
+            onChange={v => updateDeporte(idx, 'longDescription', v)} />
+          <FieldImage label="Imagen hero (detalle)" value={dep.heroImage}
+            onChange={v => updateDeporte(idx, 'heroImage', v)} />
+
+          <Divider />
+          <p style={{ ...styles.label, color: '#6366f1', margin: '8px 0' }}>CATEGORÍAS Y HORARIOS</p>
+          {(dep.categories || []).map((cat, ci) => (
+            <div key={ci} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 10, marginBottom: 8, background: '#fafafa' }}>
+              <FieldText label={`Categoría ${ci + 1}`} value={cat.name} onChange={v => updateCategory(idx, ci, 'name', v)} />
+              <FieldText label="Edades" value={cat.ages} onChange={v => updateCategory(idx, ci, 'ages', v)} />
+              {(cat.schedule || []).map((s, si) => (
+                <div key={si} style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 4 }}>
+                  <input style={{ ...styles.input, flex: 1, marginBottom: 0 }} value={s} placeholder="Ej: Lunes y Miércoles 16:00 - 17:00"
+                    onChange={e => updateSchedule(idx, ci, si, e.target.value)} />
+                  <button onClick={() => removeSchedule(idx, ci, si)}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>✕</button>
+                </div>
+              ))}
+              <button onClick={() => addSchedule(idx, ci)}
+                style={{ fontSize: 11, color: '#6366f1', background: 'none', border: '1px dashed #a5b4fc', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', marginBottom: 4 }}>+ Horario</button>
+              <div style={{ textAlign: 'right' }}>
+                <button onClick={() => removeCategory(idx, ci)}
+                  style={{ fontSize: 11, color: '#ef4444', background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>Eliminar categoría</button>
+              </div>
+            </div>
+          ))}
+          <button onClick={() => addCategory(idx)}
+            style={{ width: '100%', padding: '7px 0', background: '#eef2ff', color: '#4f46e5', border: '1.5px dashed #a5b4fc', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 8 }}>+ Agregar categoría</button>
+
+          <Divider />
+          <p style={{ ...styles.label, color: '#0ea5e9', margin: '8px 0' }}>GALERÍA DEL DEPORTE</p>
+          {(dep.gallery || []).map((img, gi) => (
+            <div key={gi} style={{ marginBottom: 6 }}>
+              <FieldImage label={`Imagen ${gi + 1}`} value={img} onChange={v => updateGalleryImage(idx, gi, v)} />
+              <button onClick={() => removeGalleryImage(idx, gi)}
+                style={{ fontSize: 11, color: '#ef4444', background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '2px 8px', cursor: 'pointer' }}>Eliminar</button>
+            </div>
+          ))}
+          <button onClick={() => addGalleryImage(idx)}
+            style={{ width: '100%', padding: '7px 0', background: '#f0f9ff', color: '#0284c7', border: '1.5px dashed #7dd3fc', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Agregar imagen a galería</button>
         </SectionCard>
       ))}
     </div>
@@ -370,16 +463,29 @@ function EstadisticasPanel({ data, onChange }) {
 
   return (
     <div>
-      <p style={styles.hint}>Números que aparecen en la sección de estadísticas (contadores).</p>
-      <SectionCard title="Contadores Animados">
-        <FieldText label='Gente (ej: "90+")' value={data.gente} onChange={v => update('gente', v)}
+      <p style={styles.hint}>Textos y números de la sección "Sobre Nosotros".</p>
+      <SectionCard title="Encabezado">
+        <FieldText label="Subtítulo (ej: Sobre nosotros)" value={data.subtitulo} onChange={v => update('subtitulo', v)} />
+        <FieldText label="Título línea 1 (ej: Mas que una)" value={data.tituloLinea1} onChange={v => update('tituloLinea1', v)} />
+        <FieldText label="Título línea 2 – destacado (ej: Academia)" value={data.tituloLinea2} onChange={v => update('tituloLinea2', v)} />
+      </SectionCard>
+      <SectionCard title="Textos descriptivos">
+        <FieldTextarea label="Párrafo 1" value={data.descripcion1} onChange={v => update('descripcion1', v)} rows={3} />
+        <FieldTextarea label="Párrafo 2" value={data.descripcion2} onChange={v => update('descripcion2', v)} rows={3} />
+      </SectionCard>
+      <SectionCard title="Contadores (valor + etiqueta)">
+        <FieldText label='Valor 1 (ej: "500+")' value={data.gente} onChange={v => update('gente', v)}
           textStyle={data.genteStyle||{}} onStyleChange={s => update('genteStyle', s)} />
-        <FieldText label='Partidos (ej: "2548")' value={data.partidos} onChange={v => update('partidos', v)}
+        <FieldText label='Etiqueta 1' value={data.genteLabel} onChange={v => update('genteLabel', v)} />
+        <FieldText label='Valor 2 (ej: "6")' value={data.partidos} onChange={v => update('partidos', v)}
           textStyle={data.partidosStyle||{}} onStyleChange={s => update('partidosStyle', s)} />
-        <FieldText label='Años (ej: "25+")' value={data.anos} onChange={v => update('anos', v)}
+        <FieldText label='Etiqueta 2' value={data.partidosLabel} onChange={v => update('partidosLabel', v)} />
+        <FieldText label='Valor 3 (ej: "15+")' value={data.anos} onChange={v => update('anos', v)}
           textStyle={data.anosStyle||{}} onStyleChange={s => update('anosStyle', s)} />
-        <FieldText label='Trofeos (ej: "256")' value={data.trofeos} onChange={v => update('trofeos', v)}
+        <FieldText label='Etiqueta 3' value={data.anosLabel} onChange={v => update('anosLabel', v)} />
+        <FieldText label='Valor 4 (ej: "8")' value={data.trofeos} onChange={v => update('trofeos', v)}
           textStyle={data.trofeosStyle||{}} onStyleChange={s => update('trofeosStyle', s)} />
+        <FieldText label='Etiqueta 4' value={data.trofeosLabel} onChange={v => update('trofeosLabel', v)} />
       </SectionCard>
     </div>
   );
@@ -426,7 +532,7 @@ function DocentesPanel({ data, onChange }) {
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
             }}
           >
-            🗑 Eliminar docente
+            Eliminar docente
           </button>
         </SectionCard>
       ))}
@@ -446,294 +552,21 @@ function DocentesPanel({ data, onChange }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Panel: Partidos
-// ─────────────────────────────────────────────────────────────
-function PartidosPanel({ data, onChange }) {
-  if (!Array.isArray(data) || data.length === 0) {
-    return (
-      <div style={{ padding: 16, color: '#64748b', fontSize: 13 }}>
-        <p>Cargando datos de partidos...</p>
-      </div>
-    );
-  }
-
-  const updatePartido = (idx, field, val) => {
-    const updated = data.map((p, i) => i === idx ? { ...p, [field]: val } : p);
-    onChange(updated);
-  };
-
-  const updateEquipo = (idx, side, equipoField, val) => {
-    const campo = side === 'local' ? 'equipoLocal' : 'equipoVisita';
-    const updated = data.map((p, i) => i === idx ? { ...p, [campo]: { ...p[campo], [equipoField]: val } } : p);
-    onChange(updated);
-  };
-
-  return (
-    <div>
-      <p style={styles.hint}>Edita los 4 partidos: equipos, logos, resultado, fecha y sede.</p>
-      {data.map((partido, idx) => (
-        <SectionCard
-          key={partido.id ?? idx}
-          title={`Partido ${idx + 1} — ${partido.equipoLocal?.nombre} vs ${partido.equipoVisita?.nombre}`}
-        >
-          <p style={{ ...styles.label, color: '#64748b', margin: '0 0 8px' }}>⚽ Equipo Local</p>
-          <FieldText label="Nombre" value={partido.equipoLocal?.nombre}
-            onChange={v => updateEquipo(idx, 'local', 'nombre', v)}
-            textStyle={partido.equipoLocal?.nombreStyle||{}} onStyleChange={s => updateEquipo(idx,'local','nombreStyle',s)} />
-          <FieldImage label="Logo" value={partido.equipoLocal?.logo}
-            onChange={v => updateEquipo(idx, 'local', 'logo', v)} />
-
-          <Divider />
-          <p style={{ ...styles.label, color: '#64748b', margin: '0 0 8px' }}>🏃 Equipo Visita</p>
-          <FieldText label="Nombre" value={partido.equipoVisita?.nombre}
-            onChange={v => updateEquipo(idx, 'visita', 'nombre', v)}
-            textStyle={partido.equipoVisita?.nombreStyle||{}} onStyleChange={s => updateEquipo(idx,'visita','nombreStyle',s)} />
-          <FieldImage label="Logo" value={partido.equipoVisita?.logo}
-            onChange={v => updateEquipo(idx, 'visita', 'logo', v)} />
-
-          <Divider />
-          <FieldText label="Fecha" value={partido.fecha}
-            onChange={v => updatePartido(idx, 'fecha', v)}
-            textStyle={partido.fechaStyle||{}} onStyleChange={s => updatePartido(idx,'fechaStyle',s)} />
-          <FieldText label="Resultado / Hora" value={partido.resultado}
-            onChange={v => updatePartido(idx, 'resultado', v)}
-            textStyle={partido.resultadoStyle||{}} onStyleChange={s => updatePartido(idx,'resultadoStyle',s)} />
-          <FieldText label="Liga" value={partido.liga}
-            onChange={v => updatePartido(idx, 'liga', v)}
-            textStyle={partido.ligaStyle||{}} onStyleChange={s => updatePartido(idx,'ligaStyle',s)} />
-          <FieldText label="Temporada" value={partido.season}
-            onChange={v => updatePartido(idx, 'season', v)}
-            textStyle={partido.seasonStyle||{}} onStyleChange={s => updatePartido(idx,'seasonStyle',s)} />
-          <FieldText label="Sede / Ciudad" value={partido.sede}
-            onChange={v => updatePartido(idx, 'sede', v)}
-            textStyle={partido.sedeStyle||{}} onStyleChange={s => updatePartido(idx,'sedeStyle',s)} />
-        </SectionCard>
-      ))}
-    </div>
-  );
-}
-
-function NovedadesPanel({ data, onChange }) {
-  if (!data) return null;
-
-  const updateHeader = (field, val) => onChange({ ...data, [field]: val });
-
-  const updateItem = (idx, field, val) => {
-    const items = (data.items || []).map((it, i) => i === idx ? { ...it, [field]: val } : it);
-    onChange({ ...data, items });
-  };
-
-  const addItem = () => {
-    const items = [...(data.items || []), {
-      id: Date.now(), categoria: '', titulo: '', fecha: '',
-      comentarios: '0', enlace: '#', alt: '', categoria_href: '#', titulo_href: '#', imagen: ''
-    }];
-    onChange({ ...data, items });
-  };
-
-  const removeItem = (idx) => {
-    if (!window.confirm('¿Eliminar esta novedad?')) return;
-    const items = (data.items || []).filter((_, i) => i !== idx);
-    onChange({ ...data, items });
-  };
-
-  const items = data.items || [];
-
-  return (
-    <div>
-      <p style={styles.hint}>Edita el título de la sección y cada tarjeta de novedad.</p>
-
-      <SectionCard title="Encabezado de la sección">
-        <FieldText label="Subtítulo pequeño" value={data.subtitulo} onChange={v => updateHeader('subtitulo', v)}
-          textStyle={data.subtituloStyle||{}} onStyleChange={s => updateHeader('subtituloStyle', s)} />
-        <FieldText label="Título grande" value={data.titulo} onChange={v => updateHeader('titulo', v)}
-          textStyle={data.tituloStyle||{}} onStyleChange={s => updateHeader('tituloStyle', s)} />
-      </SectionCard>
-
-      {items.map((item, idx) => (
-        <SectionCard key={item.id ?? idx} title={`Novedad ${idx + 1}${item.titulo ? ' — ' + item.titulo.slice(0, 30) + (item.titulo.length > 30 ? '…' : '') : ''}`}>
-          <FieldImage label="Imagen" value={item.imagen} onChange={v => updateItem(idx, 'imagen', v)} />
-          <FieldText label="Categoría" value={item.categoria} onChange={v => updateItem(idx, 'categoria', v)} />
-          <FieldText label="Título" value={item.titulo} onChange={v => { updateItem(idx, 'titulo', v); updateItem(idx, 'alt', v); }}
-            textStyle={item.tituloStyle||{}} onStyleChange={s => updateItem(idx,'tituloStyle',s)} />
-          <FieldText label="Fecha" value={item.fecha} onChange={v => updateItem(idx, 'fecha', v)} />
-          <FieldText label="N° Comentarios" value={item.comentarios} onChange={v => updateItem(idx, 'comentarios', v)} />
-          <FieldText label="Enlace (URL)" value={item.enlace} onChange={v => { updateItem(idx, 'enlace', v); updateItem(idx, 'categoria_href', v); updateItem(idx, 'titulo_href', v); }} />
-          <div style={{ marginTop: 8 }}>
-            <button
-              onClick={() => removeItem(idx)}
-              style={{ width: '100%', padding: '6px 0', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}
-            >🗑 Eliminar novedad</button>
-          </div>
-        </SectionCard>
-      ))}
-
-      <button
-        onClick={addItem}
-        style={{ width: '100%', padding: '10px 0', marginTop: 8, background: 'transparent', border: '2px dashed #22c55e', color: '#22c55e', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-      >+ Agregar novedad</button>
-    </div>
-  );
-}
-
-function PatrocinadoresPanel({ data, onChange }) {
-  const lista = Array.isArray(data) && data.length > 0 ? data : [];
-
-  const updateSponsor = (idx, field, val) => {
-    const updated = lista.map((s, i) => i === idx ? { ...s, [field]: val } : s);
-    onChange(updated);
-  };
-
-  const addSponsor = () => {
-    onChange([...lista, { id: Date.now(), nombre: '', imagen: '', enlace: '#' }]);
-  };
-
-  const removeSponsor = (idx) => {
-    if (!window.confirm('¿Eliminar este patrocinador?')) return;
-    onChange(lista.filter((_, i) => i !== idx));
-  };
-
-  return (
-    <div>
-      <p style={styles.hint}>Edita los logos y nombres de los patrocinadores. Puedes subir una imagen o dejar el nombre en texto.</p>
-      {lista.map((sp, idx) => (
-        <SectionCard key={sp.id ?? idx} title={`Patrocinador ${idx + 1}${sp.nombre ? ' — ' + sp.nombre : ''}`}>
-          <FieldText label="Nombre (texto)" value={sp.nombre} onChange={v => updateSponsor(idx, 'nombre', v)}
-            textStyle={sp.nombreStyle||{}} onStyleChange={s => updateSponsor(idx,'nombreStyle',s)} />
-          <FieldImage label="Logo (imagen)" value={sp.imagen} onChange={v => updateSponsor(idx, 'imagen', v)} />
-          <FieldText label="Enlace (URL)" value={sp.enlace} onChange={v => updateSponsor(idx, 'enlace', v)} />
-          <div style={{ marginTop: 8 }}>
-            <button
-              onClick={() => removeSponsor(idx)}
-              style={{ width: '100%', padding: '6px 0', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}
-            >🗑 Eliminar patrocinador</button>
-          </div>
-        </SectionCard>
-      ))}
-      <button
-        onClick={addSponsor}
-        style={{ width: '100%', padding: '10px 0', marginTop: 8, background: 'transparent', border: '2px dashed #22c55e', color: '#22c55e', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-      >+ Agregar patrocinador</button>
-    </div>
-  );
-}
-
 function CTAPanel({ data, onChange }) {
   if (!data) return null;
   const update = (field, val) => onChange({ ...data, [field]: val });
 
   return (
     <div>
-      <p style={styles.hint}>Sección de llamada a la acción (fondo oscuro con imagen de fútbol).</p>
-      <SectionCard title="Sección CTA Principal">
-        <FieldImage label="Imagen de fondo" value={data.imagen} onChange={v => update('imagen', v)} />
-        <FieldText label="Subtítulo pequeño" value={data.subtitulo} onChange={v => update('subtitulo', v)}
-          textStyle={data.subtituloStyle||{}} onStyleChange={s => update('subtituloStyle', s)} />
-        <FieldTextarea label="Título grande" value={data.titulo} onChange={v => update('titulo', v)} rows={3}
-          textStyle={data.tituloStyle||{}} onStyleChange={s => update('tituloStyle', s)} />
-        <FieldText label="Texto del botón" value={data.botonTexto} onChange={v => update('botonTexto', v)}
-          textStyle={data.botonTextoStyle||{}} onStyleChange={s => update('botonTextoStyle', s)} />
-        <FieldText label="Enlace del botón (URL)" value={data.botonEnlace} onChange={v => update('botonEnlace', v)} />
+      <p style={styles.hint}>Sección de contacto: título, descripción, ubicación, teléfono y email.</p>
+      <SectionCard title="Textos principales">
+        <FieldTextarea label="Título (usa Enter para salto de línea)" value={data.titulo} onChange={v => update('titulo', v)} rows={2} />
+        <FieldTextarea label="Descripción" value={data.descripcion} onChange={v => update('descripcion', v)} rows={3} />
       </SectionCard>
-    </div>
-  );
-}
-
-// ─── Tipografía ─────────────────────────────────────────────
-const FONTS_TITULOS = [
-  { value: 'Inter Tight',       label: 'Inter Tight (predeterminado)' },
-  { value: 'Oswald',            label: 'Oswald' },
-  { value: 'Bebas Neue',        label: 'Bebas Neue' },
-  { value: 'Barlow Condensed',  label: 'Barlow Condensed' },
-  { value: 'Montserrat',        label: 'Montserrat' },
-  { value: 'Antonio',           label: 'Antonio' },
-  { value: 'Rajdhani',          label: 'Rajdhani' },
-  { value: 'Teko',              label: 'Teko' },
-  { value: 'Russo One',         label: 'Russo One' },
-  { value: 'Black Han Sans',    label: 'Black Han Sans' },
-  { value: 'Saira Condensed',   label: 'Saira Condensed' },
-];
-const FONTS_CUERPO = [
-  { value: 'DM Sans',           label: 'DM Sans (predeterminado)' },
-  { value: 'Roboto',            label: 'Roboto' },
-  { value: 'Open Sans',         label: 'Open Sans' },
-  { value: 'Lato',              label: 'Lato' },
-  { value: 'Nunito',            label: 'Nunito' },
-  { value: 'Poppins',           label: 'Poppins' },
-  { value: 'Source Sans 3',     label: 'Source Sans 3' },
-  { value: 'Inter',             label: 'Inter' },
-  { value: 'Noto Sans',         label: 'Noto Sans' },
-];
-const PESOS = [
-  { value: '400', label: 'Regular (400)' },
-  { value: '500', label: 'Medium (500)' },
-  { value: '600', label: 'SemiBold (600)' },
-  { value: '700', label: 'Bold (700)' },
-  { value: '800', label: 'ExtraBold (800)' },
-  { value: '900', label: 'Black (900)' },
-];
-
-function TipografiaPanel({ data, onChange }) {
-  if (!data) return null;
-  const update = (field, val) => onChange({ ...data, [field]: val });
-
-  // Cargar Google Fonts en el panel para mostrar el preview
-  useEffect(() => {
-    const fT = data.fuenteTitulos || 'Inter Tight';
-    const fC = data.fuenteCuerpo  || 'DM Sans';
-    const pT = data.pesoTitulos   || '700';
-    const toP = (n) => n.replace(/ /g, '+');
-    const id = 'tipografia-preview-fonts';
-    let link = document.getElementById(id);
-    if (!link) { link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; document.head.appendChild(link); }
-    const weights = [...new Set(['400', '700', pT])].join(';');
-    link.href = `https://fonts.googleapis.com/css2?family=${toP(fT)}:wght@${weights}&family=${toP(fC)}:wght@400;600&display=swap`;
-  }, [data?.fuenteTitulos, data?.fuenteCuerpo, data?.pesoTitulos]);
-
-  const selStyle = {
-    ...styles.input,
-    height: 38,
-    cursor: 'pointer',
-    appearance: 'auto',
-  };
-
-  const fontPreview = (font, weight = 700) => ({
-    fontFamily: `'${font}', sans-serif`,
-    fontSize: 20,
-    fontWeight: weight,
-    marginTop: 8,
-    color: '#1e293b',
-    background: '#f8fafc',
-    borderRadius: 8,
-    padding: '10px 14px',
-    border: '1px solid #e2e8f0',
-  });
-
-  return (
-    <div>
-      <p style={styles.hint}>Cambia las fuentes de toda la página. Los cambios se aplican en tiempo real en la vista previa.</p>
-      <SectionCard title="Fuente de Títulos">
-        <label style={styles.label}>FUENTE</label>
-        <select style={selStyle} value={data.fuenteTitulos || 'Inter Tight'} onChange={e => update('fuenteTitulos', e.target.value)}>
-          {FONTS_TITULOS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <div style={fontPreview(data.fuenteTitulos || 'Inter Tight', parseInt(data.pesoTitulos || '700'))}>
-          Jaguares F.C. — Academia
-        </div>
-        <label style={{...styles.label, marginTop: 12}}>PESO / GROSOR</label>
-        <select style={selStyle} value={data.pesoTitulos || '700'} onChange={e => update('pesoTitulos', e.target.value)}>
-          {PESOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </select>
-      </SectionCard>
-      <SectionCard title="Fuente de Cuerpo de Texto">
-        <label style={styles.label}>FUENTE</label>
-        <select style={selStyle} value={data.fuenteCuerpo || 'DM Sans'} onChange={e => update('fuenteCuerpo', e.target.value)}>
-          {FONTS_CUERPO.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-        </select>
-        <div style={{...fontPreview(data.fuenteCuerpo || 'DM Sans', 400)}}>
-          Inscríbete en la academia de fútbol profesional
-        </div>
+      <SectionCard title="Datos de contacto">
+        <FieldText label="Ubicación" value={data.ubicacion} onChange={v => update('ubicacion', v)} />
+        <FieldText label="Teléfono" value={data.telefono} onChange={v => update('telefono', v)} />
+        <FieldText label="Email" value={data.email} onChange={v => update('email', v)} />
       </SectionCard>
     </div>
   );
@@ -776,6 +609,7 @@ function GeneralPanel({ data, onChange }) {
       </SectionCard>
       <SectionCard title="Footer">
         <FieldText label="Texto de copyright" value={data.copyright} onChange={v => update('copyright', v)} />
+        <FieldText label="URL Instagram" value={data.instagram} onChange={v => update('instagram', v)} />
         <FieldText label="URL Facebook" value={data.facebook} onChange={v => update('facebook', v)} />
         <FieldText label="URL WhatsApp" value={data.whatsapp} onChange={v => update('whatsapp', v)} />
       </SectionCard>
@@ -937,7 +771,7 @@ export default function AdminLandingEditor() {
         setOriginal(JSON.parse(JSON.stringify(content)));
         setIsDirty(false);
         setStatus('saved');
-        setStatusMsg(`🚀 Publicado · ${new Date().toLocaleTimeString()}`);
+        setStatusMsg(`Publicado · ${new Date().toLocaleTimeString()}`);
         setIframeLoaded(false); setPreviewKey(k => k + 1);
         fetchVersions();
         setTimeout(() => setStatus('idle'), 4000);
@@ -1145,7 +979,11 @@ export default function AdminLandingEditor() {
             disabled={!isDirty || status === 'saving'}
             title="Guarda los cambios como borrador sin afectar la landing pública"
           >
-            💾 Borrador
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight:5,verticalAlign:'middle'}}>
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Borrador
           </button>
 
           <button
@@ -1154,7 +992,11 @@ export default function AdminLandingEditor() {
             disabled={status === 'saving'}
             title={isDirty ? 'Guardar y publicar — actualiza la landing pública' : 'Publicar contenido actual — actualiza la landing pública'}
           >
-            🚀 Publicar
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight:5,verticalAlign:'middle'}}>
+              <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+            Publicar
           </button>
 
           <a href="/admin-panel" style={styles.btnBack}>← Panel Admin</a>
@@ -1186,15 +1028,11 @@ export default function AdminLandingEditor() {
                 : (
                   <>
                     {activeTab === 'hero'         && <HeroPanel data={content.hero} onChange={v => updateSection('hero', v)} />}
-                    {activeTab === 'partidos'     && <PartidosPanel data={content.partidos} onChange={v => updateSection('partidos', v)} />}
                     {activeTab === 'deportes'     && <DeportesPanel data={content.deportes} onChange={v => updateSection('deportes', v)} />}
                     {activeTab === 'estadisticas' && <EstadisticasPanel data={content.estadisticas} onChange={v => updateSection('estadisticas', v)} />}
                     {activeTab === 'docentes'     && <DocentesPanel data={content.docentes} onChange={v => updateSection('docentes', v)} />}
-                    {activeTab === 'novedades'       && <NovedadesPanel data={content.novedades} onChange={v => updateSection('novedades', v)} />}
-                    {activeTab === 'patrocinadores' && <PatrocinadoresPanel data={content.patrocinadores} onChange={v => updateSection('patrocinadores', v)} />}
                     {activeTab === 'galeria'       && <GaleriaPanel data={content.galeria} onChange={v => updateSection('galeria', v)} />}
                     {activeTab === 'cta'          && <CTAPanel data={content.cta} onChange={v => updateSection('cta', v)} />}
-                    {activeTab === 'tipografia'   && <TipografiaPanel data={content.tipografia} onChange={v => updateSection('tipografia', v)} />}
                     {activeTab === 'general'      && <GeneralPanel data={content.general} onChange={v => updateSection('general', v)} />}
                     {activeTab === 'orden'      && (
                       <SectionOrderPanel
@@ -1254,7 +1092,7 @@ export default function AdminLandingEditor() {
                       <button
                         onClick={() => handlePublishVersion(previewVersion.id, previewVersion.label)}
                         style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
-                      >🚀 Publicar esta versión</button>
+                      >Publicar esta versión</button>
                     )}
                     <button
                       onClick={() => handleRestoreToEditor(previewVersion)}
@@ -1365,11 +1203,11 @@ function VersionesPanel({ versions, loading, previewVersionId, onPreview, onPubl
           <button
             onClick={() => onPreview(v.id)}
             style={{ ...btnV, background: isPreviewing ? '#6366f1' : '#e2e8f0', color: isPreviewing ? '#fff' : '#334155' }}
-          >{isPreviewing ? '👁 Viendo' : '👁 Ver'}</button>
+          >{isPreviewing ? 'Viendo' : 'Ver'}</button>
 
           {!isPublished && (
             <button onClick={() => onPublish(v.id, v.label)} style={{ ...btnV, background: '#16a34a', color: '#fff' }}>
-              🚀 Publicar
+              Publicar
             </button>
           )}
 
@@ -1379,7 +1217,7 @@ function VersionesPanel({ versions, loading, previewVersionId, onPreview, onPubl
 
           {v.status === 'draft' && (
             <button onClick={() => onDelete(v.id, v.label)} style={{ ...btnV, background: '#fef2f2', color: '#ef4444', border: '1px solid #fca5a5' }}>
-              🗑
+              X
             </button>
           )}
         </div>
@@ -1402,7 +1240,7 @@ function VersionesPanel({ versions, loading, previewVersionId, onPreview, onPubl
             onClick={() => onSaveDraft()}
             style={{ padding: '7px 12px', fontSize: 12, fontWeight: 700, background: '#6366f1', color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer' }}
           >
-            💾 Guardar borrador ahora
+            Guardar borrador ahora
           </button>
         )}
         <button onClick={onRefresh} style={{ padding: '7px 10px', fontSize: 12, background: '#e2e8f0', color: '#334155', border: 'none', borderRadius: 7, cursor: 'pointer' }}>
@@ -1412,8 +1250,7 @@ function VersionesPanel({ versions, loading, previewVersionId, onPreview, onPubl
 
       {versions.length === 0 && (
         <div style={{ textAlign: 'center', color: '#94a3b8', padding: 24, background: '#f8fafc', borderRadius: 8 }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-          <p style={{ margin: 0, fontSize: 12 }}>Aún no hay versiones guardadas.<br/>Usa «💾 Borrador» o «🚀 Publicar» para empezar.</p>
+          <p style={{ margin: 0, fontSize: 12, color: '#94a3b8' }}>Aún no hay versiones guardadas.<br/>Usa «Borrador» o «Publicar» para empezar.</p>
         </div>
       )}
 
@@ -1537,7 +1374,7 @@ const styles = {
   tab: {
     flex: '1 1 auto', display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '7px 6px', background: 'transparent', border: 'none',
-    cursor: 'pointer', color: '#64748b', fontSize: 12, fontWeight: 500,
+    cursor: 'pointer', color: '#64748b', fontSize: 12, fontWeight: 500, lineHeight: 1,
     transition: 'all 0.15s', borderBottom: '2px solid transparent',
     whiteSpace: 'nowrap',
   },
