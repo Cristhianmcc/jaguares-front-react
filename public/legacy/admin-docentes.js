@@ -289,6 +289,9 @@ function renderizarDocentes(lista) {
             </td>
             <td class="px-4 py-4">
                 <div class="flex items-center justify-center gap-2">
+                    <button onclick="verClasesDocente(${docente.admin_id}, '${docente.nombre_completo.replace(/'/g, "\\'")}')" class="p-2 hover:bg-primary/10 rounded-lg transition-colors text-primary" title="Ver clases y alumnos">
+                        <span class="material-symbols-outlined">calendar_month</span>
+                    </button>
                     <button onclick="editarDocente(${docente.admin_id})" class="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors text-blue-500" title="Editar">
                         <span class="material-symbols-outlined">edit</span>
                     </button>
@@ -1044,10 +1047,555 @@ function mostrarToast(Mensaje, tipo = 'info') {
     
     toast.classList.remove('hidden');
     
-    // Ocultar despu�s de 3 segundos
+    // Ocultar después de 3 segundos
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+// ==================== CLASES POR DOCENTE ====================
+
+let _clasesDocenteActual = null; // { adminId, nombre, clases }
+let _alumnosClaseActual = null;  // { horario, alumnos, asistencias }
+
+// Ver clases de un docente (modal)
+async function verClasesDocente(adminId, nombre) {
+    const modal = document.getElementById('modal-clases-docente');
+    const loading = document.getElementById('loading-clases-docente');
+    const lista = document.getElementById('lista-clases-docente');
+    const sinClases = document.getElementById('sin-clases-docente');
+
+    document.getElementById('modal-clases-titulo').textContent = 'Clases de ' + nombre;
+    document.getElementById('modal-clases-subtitulo').textContent = 'Horarios y alumnos asignados';
+
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    lista.innerHTML = '';
+    sinClases.classList.add('hidden');
+
+    try {
+        const token = getToken();
+        const response = await fetch(`${API_BASE_URL}/api/admin/docente-clases/${adminId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            mostrarToast(data.error || 'Error al obtener clases', 'error');
+            modal.classList.add('hidden');
+            return;
+        }
+
+        const clases = data.clases || [];
+        _clasesDocenteActual = { adminId, nombre, clases };
+
+        if (clases.length === 0) {
+            sinClases.classList.remove('hidden');
+        } else {
+            const labels = { LUNES:'Lunes', MARTES:'Martes', MIERCOLES:'Miércoles', JUEVES:'Jueves', VIERNES:'Viernes', SABADO:'Sábado', DOMINGO:'Domingo' };
+            lista.innerHTML = clases.map(c => {
+                const diaLabel = labels[c.dia] || c.dia;
+                const horaI = String(c.hora_inicio).slice(0,5);
+                const horaF = String(c.hora_fin).slice(0,5);
+                return `
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">sports</span>
+                        </div>
+                        <div>
+                            <p class="font-bold text-black dark:text-white">${c.deporte} - ${c.categoria}</p>
+                            <p class="text-sm text-gray-500">${diaLabel} · ${horaI} - ${horaF}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold ${c.total_alumnos > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
+                            ${c.total_alumnos} alumno${c.total_alumnos !== 1 ? 's' : ''}
+                        </span>
+                        <button onclick="verAlumnosClase('${c.horario_ids}', '${c.deporte}', '${c.categoria}', '${diaLabel}', '${horaI} - ${horaF}', '${nombre.replace(/'/g, "\\'")}')" class="px-3 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg text-sm font-bold transition-colors flex items-center gap-1" title="Ver alumnos">
+                            <span class="material-symbols-outlined text-lg">group</span>
+                            Ver
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    } catch (error) {
+        console.error('Error al cargar clases del docente:', error);
+        mostrarToast('Error de conexión', 'error');
+        modal.classList.add('hidden');
+    } finally {
+        loading.classList.add('hidden');
+    }
+}
+
+function cerrarModalClasesDocente() {
+    document.getElementById('modal-clases-docente').classList.add('hidden');
+    _clasesDocenteActual = null;
+}
+
+// Ver alumnos de una clase específica
+// Parámetros de la clase actual para poder refiltrar por fecha
+let _alumnosClaseParams = null;
+
+async function verAlumnosClase(horarioIds, deporte, categoria, dia, hora, docenteNombre) {
+    _alumnosClaseParams = { horarioIds, deporte, categoria, dia, hora, docenteNombre };
+
+    // Configurar fechas por defecto: último mes
+    const fechaHoy = getFechaLocalPeru();
+    const d30 = new Date(fechaHoy);
+    d30.setDate(d30.getDate() - 30);
+    const fechaInicio = d30.toISOString().split('T')[0];
+
+    document.getElementById('alumnos-fecha-inicio').value = fechaInicio;
+    document.getElementById('alumnos-fecha-fin').value = fechaHoy;
+
+    document.getElementById('modal-alumnos-titulo').textContent = deporte + ' - ' + categoria;
+    document.getElementById('modal-alumnos-subtitulo').textContent = dia + ' · ' + hora + ' — Prof. ' + docenteNombre;
+    document.getElementById('modal-alumnos-clase').classList.remove('hidden');
+
+    await cargarAlumnosClase(horarioIds, fechaInicio, fechaHoy);
+}
+
+// Re-buscar al cambiar fechas
+async function filtrarAlumnosClasePorFecha() {
+    if (!_alumnosClaseParams) return;
+    const fechaInicio = document.getElementById('alumnos-fecha-inicio').value;
+    const fechaFin = document.getElementById('alumnos-fecha-fin').value;
+    if (!fechaInicio || !fechaFin) {
+        mostrarToast('Seleccione ambas fechas', 'error');
+        return;
+    }
+    await cargarAlumnosClase(_alumnosClaseParams.horarioIds, fechaInicio, fechaFin);
+}
+
+async function cargarAlumnosClase(horarioIds, fechaInicio, fechaFin) {
+    const loading = document.getElementById('loading-alumnos-clase');
+    const tabla = document.getElementById('tabla-alumnos-clase');
+    const sinAlumnos = document.getElementById('sin-alumnos-clase');
+    const wrapper = document.getElementById('tabla-alumnos-clase-wrapper');
+    const rangoInfo = document.getElementById('alumnos-rango-info');
+    const listaFechas = document.getElementById('lista-clases-fecha');
+    const sinFechas = document.getElementById('sin-clases-fecha');
+
+    loading.classList.remove('hidden');
+    tabla.innerHTML = '';
+    sinAlumnos.classList.add('hidden');
+    wrapper.classList.add('hidden');
+    rangoInfo.textContent = '';
+    listaFechas.innerHTML = '';
+    sinFechas.classList.add('hidden');
+
+    // Mostrar tab resumen por defecto al cargar
+    cambiarTabAlumnos('resumen');
+
+    const { deporte, categoria, dia, hora, docenteNombre } = _alumnosClaseParams;
+
+    try {
+        const token = getToken();
+        const url = `${API_BASE_URL}/api/admin/docente-clase-alumnos?horario_ids=${horarioIds}&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            mostrarToast(data.error || 'Error al obtener alumnos', 'error');
+            return;
+        }
+
+        const alumnos = data.alumnos || [];
+        const asistencias = (data.asistencias || []).map(a => ({
+            ...a,
+            fecha: typeof a.fecha === 'string' ? a.fecha.split('T')[0] : new Date(a.fecha).toISOString().split('T')[0]
+        }));
+
+        // Calcular total de clases dictadas (fechas únicas con registro)
+        const fechasUnicas = [...new Set(asistencias.map(a => a.fecha))].sort().reverse();
+        const totalClases = fechasUnicas.length;
+
+        rangoInfo.textContent = `${totalClases} clase${totalClases !== 1 ? 's' : ''} registrada${totalClases !== 1 ? 's' : ''} entre ${new Date(fechaInicio + 'T12:00:00').toLocaleDateString('es-PE')} y ${new Date(fechaFin + 'T12:00:00').toLocaleDateString('es-PE')}`;
+
+        _alumnosClaseActual = {
+            horario: data.horario,
+            alumnos,
+            asistencias,
+            deporte, categoria, dia, hora, docenteNombre,
+            fechaInicio, fechaFin,
+            totalClases
+        };
+
+        if (alumnos.length === 0) {
+            sinAlumnos.classList.remove('hidden');
+        } else {
+            wrapper.classList.remove('hidden');
+
+            // --- Tabla resumen ---
+            const asistPorAlumno = {};
+            alumnos.forEach(a => { asistPorAlumno[a.alumno_id] = { presentes: 0, ausentes: 0 }; });
+            asistencias.forEach(a => {
+                if (asistPorAlumno[a.alumno_id]) {
+                    if (a.presente == 1) asistPorAlumno[a.alumno_id].presentes++;
+                    else asistPorAlumno[a.alumno_id].ausentes++;
+                }
+            });
+
+            tabla.innerHTML = alumnos.map((a, idx) => {
+                const stats = asistPorAlumno[a.alumno_id] || { presentes: 0, ausentes: 0 };
+                const total = stats.presentes + stats.ausentes;
+                const porc = total > 0 ? ((stats.presentes / total) * 100).toFixed(0) : '-';
+                const colorPorc = porc === '-' ? 'text-gray-400' : (porc >= 80 ? 'text-green-600' : porc >= 60 ? 'text-yellow-600' : 'text-red-600');
+                return `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td class="px-4 py-3 text-sm text-gray-500">${idx + 1}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-black dark:text-white">${a.nombre_completo}</td>
+                    <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${a.dni || '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-sm">${stats.presentes} <span class="font-normal text-xs text-green-600">/ ${totalClases}</span></span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-sm">${stats.ausentes}</span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="font-bold ${colorPorc}">${porc}${porc !== '-' ? '%' : ''}</span>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // --- Detalle por fecha ---
+            if (fechasUnicas.length === 0) {
+                sinFechas.classList.remove('hidden');
+            } else {
+                renderizarDetallePorFecha(fechasUnicas, alumnos, asistencias);
+            }
+        }
+    } catch (error) {
+        console.error('Error al cargar alumnos de la clase:', error);
+        mostrarToast('Error de conexión', 'error');
+    } finally {
+        loading.classList.add('hidden');
+    }
+}
+
+// Renderizar detalle por cada fecha de clase
+function renderizarDetallePorFecha(fechasUnicas, alumnos, asistencias) {
+    const lista = document.getElementById('lista-clases-fecha');
+    const diasLabels = { 0:'Domingo', 1:'Lunes', 2:'Martes', 3:'Miércoles', 4:'Jueves', 5:'Viernes', 6:'Sábado' };
+
+    lista.innerHTML = fechasUnicas.map((fechaRaw, fIdx) => {
+        const fechaObj = new Date(fechaRaw + 'T12:00:00');
+        const diaLabel = diasLabels[fechaObj.getDay()];
+        const fechaStr = fechaObj.toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+        // Asistencias de esta fecha
+        const asistFecha = asistencias.filter(a => a.fecha === fechaRaw);
+        const presentes = asistFecha.filter(a => a.presente == 1);
+        const ausentes = asistFecha.filter(a => a.presente == 0);
+        const totalReg = asistFecha.length;
+        const porcFecha = totalReg > 0 ? Math.round((presentes.length / totalReg) * 100) : 0;
+        const colorPorc = porcFecha >= 80 ? 'text-green-600' : porcFecha >= 60 ? 'text-yellow-600' : 'text-red-600';
+
+        // Mapear alumno_id a nombre
+        const alumnoMap = {};
+        alumnos.forEach(a => { alumnoMap[a.alumno_id] = a.nombre_completo; });
+
+        const presentesList = presentes.map(p => alumnoMap[p.alumno_id] || 'Desconocido');
+        const ausentesList = ausentes.map(p => alumnoMap[p.alumno_id] || 'Desconocido');
+
+        return `
+        <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <button onclick="toggleDetalleFecha('fecha-${fIdx}')" class="w-full flex items-center justify-between p-4 bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-primary">event</span>
+                    </div>
+                    <div>
+                        <p class="font-bold text-black dark:text-white">${diaLabel} ${fechaStr}</p>
+                        <p class="text-xs text-gray-500">${totalReg} alumno${totalReg !== 1 ? 's' : ''} registrado${totalReg !== 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">${presentes.length} ✓</span>
+                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">${ausentes.length} ✗</span>
+                    <span class="font-bold text-sm ${colorPorc}">${porcFecha}%</span>
+                    <span class="material-symbols-outlined text-gray-400 transition-transform" id="icon-fecha-${fIdx}">expand_more</span>
+                </div>
+            </button>
+            <div id="fecha-${fIdx}" class="hidden border-t border-gray-200 dark:border-gray-700">
+                <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-green-600 mb-2 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">check_circle</span>
+                            Presentes (${presentes.length})
+                        </p>
+                        ${presentesList.length > 0
+                            ? presentesList.map(n => `<p class="text-sm text-gray-700 dark:text-gray-300 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">${n}</p>`).join('')
+                            : '<p class="text-sm text-gray-400 italic">Ninguno</p>'
+                        }
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold uppercase text-red-600 mb-2 flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">cancel</span>
+                            Ausentes (${ausentes.length})
+                        </p>
+                        ${ausentesList.length > 0
+                            ? ausentesList.map(n => `<p class="text-sm text-gray-700 dark:text-gray-300 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">${n}</p>`).join('')
+                            : '<p class="text-sm text-gray-400 italic">Ninguno</p>'
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Toggle expandir/colapsar fecha
+function toggleDetalleFecha(id) {
+    const el = document.getElementById(id);
+    const icon = document.getElementById('icon-' + id);
+    if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        if (icon) icon.style.transform = 'rotate(180deg)';
+    } else {
+        el.classList.add('hidden');
+        if (icon) icon.style.transform = '';
+    }
+}
+
+// Cambiar tabs dentro del modal de alumnos
+function cambiarTabAlumnos(tab) {
+    // Actualizar estilos
+    ['resumen', 'porfecha'].forEach(t => {
+        const btn = document.getElementById('tab-alumnos-' + t);
+        const panel = document.getElementById('panel-alumnos-' + t);
+        if (t === tab) {
+            btn.classList.add('border-primary', 'text-primary');
+            btn.classList.remove('border-transparent', 'text-gray-500');
+            panel.classList.remove('hidden');
+        } else {
+            btn.classList.remove('border-primary', 'text-primary');
+            btn.classList.add('border-transparent', 'text-gray-500');
+            panel.classList.add('hidden');
+        }
+    });
+}
+
+function cerrarModalAlumnosClase() {
+    document.getElementById('modal-alumnos-clase').classList.add('hidden');
+    _alumnosClaseActual = null;
+    _alumnosClaseParams = null;
+}
+
+// Descargar Excel de alumnos de clase del docente (con detalle por fecha)
+async function descargarExcelAlumnosClase() {
+    if (!_alumnosClaseActual) return;
+    const { alumnos, asistencias, deporte, categoria, dia, hora, docenteNombre, fechaInicio, fechaFin, totalClases } = _alumnosClaseActual;
+
+    if (alumnos.length === 0) {
+        mostrarToast('No hay alumnos para exportar', 'warning');
+        return;
+    }
+
+    mostrarToast('Generando Excel...', 'info');
+
+    try {
+        const ExcelJS = window.ExcelJS;
+        const diasAbrev = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+        const C = {
+            gold: 'C59D5F', goldDark: 'B08546',
+            darkBg: '1A1A1A', darkBg2: '374151',
+            white: 'FFFFFF', grayLight: 'F9FAFB', grayMid: 'F3F4F6',
+            grayText: '6B7280', grayBorder: 'D1D5DB',
+            greenBg: 'DCFCE7', greenFg: '166534', greenLightBg: 'F0FDF4',
+            redBg: 'FEE2E2', redFg: '991B1B', redLightBg: 'FFF1F2',
+            yellowBg: 'FEF3C7', yellowFg: '92400E',
+        };
+        const fill   = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+        const thin   = (c) => ({ style: 'thin', color: { argb: c || C.grayBorder } });
+        const medium = (c) => ({ style: 'medium', color: { argb: c || C.goldDark } });
+        const allThin = () => ({ top: thin(), left: thin(), bottom: thin(), right: thin() });
+        const allBold = () => ({ top: medium(), left: medium(), bottom: medium(), right: medium() });
+
+        // Obtener fechas únicas ordenadas
+        const fechasSet = new Set();
+        asistencias.forEach(a => {
+            const f = a.fecha instanceof Date ? a.fecha.toISOString().split('T')[0] : String(a.fecha).split('T')[0];
+            fechasSet.add(f);
+        });
+        const fechas = [...fechasSet].sort();
+
+        // Mapa: alumno_id -> { fecha -> presente }
+        const mapaAsist = {};
+        alumnos.forEach(a => { mapaAsist[a.alumno_id] = {}; });
+        asistencias.forEach(a => {
+            const f = a.fecha instanceof Date ? a.fecha.toISOString().split('T')[0] : String(a.fecha).split('T')[0];
+            if (mapaAsist[a.alumno_id]) {
+                mapaAsist[a.alumno_id][f] = a.presente == 1 ? 1 : 0;
+            }
+        });
+
+        const totalFechaCols = fechas.length;
+        const NCOLS = 3 + totalFechaCols + 4; // #, Nombre, DNI, ...fechas, Presentes, Ausentes, Total, %
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'JAGUARES';
+        const ws = workbook.addWorksheet('Registro Asistencias', {
+            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 }
+        });
+
+        // Fila 1: Título
+        ws.mergeCells(1, 1, 1, NCOLS);
+        const c1 = ws.getCell(1, 1);
+        c1.value = 'JAGUARES — REGISTRO DE ASISTENCIAS';
+        c1.font = { name: 'Calibri', size: 16, bold: true, color: { argb: C.gold } };
+        c1.fill = fill(C.darkBg);
+        c1.alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getRow(1).height = 30;
+
+        // Fila 2: Info clase
+        ws.mergeCells(2, 1, 2, NCOLS);
+        const c2 = ws.getCell(2, 1);
+        c2.value = `Deporte: ${deporte}   │   Categoría: ${categoria}   │   Horario: ${dia} ${hora}   │   Prof. ${docenteNombre}`;
+        c2.font = { name: 'Calibri', size: 11, bold: true, color: { argb: C.white } };
+        c2.fill = fill(C.darkBg2);
+        c2.alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getRow(2).height = 22;
+
+        // Fila 3: Periodo
+        ws.mergeCells(3, 1, 3, NCOLS);
+        const c3 = ws.getCell(3, 1);
+        c3.value = `Período: ${fechaInicio} al ${fechaFin}   │   Clases dictadas: ${totalClases || fechas.length}   │   Generado: ${new Date().toLocaleDateString('es-ES')}`;
+        c3.font = { name: 'Calibri', size: 10, italic: true, color: { argb: '4B5563' } };
+        c3.fill = fill(C.grayLight);
+        c3.alignment = { horizontal: 'center', vertical: 'middle' };
+        ws.getRow(3).height = 18;
+
+        ws.getRow(4).height = 6;
+
+        // Fila 5: Headers
+        const headers = ['N°', 'Apellidos y Nombres', 'DNI'];
+        fechas.forEach(f => {
+            const d = new Date(f + 'T12:00:00');
+            headers.push(`${diasAbrev[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`);
+        });
+        headers.push('Presentes', 'Ausentes', 'Total', '% Asist.');
+
+        const headerRow = ws.getRow(5);
+        headerRow.height = 28;
+        headers.forEach((txt, i) => {
+            const cell = headerRow.getCell(i + 1);
+            cell.value = txt;
+            cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: C.white } };
+            cell.fill = fill(C.gold);
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.border = allBold();
+        });
+
+        // Filas de datos
+        alumnos.forEach((alumno, idx) => {
+            const rn = 6 + idx;
+            const r = ws.getRow(rn);
+            r.height = 20;
+            const par = idx % 2 === 0;
+            const bgFila = par ? C.white : C.grayMid;
+
+            const setCell = (col, value, opts = {}) => {
+                const cell = r.getCell(col);
+                cell.value = value;
+                cell.font = { name: 'Calibri', size: 10, color: { argb: opts.fg || '1A1A1A' }, bold: !!opts.bold };
+                cell.fill = fill(opts.bg || bgFila);
+                cell.alignment = { vertical: 'middle', horizontal: opts.h || 'left' };
+                cell.border = allThin();
+            };
+
+            setCell(1, idx + 1, { h: 'center', bold: true });
+            setCell(2, alumno.nombre_completo);
+            setCell(3, alumno.dni || '-', { h: 'center' });
+
+            // Columnas por fecha
+            let totalPresentes = 0;
+            let totalAusentes = 0;
+            fechas.forEach((f, fi) => {
+                const val = mapaAsist[alumno.alumno_id]?.[f];
+                if (val === undefined || val === null) {
+                    setCell(4 + fi, '–', { h: 'center', bg: C.grayMid, fg: C.grayText });
+                } else if (val === 1) {
+                    totalPresentes++;
+                    setCell(4 + fi, 'P', { h: 'center', bold: true, bg: par ? C.greenLightBg : C.greenBg, fg: C.greenFg });
+                } else {
+                    totalAusentes++;
+                    setCell(4 + fi, 'A', { h: 'center', bold: true, bg: par ? C.redLightBg : C.redBg, fg: C.redFg });
+                }
+            });
+
+            const base = 3 + totalFechaCols;
+            const totalReg = totalPresentes + totalAusentes;
+            const porc = totalReg > 0 ? Math.round((totalPresentes / totalReg) * 100) : 0;
+
+            setCell(base + 1, totalPresentes, { h: 'center', bold: true, bg: par ? C.greenLightBg : C.greenBg, fg: C.greenFg });
+            setCell(base + 2, totalAusentes, { h: 'center', bold: true, bg: par ? C.redLightBg : C.redBg, fg: totalAusentes > 0 ? C.redFg : C.grayText });
+            setCell(base + 3, totalReg, { h: 'center' });
+
+            const pctBg = porc >= 80 ? C.greenBg : porc >= 60 ? C.yellowBg : C.redBg;
+            const pctFg = porc >= 80 ? C.greenFg : porc >= 60 ? C.yellowFg : C.redFg;
+            setCell(base + 4, totalReg > 0 ? porc + '%' : 'Sin datos', {
+                h: 'center', bold: true, bg: pctBg, fg: totalReg === 0 ? C.grayText : pctFg
+            });
+        });
+
+        // Leyenda
+        const legRow = 6 + alumnos.length + 1;
+        ws.getRow(legRow).height = 18;
+        ws.mergeCells(legRow, 1, legRow, 2);
+        const legLabel = ws.getCell(legRow, 1);
+        legLabel.value = 'LEYENDA:';
+        legLabel.font = { name: 'Calibri', size: 9, bold: true, color: { argb: '4B5563' } };
+        legLabel.alignment = { horizontal: 'right', vertical: 'middle' };
+
+        [{ i:3, t:'P = Presente', bg: C.greenBg, fg: C.greenFg },
+         { i:4, t:'A = Ausente',  bg: C.redBg,   fg: C.redFg   },
+         { i:5, t:'– = Sin registro', bg: C.grayMid, fg: C.grayText }]
+        .forEach(({ i, t, bg, fg }) => {
+            const cell = ws.getCell(legRow, i);
+            cell.value = t;
+            cell.font = { name: 'Calibri', size: 9, bold: true, color: { argb: fg } };
+            cell.fill = fill(bg);
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border = allThin();
+        });
+
+        // Anchos de columnas
+        ws.getColumn(1).width = 5;
+        ws.getColumn(2).width = 36;
+        ws.getColumn(3).width = 13;
+        fechas.forEach((_, i) => { ws.getColumn(4 + i).width = 8; });
+        const bc = 3 + totalFechaCols;
+        ws.getColumn(bc + 1).width = 11;
+        ws.getColumn(bc + 2).width = 11;
+        ws.getColumn(bc + 3).width = 9;
+        ws.getColumn(bc + 4).width = 11;
+
+        // Descargar
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const nombreArchivo = `Asistencias_${deporte}_${categoria}_${fechaInicio}_${fechaFin}.xlsx`
+            .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        mostrarToast('Archivo descargado correctamente', 'success');
+    } catch (error) {
+        console.error('Error al generar Excel:', error);
+        mostrarToast('Error al generar Excel', 'error');
+    }
 }
 
 

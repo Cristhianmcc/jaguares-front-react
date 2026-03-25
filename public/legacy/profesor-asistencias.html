@@ -149,6 +149,21 @@
                 </div>
             </div>
 
+            <!-- Banner editando fecha pasada -->
+            <div id="bannerEdicionPasada" class="hidden bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-xl px-5 py-4 mb-4 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-blue-600 text-2xl">edit_calendar</span>
+                    <div>
+                        <p class="font-bold text-blue-800 dark:text-blue-300 text-sm">Editando asistencia de fecha anterior</p>
+                        <p id="bannerEdicionFechaTexto" class="text-blue-700 dark:text-blue-400 text-xs mt-0.5"></p>
+                    </div>
+                </div>
+                <button onclick="cancelarEdicionPasada()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-1 shrink-0">
+                    <span class="material-symbols-outlined text-sm">undo</span>
+                    Volver a hoy
+                </button>
+            </div>
+
             <!-- Lista de alumnos -->
             <div id="alumnosContainer" class="hidden">
                 <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md">

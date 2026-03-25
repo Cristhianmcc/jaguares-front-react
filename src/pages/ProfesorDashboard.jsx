@@ -65,8 +65,9 @@ export default function ProfesorDashboard() {
         window.location.href = '/admin-login';
     };
 
-    const irATomarAsistencia = (horarioId) => {
-        window.location.href = `/profesor-asistencias?horario=${horarioId}`;
+    const irATomarAsistencia = (horarioId, horarioIds) => {
+        const param = horarioIds || horarioId;
+        window.location.href = `/profesor-asistencias?horario=${param}`;
     };
 
     if (!profesorData) return null;
@@ -209,7 +210,7 @@ export default function ProfesorDashboard() {
                                                 <p className="text-xs text-gray-500">Alumnos</p>
                                             </div>
                                             <button
-                                                onClick={() => irATomarAsistencia(clase.horario_id)}
+                                                onClick={() => irATomarAsistencia(clase.horario_id, clase.horario_ids)}
                                                 className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold text-sm flex items-center gap-2"
                                             >
                                                 <span className="material-symbols-outlined">edit_note</span>

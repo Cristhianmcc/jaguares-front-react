@@ -454,6 +454,123 @@ const html = `
         </div>
     </div>
 
+    <!-- Modal: Clases del Docente -->
+    <div id="modal-clases-docente" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-2xl max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-hidden animate-scale-in flex flex-col">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 class="text-xl font-black text-black dark:text-white uppercase" id="modal-clases-titulo">Clases del Docente</h3>
+                    <p class="text-sm text-gray-500 mt-1" id="modal-clases-subtitulo"></p>
+                </div>
+                <button onclick="cerrarModalClasesDocente()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="loading-clases-docente" class="text-center py-8 hidden">
+                    <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+                    <p class="text-text-muted mt-2">Cargando clases...</p>
+                </div>
+                <div id="sin-clases-docente" class="text-center py-8 hidden">
+                    <span class="material-symbols-outlined text-5xl text-gray-400 mb-2">event_busy</span>
+                    <p class="text-gray-500">Este docente no tiene clases asignadas</p>
+                </div>
+                <div id="lista-clases-docente" class="space-y-3">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Alumnos de Clase -->
+    <div id="modal-alumnos-clase" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-2xl max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-hidden animate-scale-in flex flex-col">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 class="text-xl font-black text-black dark:text-white uppercase" id="modal-alumnos-titulo">Alumnos de la Clase</h3>
+                    <p class="text-sm text-gray-500 mt-1" id="modal-alumnos-subtitulo"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="descargarExcelAlumnosClase()" id="btn-descargar-alumnos" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all flex items-center gap-2 text-sm">
+                        <span class="material-symbols-outlined text-lg">download</span>
+                        Excel
+                    </button>
+                    <button onclick="cerrarModalAlumnosClase()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- Filtro de fechas -->
+                <div class="flex flex-col sm:flex-row items-end gap-3 mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div class="flex-1 w-full">
+                        <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Desde</label>
+                        <input type="date" id="alumnos-fecha-inicio" class="w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#252525] dark:text-white text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="flex-1 w-full">
+                        <label class="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Hasta</label>
+                        <input type="date" id="alumnos-fecha-fin" class="w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#252525] dark:text-white text-sm focus:ring-2 focus:ring-primary">
+                    </div>
+                    <button onclick="filtrarAlumnosClasePorFecha()" class="h-10 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg transition-all flex items-center gap-1 text-sm whitespace-nowrap">
+                        <span class="material-symbols-outlined text-lg">search</span>
+                        Buscar
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mb-3" id="alumnos-rango-info"></p>
+
+                <!-- Tabs: Resumen / Por Fecha -->
+                <div class="flex gap-1 mb-4 border-b border-gray-200 dark:border-gray-700">
+                    <button onclick="cambiarTabAlumnos('resumen')" id="tab-alumnos-resumen" class="px-4 py-2 text-sm font-bold uppercase tracking-wide border-b-2 border-primary text-primary transition-colors">
+                        Resumen
+                    </button>
+                    <button onclick="cambiarTabAlumnos('porfecha')" id="tab-alumnos-porfecha" class="px-4 py-2 text-sm font-bold uppercase tracking-wide border-b-2 border-transparent text-gray-500 hover:text-primary transition-colors">
+                        Por Fecha
+                    </button>
+                </div>
+
+                <div id="loading-alumnos-clase" class="text-center py-8 hidden">
+                    <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+                    <p class="text-text-muted mt-2">Cargando alumnos...</p>
+                </div>
+                <div id="sin-alumnos-clase" class="text-center py-8 hidden">
+                    <span class="material-symbols-outlined text-5xl text-gray-400 mb-2">person_off</span>
+                    <p class="text-gray-500">No hay alumnos inscritos en esta clase</p>
+                </div>
+
+                <!-- Panel Resumen -->
+                <div id="panel-alumnos-resumen">
+                    <div class="overflow-x-auto">
+                        <table class="w-full" id="tabla-alumnos-clase-wrapper">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">#</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Alumno</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">DNI</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Asistencias</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Faltas</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">% Asist.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-alumnos-clase" class="divide-y divide-gray-200 dark:divide-gray-700">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Panel Por Fecha -->
+                <div id="panel-alumnos-porfecha" class="hidden">
+                    <div id="sin-clases-fecha" class="text-center py-8 hidden">
+                        <span class="material-symbols-outlined text-5xl text-gray-400 mb-2">event_busy</span>
+                        <p class="text-gray-500">No se registraron clases en este período</p>
+                    </div>
+                    <div id="lista-clases-fecha" class="space-y-3">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Confirmación -->
     <div id="modal-confirmacion" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-surface-dark rounded-2xl p-6 max-w-md w-full shadow-2xl text-center animate-scale-in">

@@ -146,7 +146,7 @@ async function cargarHorariosExportacion() {
             select.innerHTML = '<option value="">Seleccione un horario...</option>';
             data.clases.forEach(c => {
                 const opt = document.createElement('option');
-                opt.value = c.horario_id;
+                opt.value = c.horario_ids || c.horario_id;
                 opt.textContent = `${c.deporte} – ${c.categoria} | ${c.dia} ${c.hora_inicio}-${c.hora_fin}`;
                 select.appendChild(opt);
             });

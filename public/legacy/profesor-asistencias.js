@@ -25,6 +25,8 @@ let horariosDisponibles = [];
 let alumnosClase = [];
 let horarioSeleccionado = null;
 let asistenciaYaRegistrada = false;
+let _fechaEdicion = null; // null = hoy, 'YYYY-MM-DD' = editando fecha pasada
+let _horarioIdHistorial = null; // horario_id(s) usado para historial
 
 // Verificar autenticación al cargar
 document.addEventListener('DOMContentLoaded', () => {
@@ -348,7 +350,7 @@ async function cargarAlumnos() {
             // Mostrar alumnos
             renderizarAlumnos();
             alumnosContainer.classList.remove('hidden');
-            cargarHistorialAsistencias(horarioSeleccionado.horario_id);
+            cargarHistorialAsistencias(horarioSeleccionado.horario_ids || horarioSeleccionado.horario_id);
         } else {
             sinAlumnos.classList.remove('hidden');
             document.getElementById('bannerYaRegistrada').classList.add('hidden');
@@ -414,6 +416,7 @@ function renderizarAlumnos() {
                     </span>
                     <input type="checkbox" 
                            data-alumno-id="${alumno.alumno_id}"
+                           data-horario-id="${alumno.alumno_horario_id || ''}"
                            ${presente ? 'checked' : ''}
                            class="w-6 h-6 rounded border-gray-300 text-green-600 focus:ring-green-500">
                 </label>
@@ -466,7 +469,8 @@ async function guardarAsistencia() {
     
     const asistencias = Array.from(checkboxes).map(cb => ({
         alumno_id: parseInt(cb.dataset.alumnoId),
-        presente: cb.checked
+        presente: cb.checked,
+        horario_id: cb.dataset.horarioId ? parseInt(cb.dataset.horarioId) : undefined
     }));
     
     const btnGuardar = document.getElementById('btnGuardarAsistencia');
@@ -486,7 +490,7 @@ async function guardarAsistencia() {
             },
             body: JSON.stringify({
                 horario_id: horarioSeleccionado.horario_id,
-                fecha: getFechaLocalPeru(),
+                fecha: _fechaEdicion || getFechaLocalPeru(),
                 asistencias: asistencias
             })
         });
@@ -494,6 +498,7 @@ async function guardarAsistencia() {
         const data = await response.json();
         
         if (data.success) {
+            const eraEdicionPasada = !!_fechaEdicion;
             const eraActualizacion = asistenciaYaRegistrada;
             asistenciaYaRegistrada = true;
             // Actualizar checkboxes con estado guardado
@@ -502,12 +507,20 @@ async function guardarAsistencia() {
                 if (alumno) alumno.asistencia_registrada = 1;
             });
             document.getElementById('modalConfirmacionTitulo').textContent =
+                eraEdicionPasada ? '¡Asistencia Corregida!' :
                 eraActualizacion ? '¡Asistencia Actualizada!' : '¡Asistencia Guardada!';
             document.getElementById('modalConfirmacionSubtitulo').textContent =
-                eraActualizacion
+                eraEdicionPasada
+                    ? `Se corrigió la asistencia de ${asistencias.length} alumno(s) para la fecha seleccionada.`
+                    : eraActualizacion
                     ? `Se actualizaron ${data.message?.match(/\d+/)?.[0] || asistencias.length} registros correctamente.`
                     : `Se registró la asistencia para ${asistencias.length} alumno(s).`;
             document.getElementById('modalConfirmacion').classList.remove('hidden');
+
+            // Si estaba editando fecha pasada, volver a hoy después de cerrar el modal
+            if (eraEdicionPasada) {
+                _fechaEdicion = null;
+            }
         } else {
             mostrarToast(data.error || 'Error al guardar asistencia', 'error');
         }
@@ -526,7 +539,11 @@ async function guardarAsistencia() {
  */
 function cerrarModal() {
     document.getElementById('modalConfirmacion').classList.add('hidden');
-    // No redirigir — el profesor puede seguir viendo/editando la asistencia
+    // Si acabamos de guardar asistencia pasada, recargar la clase actual (fecha de hoy)
+    if (horarioSeleccionado) {
+        const hIds = horarioSeleccionado.horario_ids || horarioSeleccionado.horario_id;
+        cargarClaseDirecta(hIds);
+    }
 }
 
 /**
@@ -546,6 +563,11 @@ async function cargarClaseDirecta(horarioId) {
     alumnosContainer.classList.add('hidden');
     sinAlumnos.classList.add('hidden');
     infoClase.classList.add('hidden');
+
+    // Limpiar estado de edición pasada
+    _fechaEdicion = null;
+    const bannerEdicion = document.getElementById('bannerEdicionPasada');
+    if (bannerEdicion) bannerEdicion.classList.add('hidden');
 
     try {
         const session = localStorage.getItem('adminSession');
@@ -573,7 +595,7 @@ async function cargarClaseDirecta(horarioId) {
 
             renderizarAlumnos();
             alumnosContainer.classList.remove('hidden');
-            cargarHistorialAsistencias(horarioId);
+            cargarHistorialAsistencias(horarioSeleccionado.horario_ids || horarioId);
         } else if (data.success && (!data.alumnos || data.alumnos.length === 0)) {
             sinAlumnos.classList.remove('hidden');
         } else {
@@ -594,6 +616,7 @@ async function cargarHistorialAsistencias(horarioId) {
     const lista = document.getElementById('historialLista');
     if (!container || !lista) return;
     container.classList.add('hidden');
+    _horarioIdHistorial = horarioId;
 
     try {
         const session = localStorage.getItem('adminSession');
@@ -615,12 +638,18 @@ async function cargarHistorialAsistencias(horarioId) {
             const fechaTexto = `${diasNombres[fecha.getDay()]} ${fecha.getDate()} ${mesesNombres[fecha.getMonth()]} ${fecha.getFullYear()}`;
             const pct = item.total > 0 ? Math.round((item.presentes / item.total) * 100) : 0;
             const pctColor = pct >= 75 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-500';
+            const fechaStr = item.fecha;
 
+            const wrapper = document.createElement('div');
+            wrapper.className = 'rounded-lg overflow-hidden';
+
+            // Fila principal (clickeable)
             const div = document.createElement('div');
-            div.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/60';
+            div.className = 'flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800/60 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors select-none';
+            div.onclick = () => toggleDetalleHistorial(fechaStr, wrapper);
             div.innerHTML = `
                 <div class="flex items-center gap-3">
-                    <span class="material-symbols-outlined text-primary text-base">event</span>
+                    <span class="material-symbols-outlined text-primary text-base transition-transform duration-200" id="chevron-${fechaStr}">expand_more</span>
                     <span class="text-sm font-semibold text-black dark:text-white">${fechaTexto}</span>
                 </div>
                 <div class="flex items-center gap-4 text-sm">
@@ -629,12 +658,185 @@ async function cargarHistorialAsistencias(horarioId) {
                     <span class="${pctColor} font-black w-12 text-right">${pct}%</span>
                 </div>
             `;
-            lista.appendChild(div);
+
+            // Contenedor del detalle (oculto por defecto)
+            const detalle = document.createElement('div');
+            detalle.id = `detalle-${fechaStr}`;
+            detalle.className = 'hidden bg-white dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700 px-4 py-3';
+
+            wrapper.appendChild(div);
+            wrapper.appendChild(detalle);
+            lista.appendChild(wrapper);
         });
 
         container.classList.remove('hidden');
     } catch (error) {
         console.error('Error al cargar historial:', error);
+    }
+}
+
+/**
+ * Expandir/colapsar detalle de una fecha en el historial
+ */
+async function toggleDetalleHistorial(fecha, wrapper) {
+    const detalle = document.getElementById(`detalle-${fecha}`);
+    const chevron = document.getElementById(`chevron-${fecha}`);
+    if (!detalle) return;
+
+    // Si ya está visible, colapsar
+    if (!detalle.classList.contains('hidden')) {
+        detalle.classList.add('hidden');
+        if (chevron) chevron.style.transform = '';
+        return;
+    }
+
+    // Expandir
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+    detalle.classList.remove('hidden');
+
+    // Si ya tiene contenido cargado, no recargar
+    if (detalle.dataset.loaded) return;
+
+    detalle.innerHTML = '<div class="text-center py-3"><span class="material-symbols-outlined animate-spin text-primary">progress_activity</span></div>';
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const { token } = JSON.parse(session);
+        const hId = _horarioIdHistorial || horarioSeleccionado?.horario_ids || horarioSeleccionado?.horario_id;
+
+        const response = await fetch(`${API_BASE}/api/profesor/alumnos-clase/${hId}?fecha=${fecha}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (!data.success || !data.alumnos) {
+            detalle.innerHTML = '<p class="text-sm text-red-500">No se pudieron cargar los detalles</p>';
+            return;
+        }
+
+        const presentes = data.alumnos.filter(a => a.asistencia_registrada && a.presente);
+        const ausentes = data.alumnos.filter(a => a.asistencia_registrada && !a.presente);
+
+        let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">';
+
+        // Columna presentes
+        html += '<div>';
+        html += `<p class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">Presentes (${presentes.length})</p>`;
+        if (presentes.length > 0) {
+            presentes.forEach(a => {
+                html += `<p class="text-sm text-gray-700 dark:text-gray-300 py-0.5 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-green-500 text-xs">check_circle</span>
+                    ${a.nombre_completo}
+                </p>`;
+            });
+        } else {
+            html += '<p class="text-xs text-gray-400 italic">Ninguno</p>';
+        }
+        html += '</div>';
+
+        // Columna ausentes
+        html += '<div>';
+        html += `<p class="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">Ausentes (${ausentes.length})</p>`;
+        if (ausentes.length > 0) {
+            ausentes.forEach(a => {
+                html += `<p class="text-sm text-gray-700 dark:text-gray-300 py-0.5 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-red-400 text-xs">cancel</span>
+                    ${a.nombre_completo}
+                </p>`;
+            });
+        } else {
+            html += '<p class="text-xs text-gray-400 italic">Ninguno</p>';
+        }
+        html += '</div></div>';
+
+        // Botón editar
+        html += `<button onclick="editarAsistenciaFecha('${fecha}')" class="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">edit</span>
+            Editar asistencia de este día
+        </button>`;
+
+        detalle.innerHTML = html;
+        detalle.dataset.loaded = 'true';
+    } catch (error) {
+        console.error('Error al cargar detalle historial:', error);
+        detalle.innerHTML = '<p class="text-sm text-red-500">Error al cargar detalles</p>';
+    }
+}
+
+/**
+ * Entrar en modo de edición para una fecha pasada
+ */
+async function editarAsistenciaFecha(fecha) {
+    _fechaEdicion = fecha;
+
+    const hId = _horarioIdHistorial || horarioSeleccionado?.horario_ids || horarioSeleccionado?.horario_id;
+    if (!hId) return;
+
+    // Mostrar banner de edición pasada
+    const bannerEdicion = document.getElementById('bannerEdicionPasada');
+    const bannerHoy = document.getElementById('bannerYaRegistrada');
+    if (bannerHoy) bannerHoy.classList.add('hidden');
+    if (bannerEdicion) {
+        const fechaObj = new Date(fecha + 'T12:00:00');
+        const diasNombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+        const mesesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const fechaTexto = `${diasNombres[fechaObj.getDay()]} ${fechaObj.getDate()} de ${mesesNombres[fechaObj.getMonth()]} de ${fechaObj.getFullYear()}`;
+        document.getElementById('bannerEdicionFechaTexto').textContent = `Corrigiendo la lista del ${fechaTexto}. Se guardará para esa fecha.`;
+        bannerEdicion.classList.remove('hidden');
+    }
+
+    // Cargar alumnos con asistencia de esa fecha
+    const loadingContainer = document.getElementById('loadingContainer');
+    const alumnosContainer = document.getElementById('alumnosContainer');
+    loadingContainer.classList.remove('hidden');
+    alumnosContainer.classList.add('hidden');
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const { token } = JSON.parse(session);
+
+        const response = await fetch(`${API_BASE}/api/profesor/alumnos-clase/${hId}?fecha=${fecha}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        loadingContainer.classList.add('hidden');
+
+        if (data.success && data.alumnos && data.alumnos.length > 0) {
+            alumnosClase = data.alumnos;
+            if (data.horario) horarioSeleccionado = data.horario;
+
+            asistenciaYaRegistrada = data.alumnos.some(a => a.asistencia_registrada);
+            renderizarAlumnos();
+            alumnosContainer.classList.remove('hidden');
+
+            // Cambiar texto del botón guardar
+            const btnGuardar = document.getElementById('btnGuardarAsistencia');
+            btnGuardar.innerHTML = '<span class="material-symbols-outlined text-2xl">edit_calendar</span> Guardar Corrección';
+            btnGuardar.className = 'mt-6 w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-black uppercase tracking-wide rounded-xl transition-all shadow-lg transform hover:scale-105 flex items-center justify-center gap-2';
+            btnGuardar.disabled = false;
+
+            // Scroll hacia la lista de alumnos
+            alumnosContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    } catch (error) {
+        loadingContainer.classList.add('hidden');
+        console.error('Error al cargar alumnos para edición:', error);
+        mostrarToast('Error al cargar la lista para edición', 'error');
+    }
+}
+
+/**
+ * Cancelar edición de fecha pasada y volver a la vista de hoy
+ */
+function cancelarEdicionPasada() {
+    _fechaEdicion = null;
+    document.getElementById('bannerEdicionPasada').classList.add('hidden');
+
+    // Recargar la clase con la fecha de hoy
+    const hId = _horarioIdHistorial || horarioSeleccionado?.horario_ids || horarioSeleccionado?.horario_id;
+    if (hId) {
+        cargarClaseDirecta(hId);
     }
 }
 
