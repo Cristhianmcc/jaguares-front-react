@@ -1227,9 +1227,9 @@ function renderizarSeccionPagoMensual() {
                 
                 <button onclick="subirPagoMensual()" 
                         id="btnSubirPagoMensual"
-                        class="mt-4 w-full flex items-center justify-center gap-2 h-14 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-sm uppercase tracking-wider transition-all shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled>
-                    <span class="material-symbols-outlined">send</span>
+                        style="background: linear-gradient(to right, #22c55e, #16a34a); color: #fff;"
+                        class="mt-4 w-full flex items-center justify-center gap-3 h-16 rounded-xl font-bold text-base uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]">
+                    <span class="material-symbols-outlined text-2xl">cloud_upload</span>
                     <span>Enviar Comprobante del Mes</span>
                 </button>
             </div>
@@ -1264,7 +1264,6 @@ function previsualizarPagoMensual(event) {
         document.getElementById('nombreArchivoPago').textContent = file.name;
         document.getElementById('iconoSubidaMensual').classList.add('hidden');
         document.getElementById('previewPagoMensual').classList.remove('hidden');
-        document.getElementById('btnSubirPagoMensual').disabled = false;
     };
     img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
     img.src = url;
@@ -1278,7 +1277,9 @@ async function subirPagoMensual() {
     const file = input.files[0];
     
     if (!file) {
-        mostrarNotificacion('Por favor selecciona un comprobante', 'error');
+        mostrarNotificacion('Primero selecciona la foto de tu comprobante de pago', 'error');
+        // Abrir selector de archivo automáticamente
+        input.click();
         return;
     }
     
@@ -1315,7 +1316,7 @@ async function subirPagoMensual() {
         console.error('❌ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante', 'error');
         btn.disabled = false;
-        btn.innerHTML = '<span class="material-symbols-outlined">send</span><span>Enviar Comprobante del Mes</span>';
+        btn.innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
     }
 }
 
@@ -1382,8 +1383,7 @@ function cerrarModalExitoPagoMensual() {
         document.getElementById('inputPagoMensual').value = '';
         document.getElementById('iconoSubidaMensual').classList.remove('hidden');
         document.getElementById('previewPagoMensual').classList.add('hidden');
-        document.getElementById('btnSubirPagoMensual').disabled = true;
-        document.getElementById('btnSubirPagoMensual').innerHTML = '<span class="material-symbols-outlined">send</span><span>Enviar Comprobante del Mes</span>';
+        document.getElementById('btnSubirPagoMensual').innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
     }
 }
 
