@@ -155,6 +155,16 @@ const html = `
                         <a href="/admin-docentes" class="material-symbols-outlined text-5xl text-orange-600 hover:text-orange-700 transition-colors cursor-pointer">school</a>
                     </div>
                 </div>
+
+                <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md border-l-4 border-emerald-600">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Mensualidades</p>
+                            <p class="text-lg font-black text-black dark:text-white mt-1">Pagos Mensuales</p>
+                        </div>
+                        <a href="/admin-pagos-mensuales" class="material-symbols-outlined text-5xl text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer">payments</a>
+                    </div>
+                </div>
             </div>
 
             <!-- Sección de Configuración del Sistema -->
