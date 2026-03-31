@@ -1272,7 +1272,12 @@ function previsualizarPagoMensual(event) {
 /**
  * Subir comprobante de pago Mensual al servidor (Drive)
  */
+let _subiendoPagoMensual = false;
 async function subirPagoMensual() {
+    // Evitar envíos duplicados por doble-click
+    if (_subiendoPagoMensual) return;
+    _subiendoPagoMensual = true;
+
     const input = document.getElementById('inputPagoMensual');
     const file = input.files[0];
     
@@ -1317,6 +1322,8 @@ async function subirPagoMensual() {
         mostrarNotificacion(error.message || 'Error al subir comprobante', 'error');
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
+    } finally {
+        _subiendoPagoMensual = false;
     }
 }
 
