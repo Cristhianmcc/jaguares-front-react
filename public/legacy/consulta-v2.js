@@ -1128,11 +1128,10 @@ function renderizarSeccionPagoMensual() {
         return;
     }
     
-    // Calcular próximo mes de pago
+    // Calcular mes actual de pago
     const hoy = new Date();
     const mesActual = hoy.toLocaleString('es-PE', { month: 'long' });
-    const proximoMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
-    const nombreProximoMes = proximoMes.toLocaleString('es-PE', { month: 'long', year: 'numeric' });
+    const mesPago = hoy.toLocaleString('es-PE', { month: 'long', year: 'numeric' });
     
     // Verificar si hay deportes pausados
     const deportesPausados = datosUsuario.horarios?.filter(h => h.estado_inscripcion === 'suspendida') || [];
@@ -1186,7 +1185,7 @@ function renderizarSeccionPagoMensual() {
             <div class="space-y-4">
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                     <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase mb-1">Mes a pagar</p>
-                    <p class="text-lg font-black text-black dark:text-white capitalize">${nombreProximoMes}</p>
+                    <p class="text-lg font-black text-black dark:text-white capitalize">${mesPago}</p>
                 </div>
                 
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
