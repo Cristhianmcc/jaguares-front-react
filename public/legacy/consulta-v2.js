@@ -1276,17 +1276,17 @@ let _subiendoPagoMensual = false;
 async function subirPagoMensual() {
     // Evitar envíos duplicados por doble-click
     if (_subiendoPagoMensual) return;
-    _subiendoPagoMensual = true;
 
     const input = document.getElementById('inputPagoMensual');
     const file = input.files[0];
     
     if (!file) {
         mostrarNotificacion('Primero selecciona la foto de tu comprobante de pago', 'error');
-        // Abrir selector de archivo automáticamente
         input.click();
         return;
     }
+
+    _subiendoPagoMensual = true;
     
     const btn = document.getElementById('btnSubirPagoMensual');
     btn.disabled = true;
@@ -1312,7 +1312,13 @@ async function subirPagoMensual() {
         });
         
         if (resultado.success) {
-            mostrarModalExitoPagoMensual(resultado.driveUrl);
+            if (resultado.duplicado) {
+                mostrarNotificacion('Ya tienes un comprobante registrado para este mes. No es necesario enviarlo de nuevo.', 'info');
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
+            } else {
+                mostrarModalExitoPagoMensual(resultado.driveUrl);
+            }
         } else {
             throw new Error(resultado.error || 'Error al subir comprobante');
         }
@@ -1390,7 +1396,9 @@ function cerrarModalExitoPagoMensual() {
         document.getElementById('inputPagoMensual').value = '';
         document.getElementById('iconoSubidaMensual').classList.remove('hidden');
         document.getElementById('previewPagoMensual').classList.add('hidden');
-        document.getElementById('btnSubirPagoMensual').innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
+        const btn = document.getElementById('btnSubirPagoMensual');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
     }
 }
 
