@@ -160,15 +160,31 @@ function renderizarPagos(pagos) {
         const fecha = p.fecha_pago ? new Date(p.fecha_pago).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
 
         const acciones = p.estado === 'pendiente' ? `
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
                 <button onclick="confirmarPagoMensual(${p.pago_id})" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Confirmar">
                     <span class="material-symbols-outlined text-sm">check</span> Confirmar
                 </button>
                 <button onclick="rechazarPagoMensual(${p.pago_id})" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Rechazar">
                     <span class="material-symbols-outlined text-sm">close</span> Rechazar
                 </button>
+                <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Observación">
+                    <span class="material-symbols-outlined text-sm">edit_note</span> ${p.observaciones ? 'Editar Obs.' : 'Obs.'}
+                </button>
             </div>
-        ` : `<span class="text-xs text-gray-400 italic">Sin acciones</span>`;
+        ` : `
+            <div class="flex gap-2 flex-wrap">
+                <span class="text-xs text-gray-400 italic">Sin acciones</span>
+                <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Observación">
+                    <span class="material-symbols-outlined text-sm">edit_note</span> ${p.observaciones ? 'Editar Obs.' : 'Obs.'}
+                </button>
+            </div>
+        `;
+
+        const observacionBadge = p.observaciones ? `
+            <div class="mt-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-1">
+                <p class="text-xs text-amber-800 dark:text-amber-300 leading-relaxed"><strong>Obs:</strong> ${p.observaciones}</p>
+            </div>
+        ` : '';
 
         const comprobanteBtn = p.comprobante_url ? `
             <a href="${getDriveViewUrl(p.comprobante_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold transition-colors">
@@ -181,6 +197,7 @@ function renderizarPagos(pagos) {
                 <td class="px-4 py-3">
                     <p class="font-bold text-black dark:text-white text-sm">${p.nombres} ${p.apellidos}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">${p.dni}</p>
+                    ${observacionBadge}
                 </td>
                 <td class="px-4 py-3 text-sm capitalize font-semibold text-black dark:text-white">${p.mes}</td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white">${p['año'] || p.anio || ''}</td>
@@ -339,4 +356,77 @@ async function rechazarPagoMensual(pagoId) {
             }
         }
     });
+}
+
+// ==================== OBSERVACIONES ====================
+
+function abrirModalObservacionPago(pagoId, notaActual) {
+    const existente = document.getElementById('modalObservacionPago');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalObservacionPago';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <div class="size-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">edit_note</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nota u observación del pago</label>
+                <textarea id="inputObservacionPago" rows="4"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                    placeholder="Ej: Paga S/.60 hasta el 15/04 y el resto en quincena...">${notaActual}</textarea>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalObservacionPago').remove()"
+                    class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button onclick="guardarObservacionPago(${pagoId})"
+                    class="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    setTimeout(() => document.getElementById('inputObservacionPago')?.focus(), 100);
+}
+
+async function guardarObservacionPago(pagoId) {
+    const obs = document.getElementById('inputObservacionPago')?.value?.trim() || '';
+    const btn = document.querySelector('#modalObservacionPago button:last-child');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
+
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/observaciones`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ observaciones: obs })
+        });
+        const data = await response.json();
+        document.getElementById('modalObservacionPago')?.remove();
+        if (data.success) {
+            mostrarToast('Observación guardada correctamente', 'success');
+            cargarPagosMensuales();
+        } else {
+            mostrarToast(data.error || 'Error al guardar', 'error');
+        }
+    } catch (e) {
+        mostrarToast('Error de conexión', 'error');
+        document.getElementById('modalObservacionPago')?.remove();
+    }
 }
