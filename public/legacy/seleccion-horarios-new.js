@@ -9,6 +9,13 @@ let horariosSeleccionados = [];
 let deporteActual = null;
 let horariosPorDeporte = {}; // Almacena el bloque horario seleccionado por cada deporte
 let añoNacimientoGlobal = null; // Guardar el año para filtrar horarios
+let horariosExistentesAlumno = []; // Horarios de inscripciones activas previas (para validar cruces)
+
+const API_BASE_GLOBAL = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+    ? window.API_BASE_OVERRIDE
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3002'
+        : 'https://api.jaguarescar.com');
 
 // Planes y precios actualizados según la estructura del negocio
 const PLANES = {
@@ -202,6 +209,28 @@ async function initSeleccionHorariosNew() {
     // Cargar horarios seleccionados previamente si existen
     if (datosInscripcion.horariosSeleccionados) {
         horariosSeleccionados = datosInscripcion.horariosSeleccionados;
+    }
+    
+    // Si es nuevo deporte, cargar horarios existentes del alumno para validar cruces
+    if (datosInscripcion.nuevoDeporte && datosInscripcion.alumno?.dni) {
+        try {
+            const dni = datosInscripcion.alumno.dni;
+            const res = await fetch(`${API_BASE_GLOBAL}/api/consultar/${encodeURIComponent(dni)}`);
+            const data = await res.json();
+            if (data.success && data.horarios && data.horarios.length > 0) {
+                horariosExistentesAlumno = data.horarios
+                    .filter(h => h.estado_inscripcion === 'activa')
+                    .map(h => ({
+                        deporte: h.deporte,
+                        dia: (h.dia || '').toUpperCase().trim(),
+                        hora_inicio: h.hora_inicio,
+                        hora_fin: h.hora_fin
+                    }));
+                console.log('📋 Horarios existentes del alumno para validar cruces:', horariosExistentesAlumno);
+            }
+        } catch (e) {
+            console.warn('⚠️ No se pudieron cargar horarios existentes:', e.message);
+        }
     }
     
     // Cargar planes dinámicos desde la API (con fallback al objeto hardcodeado)
@@ -515,12 +544,24 @@ function generarCronograma(nombreDeporte) {
                                         // const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
                                         // const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !((esEstandar || esBabyFutbol) && esSabado && horariosEsteDeporte === 2);
                                         
-                                        const chocaConOtroDeporte = horariosSeleccionados.some(h => 
+                                        // Choca con otro deporte seleccionado en esta sesión
+                                        const chocaConSeleccionado = horariosSeleccionados.some(h => 
                                             h.deporte !== nombreDeporte && 
                                             h.dia === horario.dia && 
                                             h.hora_inicio === horario.hora_inicio && 
                                             h.hora_fin === horario.hora_fin
                                         );
+                                        // Choca con un horario de inscripción ya existente (solapamiento real)
+                                        const chocaConExistente = horariosExistentesAlumno.some(e => {
+                                            if (e.dia !== (horario.dia || '').toUpperCase().trim()) return false;
+                                            const nI = String(horario.hora_inicio).padStart(8, '0');
+                                            const nF = String(horario.hora_fin).padStart(8, '0');
+                                            const eI = String(e.hora_inicio).padStart(8, '0');
+                                            const eF = String(e.hora_fin).padStart(8, '0');
+                                            return nI < eF && nF > eI;
+                                        });
+                                        const chocaConOtroDeporte = chocaConSeleccionado || chocaConExistente;
+                                        const deporteQueChoca = chocaConExistente ? horariosExistentesAlumno.find(e => e.dia === (horario.dia || '').toUpperCase().trim() && String(horario.hora_inicio).padStart(8,'0') < String(e.hora_fin).padStart(8,'0') && String(horario.hora_fin).padStart(8,'0') > String(e.hora_inicio).padStart(8,'0'))?.deporte : null;
                                         let iconoPlan = '';
                                         let colorPlan = '';
                                         
@@ -542,7 +583,7 @@ function generarCronograma(nombreDeporte) {
                                             clases += ' selected border-primary bg-primary/20 dark:bg-primary/10';
                                         } else if (chocaConOtroDeporte) {
                                             clases += ' disabled border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20';
-                                            tituloTooltip = 'title="Choca con otro deporte"';
+                                            tituloTooltip = deporteQueChoca ? `title="Choca con ${deporteQueChoca} (inscripci\u00f3n activa)"` : 'title="Choca con otro deporte"';
                                         } else if (estaDeshabilitadoPorBloque) {
                                             clases += ' disabled border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20';
                                             tituloTooltip = `title="Solo puedes seleccionar del bloque ${bloqueActualDeporte}"`;
@@ -606,13 +647,24 @@ function generarCronograma(nombreDeporte) {
                     // const esSabado = horario.dia === 'SABADO' || horario.dia === 'SÁBADO';
                     // const estaDeshabilitadoPorBloque = bloqueActualDeporte && bloqueActualDeporte !== key && !estaSeleccionado && !((esEstandar || esBabyFutbol) && esSabado && horariosEsteDeporte === 2);
                     
-                    // Verificar si choca con otro deporte (mismo día y hora)
-                    const chocaConOtroDeporte = horariosSeleccionados.some(h => 
+                    // Choca con otro deporte seleccionado en esta sesión
+                    const chocaConSeleccionado = horariosSeleccionados.some(h => 
                         h.deporte !== nombreDeporte && 
                         h.dia === horario.dia && 
                         h.hora_inicio === horario.hora_inicio && 
                         h.hora_fin === horario.hora_fin
                     );
+                    // Choca con un horario de inscripción ya existente (solapamiento real)
+                    const chocaConExistente = horariosExistentesAlumno.some(e => {
+                        if (e.dia !== (horario.dia || '').toUpperCase().trim()) return false;
+                        const nI = String(horario.hora_inicio).padStart(8, '0');
+                        const nF = String(horario.hora_fin).padStart(8, '0');
+                        const eI = String(e.hora_inicio).padStart(8, '0');
+                        const eF = String(e.hora_fin).padStart(8, '0');
+                        return nI < eF && nF > eI;
+                    });
+                    const chocaConOtroDeporte = chocaConSeleccionado || chocaConExistente;
+                    const deporteQueChoca = chocaConExistente ? horariosExistentesAlumno.find(e => e.dia === (horario.dia || '').toUpperCase().trim() && String(horario.hora_inicio).padStart(8,'0') < String(e.hora_fin).padStart(8,'0') && String(horario.hora_fin).padStart(8,'0') > String(e.hora_inicio).padStart(8,'0'))?.deporte : null;
                     let iconoPlan = '';
                     let colorPlan = '';
                     
@@ -634,7 +686,7 @@ function generarCronograma(nombreDeporte) {
                         clases += ' selected border-primary bg-primary/20 dark:bg-primary/10';
                     } else if (chocaConOtroDeporte) {
                         clases += ' disabled border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20';
-                        tituloTooltip = 'title="Choca con otro deporte"';
+                        tituloTooltip = deporteQueChoca ? `title="Choca con ${deporteQueChoca} (inscripci\u00f3n activa)"` : 'title="Choca con otro deporte"';
                     } else if (estaDeshabilitadoPorBloque) {
                         clases += ' disabled border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20';
                         tituloTooltip = `title="Solo puedes seleccionar del bloque ${bloqueActualDeporte}"`;

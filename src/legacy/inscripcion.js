@@ -490,7 +490,57 @@ export function initInscripcion() {
   // Pre-llenar DNI si viene de ?dni=X&nuevo_deporte=1
   const urlParams = new URLSearchParams(window.location.search);
   const dniParam = urlParams.get('dni');
-  if (dniParam && dniInput) {
+  const esNuevoDeporte = urlParams.get('nuevo_deporte') === '1';
+
+  if (dniParam && dniInput && esNuevoDeporte) {
+    // Nuevo deporte: cargar datos del alumno desde el backend y saltar al paso 2
+    (async () => {
+      try {
+        const res = await fetch(`/api/consultar/${encodeURIComponent(dniParam)}`);
+        if (!res.ok) throw new Error('No se encontraron datos');
+        const data = await res.json();
+        if (!data.success || !data.alumno) throw new Error('Alumno no encontrado');
+
+        const a = data.alumno;
+        const apellidos = a.apellidos || '';
+        const partes = apellidos.split(' ');
+
+        const alumno = {
+          dni: a.dni || dniParam,
+          nombres: a.nombres || '',
+          apellido_paterno: partes[0] || '',
+          apellido_materno: partes.slice(1).join(' ') || '',
+          apellidos: apellidos,
+          fecha_nacimiento: a.fecha_nacimiento || '',
+          sexo: a.sexo || 'Masculino',
+          telefono: a.telefono || '',
+          direccion: a.direccion || '',
+          email: a.email || '',
+          seguro_tipo: a.seguro_tipo || '',
+          condicion_medica: a.condicion_medica || '',
+          apoderado: a.apoderado || '',
+          telefono_apoderado: a.telefono_apoderado || '',
+          edad: a.edad || getUtils().calcularEdad(a.fecha_nacimiento),
+          imagen_dni_frontal: null,
+          imagen_dni_reverso: null,
+          imagen_foto_carnet: null
+        };
+
+        getLocalStorage().set('datosInscripcion', {
+          alumno,
+          paso: 1,
+          fecha: new Date().toISOString(),
+          nuevoDeporte: true
+        });
+
+        window.location.href = '/seleccion-horarios-new';
+      } catch (err) {
+        console.warn('⚠️ No se pudo cargar datos del alumno, continuando con formulario normal:', err.message);
+        dniInput.value = dniParam;
+        setTimeout(() => buscarDNI(), 400);
+      }
+    })();
+  } else if (dniParam && dniInput) {
     dniInput.value = dniParam;
     // Auto-buscar para cargar datos del alumno (mostrará aviso no-bloqueante)
     setTimeout(() => buscarDNI(), 400);

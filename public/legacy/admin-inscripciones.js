@@ -437,35 +437,91 @@ function mostrarModalDetalleInscripcion(data) {
         <div>
           <h4 class="font-bold text-lg mb-3 text-black dark:text-white">Horarios Inscritos</h4>
           <div class="space-y-3">
-            ${inscripciones.length > 0 ? inscripciones.map(ins => {
-              const esSuspendido = ins.estado_inscripcion === 'suspendida';
-              const cardClasses = esSuspendido 
-                ? 'bg-gray-100 dark:bg-gray-900 opacity-60 border border-gray-300 dark:border-gray-700' 
-                : 'bg-gray-50 dark:bg-gray-800';
-              const textClasses = esSuspendido ? 'line-through text-gray-400' : 'text-black dark:text-white';
-              const iconClasses = esSuspendido ? 'text-gray-400' : 'text-primary';
+            ${(() => {
+              if (inscripciones.length === 0) return '<p class="text-center text-gray-500 py-4">Sin inscripciones activas</p>';
               
-              return `
-              <div class="${cardClasses} rounded-lg p-4 flex items-center gap-4">
-                <span class="material-symbols-outlined text-3xl ${iconClasses}">${ins.icono || 'sports'}</span>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <p class="font-bold ${textClasses}">${ins.deporte} - ${ins.categoria || 'Sin categoría'}</p>
-                    ${esSuspendido ? '<span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold uppercase">Pausado</span>' : ''}
+              // Agrupar por inscripcion_id (deporte)
+              const deportesMap = {};
+              inscripciones.forEach(ins => {
+                const key = ins.inscripcion_id;
+                if (!deportesMap[key]) {
+                  deportesMap[key] = {
+                    inscripcion_id: ins.inscripcion_id,
+                    deporte: ins.deporte,
+                    categoria: ins.categoria || 'Sin categoría',
+                    plan: ins.plan || 'Económico',
+                    precio: ins.precio,
+                    estado_inscripcion: ins.estado_inscripcion || 'activa',
+                    icono: ins.icono || 'sports',
+                    horarios: []
+                  };
+                }
+                if (ins.dia) {
+                  deportesMap[key].horarios.push({ dia: ins.dia, hora_inicio: ins.hora_inicio, hora_fin: ins.hora_fin });
+                }
+              });
+              
+              return Object.values(deportesMap).map(dep => {
+                const esSuspendido = dep.estado_inscripcion === 'suspendida';
+                const esPendiente = dep.estado_inscripcion === 'pendiente';
+                
+                const borderClass = esSuspendido 
+                  ? 'border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-900 opacity-60'
+                  : esPendiente
+                    ? 'border-2 border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/10'
+                    : 'border-2 border-green-200 dark:border-green-800 bg-gray-50 dark:bg-gray-800';
+                
+                let estadoBadge;
+                if (esSuspendido) {
+                  estadoBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">Pausado</span>';
+                } else if (esPendiente) {
+                  estadoBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Pendiente de Pago</span>';
+                } else {
+                  estadoBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Pago Confirmado</span>';
+                }
+                
+                const horariosHTML = dep.horarios.map(h => 
+                  `<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
+                    <span>${h.dia} ${h.hora_inicio || ''} ${h.hora_fin ? '- ' + h.hora_fin : ''}</span>
+                  </div>`
+                ).join('');
+                
+                const botonActivar = esPendiente 
+                  ? `<button onclick="activarInscripcion(${dep.inscripcion_id}, '${usuario.dni}')" 
+                      class="mt-3 w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold uppercase transition-colors flex items-center justify-center gap-2">
+                      <span class="material-symbols-outlined text-sm">check_circle</span>
+                      Activar ${dep.deporte}
+                    </button>`
+                  : '';
+                
+                const botonPendiente = !esPendiente && !esSuspendido
+                  ? `<button onclick="marcarPendienteInscripcion(${dep.inscripcion_id}, '${usuario.dni}')" 
+                      class="mt-2 w-full px-3 py-2 border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg text-xs font-bold uppercase transition-colors flex items-center justify-center gap-2">
+                      <span class="material-symbols-outlined text-sm">pending</span>
+                      Marcar Pendiente
+                    </button>`
+                  : '';
+                
+                return `
+                  <div class="${borderClass} rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-2xl ${esSuspendido ? 'text-gray-400' : 'text-primary'}">${dep.icono}</span>
+                        <div>
+                          <p class="font-bold text-black dark:text-white">${dep.deporte} - ${dep.categoria}</p>
+                          <p class="text-xs text-gray-500">${dep.plan} | S/ ${parseFloat(dep.precio || 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+                      ${estadoBadge}
+                    </div>
+                    <div class="space-y-1 ml-9">${horariosHTML}</div>
+                    ${botonActivar}
+                    ${botonPendiente}
                   </div>
-                  <p class="text-sm ${esSuspendido ? 'text-gray-400 line-through' : 'text-gray-600 dark:text-gray-400'}">${ins.dia || 'Por definir'} ${ins.hora_inicio || ''} ${ins.hora_fin ? '- ' + ins.hora_fin : ''}</p>
-                  <p class="text-xs text-gray-500">${ins.nivel || ''} ${ins.nivel ? '|' : ''} ${ins.plan || 'Económico'} | S/ ${ins.precio}</p>
-                </div>
-                <div class="text-right">
-                  <p class="text-xs text-gray-500 dark:text-gray-400">Estado</p>
-                  ${esSuspendido 
-                    ? '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Pausado por alumno</span>'
-                    : `<span class="px-2 py-1 rounded-full text-xs font-semibold ${usuario.estado_pago === 'confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">
-                    ${usuario.estado_pago === 'confirmado' ? 'Pago Confirmado' : 'Pendiente de Pago'}
-                  </span>`}
-                </div>
-              </div>
-            `}).join('') : '<p class="text-center text-gray-500 py-4">Sin inscripciones activas</p>'}
+                `;
+              }).join('');
+            })()}
           </div>
         </div>
       </div>
@@ -719,6 +775,87 @@ async function ejecutarConfirmacionPago(dni) {
   } catch (error) {
     console.error('Error:', error);
     cerrarModalConfirmacion();
+    mostrarNotificacion('Error de conexión', 'error');
+  }
+}
+
+/**
+ * Activar una inscripción específica (por deporte)
+ */
+function activarInscripcion(inscripcionId, dni) {
+  mostrarModalConfirmacion({
+    titulo: 'Activar Inscripción',
+    subtitulo: `DNI: ${dni}`,
+    icon: 'check_circle',
+    iconBg: 'bg-green-100 dark:bg-green-900/30',
+    iconColor: 'text-green-600 dark:text-green-400',
+    Mensaje: '¿Confirmar la activación de esta inscripción? El alumno podrá asistir a los horarios asignados.',
+    btnTexto: 'Activar',
+    btnIcon: 'check_circle',
+    btnClass: 'bg-green-600 hover:bg-green-700',
+    onConfirm: `ejecutarActivacion(${inscripcionId}, '${dni}')`
+  });
+}
+
+async function ejecutarActivacion(inscripcionId, dni) {
+  cerrarModalConfirmacion();
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/inscripciones/activar/${inscripcionId}`, {
+      method: 'PUT',
+      headers: getAuthHeadersInscripciones()
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarNotificacion(data.mensaje, 'success');
+      cerrarModalDetalle();
+      verDetalleInscripcion(dni);
+      cargarInscripciones();
+    } else {
+      mostrarNotificacion('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarNotificacion('Error de conexión', 'error');
+  }
+}
+
+function marcarPendienteInscripcion(inscripcionId, dni) {
+  mostrarModalConfirmacion({
+    titulo: 'Marcar Pendiente',
+    subtitulo: `DNI: ${dni}`,
+    icon: 'pending',
+    iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
+    iconColor: 'text-yellow-600 dark:text-yellow-400',
+    Mensaje: '¿Marcar esta inscripción como pendiente de pago?',
+    btnTexto: 'Marcar Pendiente',
+    btnIcon: 'pending',
+    btnClass: 'bg-yellow-500 hover:bg-yellow-600',
+    onConfirm: `ejecutarMarcarPendiente(${inscripcionId}, '${dni}')`
+  });
+}
+
+async function ejecutarMarcarPendiente(inscripcionId, dni) {
+  cerrarModalConfirmacion();
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/inscripciones/pendiente/${inscripcionId}`, {
+      method: 'PUT',
+      headers: getAuthHeadersInscripciones()
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarNotificacion(data.mensaje, 'success');
+      cerrarModalDetalle();
+      verDetalleInscripcion(dni);
+      cargarInscripciones();
+    } else {
+      mostrarNotificacion('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
     mostrarNotificacion('Error de conexión', 'error');
   }
 }

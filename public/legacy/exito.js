@@ -155,7 +155,7 @@ async function renderizarExito(codigo, datosInscripcion) {
                     ` : ''}
                     <div class="col-span-1 md:col-span-2">
                         <p class="text-xs text-text-main/50 dark:text-white/50 mb-1 font-medium uppercase tracking-wider">Fecha de Inscripción</p>
-                        <p class="text-base font-bold text-text-main dark:text-white">${Utils.formatearFecha(new Date().toISOString().split('T')[0])}</p>
+                        <p class="text-base font-bold text-text-main dark:text-white">${Utils.formatearFecha(new Date().toLocaleDateString('en-CA'))}</p>
                     </div>
                 </div>
             </div>

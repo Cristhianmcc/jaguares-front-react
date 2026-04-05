@@ -991,32 +991,50 @@ async function confirmarInscripcion() {
         let titulo = ' Error en la inscripción';
         let Mensaje = error.message;
         let detalles = '';
+
+        // Extraer status y data del error (api-service los pone en error.response)
+        const errStatus = error.response?.status || error.status;
+        const errData = error.response?.data || error.data;
         
-        // Error 409: inscripción duplicada
-        if (error.status === 409 && error.data) {
-            titulo = ' inscripción Duplicada';
-            Mensaje = error.data.message || 'Ya existe una inscripción activa para este deporte';
-            if (error.data.deporte) {
-                detalles = `<div class="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <p class="font-semibold text-yellow-800 dark:text-yellow-400">Deporte: ${error.data.deporte}</p>
-                    ${error.data.inscripcion_existente ? `
-                        <p class="text-sm text-yellow-700 dark:text-yellow-500 mt-1">
-                            Estado: ${error.data.inscripcion_existente.estado === 'activa' ? 'Activa' : 'Pendiente'}<br>
-                            Plan: ${error.data.inscripcion_existente.plan}<br>
-                            Precio: S/ ${error.data.inscripcion_existente.precio}
-                        </p>
-                    ` : ''}
+        // Error 409: inscripción duplicada o conflicto de horario
+        if (errStatus === 409 && errData) {
+            if (errData.error === 'Conflicto de horario') {
+                titulo = 'Conflicto de Horario';
+                Mensaje = errData.message || 'Los horarios seleccionados se cruzan con horarios de una inscripción existente.';
+                detalles = `<div class="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <p class="text-sm text-orange-700 dark:text-orange-400">
+                        <span class="material-symbols-outlined text-sm align-middle mr-1">schedule</span>
+                        ${errData.message}
+                    </p>
+                    <p class="text-xs text-orange-600 dark:text-orange-500 mt-2">
+                        <strong>Solución:</strong> Vuelve al paso anterior y elige horarios que no se crucen con tus deportes actuales.
+                    </p>
                 </div>`;
+            } else {
+                titulo = 'Inscripción Duplicada';
+                Mensaje = errData.message || 'Ya existe una inscripción activa para este deporte';
+                if (errData.deporte) {
+                    detalles = `<div class="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <p class="font-semibold text-yellow-800 dark:text-yellow-400">Deporte: ${errData.deporte}</p>
+                        ${errData.inscripcion_existente ? `
+                            <p class="text-sm text-yellow-700 dark:text-yellow-500 mt-1">
+                                Estado: ${errData.inscripcion_existente.estado === 'activa' ? 'Activa' : 'Pendiente'}<br>
+                                Plan: ${errData.inscripcion_existente.plan}<br>
+                                Precio: S/ ${errData.inscripcion_existente.precio}
+                            </p>
+                        ` : ''}
+                    </div>`;
+                }
             }
         }
         // Error 400: Horarios sin ID o validacin
-        else if (error.status === 400 && error.data) {
+        else if (errStatus === 400 && errData) {
             titulo = ' Datos Invlidos';
-            Mensaje = error.data.message || 'Los datos enviados no son vlidos';
-            if (error.data.horarios_invalidos) {
+            Mensaje = errData.message || 'Los datos enviados no son vlidos';
+            if (errData.horarios_invalidos) {
                 detalles = `<div class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                     <p class="text-sm text-red-700 dark:text-red-400">
-                        Se encontraron ${error.data.horarios_invalidos} horarios sin identificador vlido.
+                        Se encontraron ${errData.horarios_invalidos} horarios sin identificador vlido.
                         <br><br>
                         <strong>Solucin:</strong> Por favor, vuelve al paso anterior y selecciona los horarios de la lista disponible.
                     </p>
@@ -1024,44 +1042,44 @@ async function confirmarInscripcion() {
             }
         }
         // Error 500: Error del servidor
-        else if (error.status === 500 && error.data) {
+        else if (errStatus === 500 && errData) {
             titulo = 'Error al Procesar';
-            Mensaje = error.data.message || 'No se pudo completar la inscripción';
+            Mensaje = errData.message || 'No se pudo completar la inscripción';
 
             // Detectar duplicado por código MySQL o flag legacy
-            const esDuplicado = error.data.codigo === 'ER_DUP_ENTRY'
-                || error.data.detalles === 'DUPLICADO'
-                || (error.data.message && error.data.message.includes('Ya est'));
+            const esDuplicado = errData.codigo === 'ER_DUP_ENTRY'
+                || errData.detalles === 'DUPLICADO'
+                || (errData.message && errData.message.includes('Ya est'));
             // Horario ya no disponible
-            const esHorarioInvalido = error.data.codigo === 'ER_NO_REFERENCED_ROW_2';
+            const esHorarioInvalido = errData.codigo === 'ER_NO_REFERENCED_ROW_2';
             // Problema de conexión
-            const esConexion = ['ECONNRESET','PROTOCOL_CONNECTION_LOST','ECONNREFUSED'].includes(error.data.codigo);
+            const esConexion = ['ECONNRESET','PROTOCOL_CONNECTION_LOST','ECONNREFUSED'].includes(errData.codigo);
 
             if (esDuplicado) {
                 titulo = 'Inscripción Duplicada';
                 Mensaje = 'Ya existe una inscripción activa para uno o más de estos horarios.';
                 detalles = `<div class="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <p class="text-sm text-yellow-700 dark:text-yellow-400">${error.data.message}</p>
+                    <p class="text-sm text-yellow-700 dark:text-yellow-400">${errData.message}</p>
                     <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
                         <strong>Sugerencia:</strong> Si deseas cambiar de horario, primero debes dar de baja tu inscripción actual.
                     </p>
                 </div>`;
             } else if (esHorarioInvalido) {
                 titulo = 'Horario No Disponible';
-                Mensaje = error.data.message;
+                Mensaje = errData.message;
                 detalles = `<div class="mt-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                     <p class="text-sm text-orange-700 dark:text-orange-400">El horario seleccionado ya no está disponible. Vuelve al paso anterior y elige otro.</p>
                 </div>`;
             } else if (esConexion) {
                 titulo = 'Error de Conexión';
-                Mensaje = error.data.message;
+                Mensaje = errData.message;
                 detalles = `<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p class="text-sm text-blue-700 dark:text-blue-400">Espera unos segundos y pulsa <strong>Reintentar</strong>.</p>
                 </div>`;
-            } else if (error.data.detalles) {
+            } else if (errData.detalles) {
                 // Mostrar el error técnico para diagnóstico
                 detalles = `<div class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <p class="text-xs text-red-600 dark:text-red-400 font-mono break-all">${error.data.detalles}</p>
+                    <p class="text-xs text-red-600 dark:text-red-400 font-mono break-all">${errData.detalles}</p>
                 </div>`;
             }
         }
@@ -1092,18 +1110,19 @@ async function confirmarInscripcion() {
                         </div>
                     </div>
                     <div class="flex gap-3 mt-6">
-                        ${error.status === 409 ? `
-                            <button onclick="window.location.href='admin-panel.html?dni=${alumno.dni}'" 
-                                    class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors">
-                                Ver Mis Inscripciones
+                        ${errStatus === 409 ? `
+                            <button onclick="localStorage.removeItem('datosInscripcion'); localStorage.removeItem('horariosSeleccionados'); window.location.href='/seleccion-horarios-new'" 
+                                    class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined">refresh</span>
+                                Cambiar Horarios
                             </button>
-                        ` : (error.status === 400 || (error.status === 500 && (error.data?.codigo === 'ER_DUP_ENTRY' || error.data?.detalles === 'DUPLICADO' || error.data?.codigo === 'ER_NO_REFERENCED_ROW_2'))) ? `
+                        ` : (errStatus === 400 || (errStatus === 500 && (errData?.codigo === 'ER_DUP_ENTRY' || errData?.detalles === 'DUPLICADO' || errData?.codigo === 'ER_NO_REFERENCED_ROW_2'))) ? `
                             <button onclick="localStorage.clear(); window.location.href='/seleccion-horarios-new'" 
                                     class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
                                 <span class="material-symbols-outlined">refresh</span>
                                 Seleccionar Otros Horarios
                             </button>
-                        ` : (error.status === 500) ? `
+                        ` : (errStatus === 500) ? `
                             <button onclick="document.getElementById('modalErrorInscripcion').remove(); confirmarInscripcion();" 
                                     class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2">
                                 <span class="material-symbols-outlined">refresh</span>

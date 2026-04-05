@@ -1565,7 +1565,7 @@ function mostrarDetalleUsuario(data) {
 
     
 
-    // Renderizar horarios
+    // Renderizar horarios agrupados por deporte
 
     const horariosContainer = document.getElementById('detalleHorarios');
 
@@ -1575,101 +1575,141 @@ function mostrarDetalleUsuario(data) {
 
     if (data.horarios && data.horarios.length > 0) {
 
+        // Agrupar horarios por deporte (inscripcion_id)
+
+        const deportesMap = {};
+
         data.horarios.forEach(horario => {
 
-            const horarioCard = document.createElement('div');
+            const key = horario.inscripcion_id;
+
+            if (!deportesMap[key]) {
+
+                deportesMap[key] = {
+
+                    inscripcion_id: horario.inscripcion_id,
+
+                    deporte: horario.deporte,
+
+                    categoria: horario.categoria || '',
+
+                    plan: horario.plan || '',
+
+                    precio: horario.precio,
+
+                    estado_inscripcion: horario.estado_inscripcion || 'activa',
+
+                    horarios: []
+
+                };
+
+            }
+
+            deportesMap[key].horarios.push(horario);
+
+        });
+
+        
+
+        const deportes = Object.values(deportesMap);
+
+        
+
+        deportes.forEach(deporte => {
+
+            const esSuspendido = deporte.estado_inscripcion === 'suspendida';
+
+            const esPendiente = deporte.estado_inscripcion === 'pendiente';
 
             
 
-            // Verificar si el deporte est pausado/suspendido
+            // Card contenedora del deporte
 
-            const esSuspendido = horario.estado_inscripcion === 'suspendida';
+            const deporteCard = document.createElement('div');
 
-            
+            deporteCard.className = esSuspendido 
 
-            // Clases condicionales segn estado
+                ? 'border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4 mb-4 bg-gray-50 dark:bg-gray-800 opacity-60'
 
-            const cardClasses = esSuspendido 
+                : esPendiente
 
-                ? 'border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-100 dark:bg-gray-800 opacity-60'
+                    ? 'border-2 border-yellow-300 dark:border-yellow-700 rounded-xl p-4 mb-4 bg-yellow-50 dark:bg-yellow-900/10'
 
-                : 'border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900';
-
-            const textClasses = esSuspendido ? 'line-through text-gray-400' : 'text-black dark:text-white';
-
-            const iconClasses = esSuspendido ? 'text-gray-400' : 'text-primary';
+                    : 'border-2 border-green-200 dark:border-green-800 rounded-xl p-4 mb-4 bg-white dark:bg-gray-900';
 
             
 
-            horarioCard.className = cardClasses;
+            // Badge de estado
 
-            
-
-            // Determinar color del estado
-
-            let estadoHTML;
+            let estadoBadge;
 
             if (esSuspendido) {
 
-                estadoHTML = `<span class="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Pausado por alumno</span>`;
+                estadoBadge = `<span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold uppercase">Pausado</span>`;
+
+            } else if (esPendiente) {
+
+                estadoBadge = `<span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase">Pendiente de Pago</span>`;
 
             } else {
 
-                const estadoPago = data.pago.estado === 'confirmado';
-
-                const estadoColor = estadoPago ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400';
-
-                const estadoTexto = estadoPago ? 'Pago Confirmado' : 'Pendiente de Pago';
-
-                estadoHTML = `<span class="${estadoColor} font-semibold">${estadoTexto}</span>`;
+                estadoBadge = `<span class="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase">Pago Confirmado</span>`;
 
             }
 
             
 
-            horarioCard.innerHTML = `
+            // Horarios del deporte
 
-                <div class="flex items-center gap-3 mb-2">
+            const horariosHTML = deporte.horarios.map(h => `
 
-                    <span class="material-symbols-outlined ${iconClasses}">sports</span>
+                <div class="flex items-center gap-2 text-sm ${esSuspendido ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}">
 
-                    <p class="font-bold text-lg ${textClasses}">${horario.deporte || '-'}</p>
+                    <span class="material-symbols-outlined text-xs ${esSuspendido ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
 
-                    ${esSuspendido ? '<span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold uppercase">Pausado</span>' : ''}
+                    <span class="font-medium">${h.dia || '-'}</span>
+
+                    <span>${h.hora_inicio || '-'} - ${h.hora_fin || '-'}</span>
 
                 </div>
 
-                <div class="space-y-1 text-sm ${esSuspendido ? 'text-gray-400' : ''}">
+            `).join('');
 
-                    <div class="flex items-center gap-2">
+            
 
-                        <span class="material-symbols-outlined text-xs">calendar_today</span>
+            deporteCard.innerHTML = `
 
-                        <p class="${esSuspendido ? 'line-through' : ''}"><span class="font-semibold">Da:</span> ${horario.dia || '-'}</p>
+                <div class="flex items-center justify-between mb-3">
 
-                    </div>
+                    <div class="flex items-center gap-3">
 
-                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined ${esSuspendido ? 'text-gray-400' : 'text-primary'} text-2xl">sports</span>
 
-                        <span class="material-symbols-outlined text-xs">schedule</span>
+                        <div>
 
-                        <p class="${esSuspendido ? 'line-through' : ''}"><span class="font-semibold">Horario:</span> ${horario.hora_inicio || '-'} - ${horario.hora_fin || '-'}</p>
+                            <h4 class="font-bold text-base ${esSuspendido ? 'text-gray-400 line-through' : 'text-black dark:text-white'}">${deporte.deporte}${deporte.categoria ? ` - ${deporte.categoria}` : ''}</h4>
 
-                    </div>
+                            <p class="text-xs text-gray-500">${deporte.plan} | S/ ${parseFloat(deporte.precio || 0).toFixed(2)}</p>
 
-                    <div class="flex items-center gap-2">
-
-                        <span class="material-symbols-outlined text-xs">check_circle</span>
-
-                        <p><span class="font-semibold">Estado:</span> ${estadoHTML}</p>
+                        </div>
 
                     </div>
+
+                    ${estadoBadge}
+
+                </div>
+
+                <div class="space-y-1.5 ml-9">
+
+                    ${horariosHTML}
 
                 </div>
 
             `;
 
-            horariosContainer.appendChild(horarioCard);
+            
+
+            horariosContainer.appendChild(deporteCard);
 
         });
 

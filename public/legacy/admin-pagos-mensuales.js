@@ -170,12 +170,17 @@ function renderizarPagos(pagos) {
                 <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Observación">
                     <span class="material-symbols-outlined text-sm">edit_note</span> ${p.observaciones ? 'Editar Obs.' : 'Obs.'}
                 </button>
+                <button onclick="abrirModalEditarMonto(${p.pago_id}, ${parseFloat(p.monto || 0)})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Editar Monto">
+                    <span class="material-symbols-outlined text-sm">edit</span> Monto
+                </button>
             </div>
         ` : `
             <div class="flex gap-2 flex-wrap">
-                <span class="text-xs text-gray-400 italic">Sin acciones</span>
                 <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Observación">
                     <span class="material-symbols-outlined text-sm">edit_note</span> ${p.observaciones ? 'Editar Obs.' : 'Obs.'}
+                </button>
+                <button onclick="abrirModalEditarMonto(${p.pago_id}, ${parseFloat(p.monto || 0)})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Editar Monto">
+                    <span class="material-symbols-outlined text-sm">edit</span> Monto
                 </button>
             </div>
         `;
@@ -428,5 +433,81 @@ async function guardarObservacionPago(pagoId) {
     } catch (e) {
         mostrarToast('Error de conexión', 'error');
         document.getElementById('modalObservacionPago')?.remove();
+    }
+}
+
+// ==================== EDITAR MONTO ====================
+
+function abrirModalEditarMonto(pagoId, montoActual) {
+    const existente = document.getElementById('modalEditarMonto');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalEditarMonto';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <div class="size-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-indigo-600 dark:text-indigo-400">payments</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-black dark:text-white uppercase">Editar Monto</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nuevo monto (S/)</label>
+                <input type="number" id="inputEditarMonto" step="0.01" min="0" value="${montoActual.toFixed(2)}"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-lg font-bold text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="80.00">
+                <p class="text-xs text-gray-400 mt-2">Solo modifica el monto de este registro. No afecta el plan ni los precios futuros.</p>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalEditarMonto').remove()"
+                    class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button onclick="guardarMontoPago(${pagoId})"
+                    class="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    setTimeout(() => { const inp = document.getElementById('inputEditarMonto'); inp?.focus(); inp?.select(); }, 100);
+}
+
+async function guardarMontoPago(pagoId) {
+    const monto = parseFloat(document.getElementById('inputEditarMonto')?.value);
+    if (isNaN(monto) || monto < 0) { mostrarToast('Ingresa un monto válido', 'error'); return; }
+
+    const btn = document.querySelector('#modalEditarMonto button:last-child');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
+
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/monto`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monto })
+        });
+        const data = await response.json();
+        document.getElementById('modalEditarMonto')?.remove();
+        if (data.success) {
+            mostrarToast('Monto actualizado correctamente', 'success');
+            cargarPagosMensuales();
+        } else {
+            mostrarToast(data.error || 'Error al actualizar', 'error');
+        }
+    } catch (e) {
+        mostrarToast('Error de conexión', 'error');
+        document.getElementById('modalEditarMonto')?.remove();
     }
 }

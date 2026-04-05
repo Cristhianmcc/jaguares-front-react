@@ -575,11 +575,10 @@ function loadScript(src) {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector(`script[data-src="${src}"]`);
     if (existing) {
-      resolve();
-      return;
+      existing.remove();
     }
     const script = document.createElement('script');
-    script.src = src;
+    script.src = `${src}?v=${Date.now()}`;
     script.async = false;
     script.defer = false;
     script.dataset.src = src;

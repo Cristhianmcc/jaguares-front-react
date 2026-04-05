@@ -407,19 +407,29 @@ function renderizarHorarios() {
     container.innerHTML = Object.values(deportesAgrupados).map(deporte => {
         const icono = obtenerIconoDeporte(deporte.deporte);
         const esSuspendido = deporte.estado === 'suspendida';
+        const esPendiente = deporte.estado === 'pendiente';
         
         // Clases condicionales según estado
-        const cardClasses = esSuspendido 
+        const cardClasses = esSuspendido || esPendiente
             ? 'bg-gray-100 dark:bg-gray-800/50 opacity-70 border-gray-300 dark:border-gray-700' 
             : 'bg-white dark:bg-[#222] border-gray-100 dark:border-gray-800 hover:border-primary dark:hover:border-primary';
         
-        const iconBgClasses = esSuspendido
+        const iconBgClasses = esSuspendido || esPendiente
             ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
             : 'bg-primary/10 text-primary';
         
         // Botón de acción
         let botonAccion = '';
-        if (esSuspendido) {
+        if (esPendiente) {
+            botonAccion = `
+                <div class="mt-3 text-center">
+                    <p class="text-xs text-yellow-600 dark:text-yellow-400 italic font-semibold">
+                        <span class="material-symbols-outlined text-sm align-middle">schedule</span>
+                        Pendiente de activación por el administrador
+                    </p>
+                </div>
+            `;
+        } else if (esSuspendido) {
             // Siempre puede reactivar
             botonAccion = `
                 <button onclick="toggleDeporte(${deporte.inscripcion_id}, 'reactivar')" 
@@ -453,9 +463,9 @@ function renderizarHorarios() {
         const totalDiasDeporte = deporte.horarios.length;
         const horariosHtml = deporte.horarios.map(h => `
             <div class="flex items-center gap-2 text-text-muted dark:text-gray-400 text-sm">
-                <span class="material-symbols-outlined text-lg ${esSuspendido ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
+                <span class="material-symbols-outlined text-lg ${esSuspendido || esPendiente ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
                 <span class="font-medium flex-1">${h.dia} ${formatearHora(h.hora_inicio)} - ${formatearHora(h.hora_fin)}</span>
-                ${!esSuspendido && totalDiasDeporte > 1 && h.horario_id ? `
+                ${!esSuspendido && !esPendiente && totalDiasDeporte > 1 && h.horario_id ? `
                 <button onclick="confirmarEliminarHorario(${deporte.inscripcion_id}, ${h.horario_id}, '${h.dia}')"
                         class="ml-1 p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         title="Eliminar este día">
@@ -465,11 +475,20 @@ function renderizarHorarios() {
         `).join('');
 
         // Botón agregar día (solo para inscripciones activas)
-        const botonAgregarDia = !esSuspendido ? `
+        const botonAgregarDia = !esSuspendido && !esPendiente ? `
             <button onclick="abrirModalAgregarHorario(${deporte.inscripcion_id})"
                     class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold uppercase transition-all">
                 <span class="material-symbols-outlined text-sm">add_circle</span>
                 Agregar día
+            </button>
+        ` : '';
+
+        // Botón dejar deporte (para activas y suspendidas, no pendientes)
+        const botonDejarDeporte = !esPendiente ? `
+            <button onclick="confirmarDejarDeporte(${deporte.inscripcion_id}, '${deporte.deporte}')"
+                    class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-red-300 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-bold uppercase transition-all">
+                <span class="material-symbols-outlined text-sm">logout</span>
+                Dejar Deporte
             </button>
         ` : '';
         
@@ -481,8 +500,12 @@ function renderizarHorarios() {
                     </div>
                     <div class="flex-1">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h4 class="text-lg font-black ${esSuspendido ? 'text-gray-500 dark:text-gray-400' : 'text-black dark:text-white'} uppercase tracking-tight">${deporte.deporte}</h4>
-                            ${esSuspendido ? `
+                            <h4 class="text-lg font-black ${esSuspendido || esPendiente ? 'text-gray-500 dark:text-gray-400' : 'text-black dark:text-white'} uppercase tracking-tight">${deporte.deporte}</h4>
+                            ${esPendiente ? `
+                                <span class="px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold uppercase">
+                                    Pendiente
+                                </span>
+                            ` : esSuspendido ? `
                                 <span class="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-bold uppercase">
                                     Pausado
                                 </span>
@@ -492,7 +515,7 @@ function renderizarHorarios() {
                                 </span>
                             `}
                         </div>
-                        <p class="text-xs ${esSuspendido ? 'text-gray-400' : 'text-primary'} font-bold uppercase">${deporte.sede}</p>
+                        <p class="text-xs ${esSuspendido || esPendiente ? 'text-gray-400' : 'text-primary'} font-bold uppercase">${deporte.sede}</p>
                         ${deporte.categoria ? `<p class="text-xs text-gray-500 mt-0.5"><span class="font-semibold">Categoría:</span> ${deporte.categoria}</p>` : ''}
                         <p class="text-xs text-gray-500 mt-1">S/ ${parseFloat(deporte.precio).toFixed(2)}/mes</p>
                     </div>
@@ -504,6 +527,7 @@ function renderizarHorarios() {
                 
                 ${botonAccion}
                 ${botonAgregarDia}
+                ${botonDejarDeporte}
             </div>
         `;
     }).join('') + `
@@ -615,6 +639,116 @@ function cerrarModalToggleDeporte() {
     if (modal) {
         modal.remove();
         document.body.style.overflow = '';
+    }
+}
+
+/**
+ * Confirmar "Dejar Deporte" con modal de branding
+ */
+function confirmarDejarDeporte(inscripcionId, nombreDeporte) {
+    const existente = document.getElementById('modalDejarDeporte');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalDejarDeporte';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-md w-full transform transition-all animate-[slideUp_0.3s_ease-out]">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <div class="size-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-3xl text-red-600 dark:text-red-400">logout</span>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Dejar Deporte</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${nombreDeporte}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contenido -->
+            <div class="p-6">
+                <p class="text-gray-700 dark:text-gray-300 mb-3">¿Estás seguro de dejar <strong>"${nombreDeporte}"</strong>?</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 bg-red-50 dark:bg-red-900/10 rounded-lg p-3">
+                    <span class="material-symbols-outlined text-sm align-middle mr-1">warning</span>
+                    Se eliminarán todos los horarios de este deporte. Si deseas volver, tendrás que inscribirte de nuevo.
+                </p>
+            </div>
+            
+            <!-- Acciones -->
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+                <button onclick="cerrarModalDejarDeporte()" 
+                        class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button id="btnConfirmarDejar" onclick="ejecutarDejarDeporte(${inscripcionId})" 
+                        class="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">logout</span>
+                    Sí, dejar deporte
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) cerrarModalDejarDeporte();
+    });
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            cerrarModalDejarDeporte();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
+function cerrarModalDejarDeporte() {
+    const modal = document.getElementById('modalDejarDeporte');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+}
+
+async function ejecutarDejarDeporte(inscripcionId) {
+    const dni = datosUsuario.alumno.dni;
+
+    const btn = document.getElementById('btnConfirmarDejar');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div><span class="ml-2">Procesando...</span>';
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/api/alumno/cancelar-deporte`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dni, inscripcion_id: inscripcionId })
+        });
+        const data = await res.json();
+
+        cerrarModalDejarDeporte();
+
+        if (data.success) {
+            mostrarNotificacion(data.message, 'success');
+            // Actualizar datos y re-renderizar
+            const nuevosDatos = await academiaAPI.consultarInscripcion(dni, true);
+            if (nuevosDatos.success) {
+                datosUsuario = nuevosDatos;
+                renderizarHorarios();
+                renderizarSeccionPagoMensual();
+            }
+        } else {
+            mostrarNotificacion(data.error || 'Error al dejar el deporte', 'error');
+        }
+    } catch (error) {
+        cerrarModalDejarDeporte();
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'error');
     }
 }
 
@@ -1558,10 +1692,9 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
     const contenido = document.getElementById('contenidoModalAgregarHorario');
 
     try {
-        // Filtrar por año de nacimiento si está disponible
-        const fechaNac = datosUsuario?.alumno?.fecha_nacimiento;
-        const anioNac = fechaNac ? new Date(fechaNac).getFullYear() : null;
-        const url = anioNac ? `${API_BASE}/api/horarios?anio_nacimiento=${anioNac}` : `${API_BASE}/api/horarios`;
+        // No filtrar por año de nacimiento: el alumno ya está inscrito en una categoría,
+        // mostrar todos los horarios y filtrar por deporte+categoría+plan en JS
+        const url = `${API_BASE}/api/horarios`;
 
         const res = await fetch(url);
         const data = await res.json();
@@ -1588,9 +1721,26 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
         const horariosInscritos = datosUsuario.horarios.filter(h => h.inscripcion_id === inscripcionId);
         const clavesInscritas = new Set(horariosInscritos.map(h => `${h.dia}-${h.hora_inicio}`));
 
-        const horariosDisponibles = horariosDeporte.filter(h =>
-            !clavesInscritas.has(`${h.dia}-${h.hora_inicio}`)
+        // Obtener horarios de OTROS deportes activos para detectar cruces
+        const horariosOtrosDeportes = datosUsuario.horarios.filter(h => 
+            h.inscripcion_id !== inscripcionId && 
+            (h.estado_inscripcion === 'activa' || !h.estado_inscripcion)
         );
+
+        const horariosDisponibles = horariosDeporte.filter(h => {
+            // Excluir horarios ya inscritos en este deporte
+            if (clavesInscritas.has(`${h.dia}-${h.hora_inicio}`)) return false;
+            // Excluir horarios que se cruzan con otros deportes
+            const chocaConOtro = horariosOtrosDeportes.some(e => {
+                if ((e.dia || '').toUpperCase().trim() !== (h.dia || '').toUpperCase().trim()) return false;
+                const nI = String(h.hora_inicio).padStart(8, '0');
+                const nF = String(h.hora_fin).padStart(8, '0');
+                const eI = String(e.hora_inicio).padStart(8, '0');
+                const eF = String(e.hora_fin).padStart(8, '0');
+                return nI < eF && nF > eI;
+            });
+            return !chocaConOtro;
+        });
 
         if (horariosDisponibles.length === 0) {
             contenido.innerHTML = `
