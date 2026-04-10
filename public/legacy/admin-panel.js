@@ -189,6 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     inicializarEventos();
 
+    cargarDeportesDropdown();
+
     cargarInscritos();
 
     cargarConfiguracion();
@@ -196,6 +198,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+async function cargarDeportesDropdown() {
+    try {
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3002'
+                : 'https://api.jaguarescar.com');
+
+        const session = localStorage.getItem('adminSession');
+        if (!session) return;
+        const { token } = JSON.parse(session);
+
+        const response = await fetch(`${API_BASE}/api/admin/deportes`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.success && data.deportes) {
+            const select = document.getElementById('filtroDeporte');
+            // Mantener la primera opción "Todos los deportes"
+            const primeraOpcion = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(primeraOpcion);
+
+            data.deportes.forEach(dep => {
+                const option = document.createElement('option');
+                option.value = dep.nombre.toUpperCase();
+                option.textContent = dep.nombre;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar deportes para dropdown:', error);
+    }
+}
 
 function verificarSesion() {
 
@@ -287,7 +325,7 @@ function inicializarEventos() {
 
     
 
-    // Evento para buscar por DNI al presionar Enter (solo si el elemento existe)
+    // Evento para buscar al presionar Enter (DNI, nombre o apellido)
 
     const filtroDNI = document.getElementById('filtroDNI');
 
@@ -297,13 +335,7 @@ function inicializarEventos() {
 
             if (e.key === 'Enter') {
 
-                const dni = e.target.value.trim();
-
-                if (dni.length === 8) {
-
-                    buscarPorDNI(dni);
-
-                }
+                aplicarFiltros();
 
             }
 
@@ -311,13 +343,15 @@ function inicializarEventos() {
 
         
 
-        // Limpiar bsqueda por DNI cuando se vaca el input
+        // Limpiar bsqueda cuando se vaca el input
 
         filtroDNI.addEventListener('input', (e) => {
 
             if (e.target.value.length === 0) {
 
                 cerrarDetalleUsuario();
+
+                aplicarFiltros();
 
             }
 
@@ -339,7 +373,7 @@ function cerrarSesion() {
 
 
 
-async function cargarInscritos(dia = null, deporte = null) {
+async function cargarInscritos(dia = null, deporte = null, busquedaTexto = null) {
 
     const loadingContainer = document.getElementById('loadingContainer');
 
@@ -431,6 +465,17 @@ async function cargarInscritos(dia = null, deporte = null) {
         if (data.success) {
 
             inscritosData = data.inscritos;
+
+            // Filtrar localmente por texto (DNI, nombre o apellido)
+            if (busquedaTexto && busquedaTexto.length > 0) {
+                const termino = busquedaTexto.toLowerCase();
+                inscritosData = inscritosData.filter(ins => {
+                    const dni = (ins.dni || '').toLowerCase();
+                    const nombres = (ins.nombres || '').toLowerCase();
+                    const apellidos = (ins.apellidos || '').toLowerCase();
+                    return dni.includes(termino) || nombres.includes(termino) || apellidos.includes(termino);
+                });
+            }
 
             paginaActualLista = 1;
 
@@ -595,6 +640,10 @@ function renderizarTabla(inscritos) {
 
         const nombreSeguro = (inscrito.nombres + ' ' + inscrito.apellidos).replace(/'/g, "\\'");
 
+        const botonVerDetalle = `<button onclick="verDetalleAlumno('${inscrito.dni}')" class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Ver información completa del alumno">
+                    <span class="material-symbols-outlined text-xl">visibility</span>
+               </button>`;
+
         const botonEliminar = `<button onclick="eliminarAlumnoCompleto('${inscrito.dni}', '${nombreSeguro}')" class="p-2 text-gray-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Eliminar alumno completamente del sistema">
 
                     <span class="material-symbols-outlined text-xl">delete_forever</span>
@@ -658,6 +707,8 @@ function renderizarTabla(inscritos) {
             <td class="px-4 py-3 text-center">
 
                 <div class="flex items-center justify-center gap-1">
+
+                    ${botonVerDetalle}
 
                     ${botonAccion}
 
@@ -874,23 +925,11 @@ function actualizarEstadisticas(inscritos) {
 
 function aplicarFiltros() {
 
-    const dni = document.getElementById('filtroDNI').value.trim();
+    const busqueda = document.getElementById('filtroDNI').value.trim();
 
     
 
-    // Si hay DNI, buscar por DNI (tiene prioridad)
-
-    if (dni.length === 8) {
-
-        buscarPorDNI(dni);
-
-        return;
-
-    }
-
-    
-
-    // Si no hay DNI, filtrar por da/deporte
+    // Si no hay búsqueda de texto, filtrar por día/deporte en el servidor
 
     const dia = document.getElementById('filtroDia').value;
 
@@ -900,7 +939,8 @@ function aplicarFiltros() {
 
     cerrarDetalleUsuario();
 
-    cargarInscritos(dia || null, deporte || null);
+    // Siempre cargar desde servidor con filtros de día/deporte, luego filtrar localmente por texto
+    cargarInscritos(dia || null, deporte || null, busqueda || null);
 
 }
 
@@ -934,6 +974,63 @@ function desactivarUsuario(dni) {
 
     document.body.style.overflow = 'hidden';
 
+    // Cargar inscripciones activas del alumno
+    cargarInscripcionesParaDesactivar(dni);
+}
+
+async function cargarInscripcionesParaDesactivar(dni) {
+    const lista = document.getElementById('listaDeportesDesactivar');
+    const nombreEl = document.getElementById('nombreDesactivar');
+    lista.innerHTML = '<p class="text-center text-text-muted text-sm py-4"><span class="material-symbols-outlined animate-spin text-xl align-middle mr-1">progress_activity</span> Cargando...</p>';
+
+    try {
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3002'
+                : 'https://api.jaguarescar.com');
+        const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+        const token = session.token || '';
+
+        const response = await fetch(`${API_BASE}/api/admin/inscripciones-alumno/${dni}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            nombreEl.textContent = data.nombre;
+            if (data.inscripciones.length === 0) {
+                lista.innerHTML = '<p class="text-center text-text-muted text-sm py-4">No tiene inscripciones activas</p>';
+                return;
+            }
+
+            lista.innerHTML = data.inscripciones.map(ins => `
+                <label class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                    <input type="checkbox" name="inscripcionDesactivar" value="${ins.inscripcion_id}" class="w-4 h-4 accent-red-600 checkbox-deporte-desactivar">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold text-sm text-black dark:text-white">${ins.deporte}</p>
+                        <p class="text-xs text-gray-500">${ins.plan || 'Sin plan'} · S/ ${parseFloat(ins.precio_mensual || 0).toFixed(2)}</p>
+                        <p class="text-xs text-gray-400 mt-0.5">${ins.horarios || 'Sin horarios asignados'}</p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ins.estado === 'activa' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${ins.estado}</span>
+                </label>
+            `).join('');
+
+            // Evento "Seleccionar todos"
+            const checkTodos = document.getElementById('checkDesactivarTodos');
+            if (checkTodos) {
+                checkTodos.checked = false;
+                checkTodos.onchange = function() {
+                    document.querySelectorAll('.checkbox-deporte-desactivar').forEach(cb => cb.checked = this.checked);
+                };
+            }
+        } else {
+            lista.innerHTML = '<p class="text-center text-red-600 text-sm py-4">Error al cargar inscripciones</p>';
+        }
+    } catch (error) {
+        console.error('Error al cargar inscripciones:', error);
+        lista.innerHTML = '<p class="text-center text-red-600 text-sm py-4">Error de conexión</p>';
+    }
 }
 
 
@@ -966,6 +1063,18 @@ function cerrarModales() {
 
     document.body.style.overflow = '';
 
+    // Resetear botón desactivar a su estado original
+    const btnDesactivar = document.getElementById('btnConfirmarDesactivar');
+    if (btnDesactivar) {
+        btnDesactivar.disabled = false;
+        btnDesactivar.innerHTML = 'Desactivar';
+    }
+    // Resetear botón reactivar a su estado original
+    const btnReactivar = document.getElementById('btnConfirmarReactivar');
+    if (btnReactivar) {
+        btnReactivar.disabled = false;
+        btnReactivar.innerHTML = 'Reactivar';
+    }
 }
 
 
@@ -974,7 +1083,14 @@ async function confirmarDesactivar() {
 
     if (!dniSeleccionado) return;
 
-    
+    // Obtener inscripciones seleccionadas
+    const checkboxes = document.querySelectorAll('.checkbox-deporte-desactivar:checked');
+    const inscripcionIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    if (inscripcionIds.length === 0) {
+        mostrarNotificacion('Selecciona al menos una inscripción para desactivar', 'error');
+        return;
+    }
 
     const btnConfirmar = document.getElementById('btnConfirmarDesactivar');
 
@@ -996,19 +1112,21 @@ async function confirmarDesactivar() {
         ? 'http://localhost:3002'
         : 'https://api.jaguarescar.com');
 
-        
+        const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+        const token = session.token || '';
 
-        const response = await fetch(`${API_BASE}/api/desactivar-usuario`, {
+        const response = await fetch(`${API_BASE}/api/admin/desactivar-inscripciones`, {
 
             method: 'POST',
 
             headers: {
 
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
 
             },
 
-            body: JSON.stringify({ dni: dniSeleccionado })
+            body: JSON.stringify({ dni: dniSeleccionado, inscripcion_ids: inscripcionIds })
 
         });
 
@@ -1020,11 +1138,18 @@ async function confirmarDesactivar() {
 
         if (data.success) {
 
+            const dniRefrescar = dniSeleccionado;
+
             cerrarModales();
 
             cargarInscritos();
 
-            mostrarNotificacion('Usuario desactivado correctamente', 'success');
+            // Refrescar vista detalle para mostrar inscripciones canceladas
+            if (dniRefrescar) {
+                buscarPorDNI(dniRefrescar);
+            }
+
+            mostrarNotificacion(data.message || 'Inscripciones desactivadas correctamente', 'success');
 
         } else {
 
@@ -1167,10 +1292,6 @@ async function buscarPorDNI(dni) {
 
     detalleUsuario.classList.add('hidden');
 
-    tablaContainer.classList.add('hidden');
-
-    sinResultados.classList.add('hidden');
-
     
 
     try {
@@ -1187,7 +1308,7 @@ async function buscarPorDNI(dni) {
 
         const timestamp = new Date().getTime();
 
-        const response = await fetch(`${API_BASE}/api/consultar/${dni}?t=${timestamp}`, {
+        const response = await fetch(`${API_BASE}/api/consultar/${dni}?t=${timestamp}&incluir_inactivos=1`, {
 
             cache: 'no-store', // Forzar no usar cach del navegador
 
@@ -1210,13 +1331,20 @@ async function buscarPorDNI(dni) {
 
         
 
-        if (data.success) {
+        if (data.success || data.inactivo) {
 
+            // Si es inactivo, crear datos mínimos para mostrar
+            if (data.inactivo && !data.alumno) {
+                mostrarError('Usuario inactivo. Usa el botón de reactivar en la tabla.');
+                loadingContainer.classList.add('hidden');
+                return;
+            }
             mostrarDetalleUsuario(data);
 
             loadingContainer.classList.add('hidden');
 
             detalleUsuario.classList.remove('hidden');
+            detalleUsuario.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         } else {
 
@@ -1244,13 +1372,31 @@ async function buscarPorDNI(dni) {
 
 function mostrarDetalleUsuario(data) {
 
-
-
-
-
-
-
-
+    // Mostrar estado del alumno y botones según corresponda
+    const estadoUsuarioEl = document.getElementById('detalleEstadoUsuario');
+    const btnDesactivar = document.getElementById('btnDesactivarDetalle');
+    const btnReactivar = document.getElementById('btnReactivarDetalle');
+    const esInactivo = data.alumno.estado && data.alumno.estado.toLowerCase() === 'inactivo';
+    
+    if (estadoUsuarioEl) {
+        estadoUsuarioEl.classList.remove('hidden');
+        if (esInactivo) {
+            estadoUsuarioEl.textContent = 'INACTIVO';
+            estadoUsuarioEl.className = 'px-2 py-0.5 rounded text-xs font-bold uppercase ml-2 bg-gray-300 text-gray-700';
+        } else {
+            estadoUsuarioEl.textContent = 'ACTIVO';
+            estadoUsuarioEl.className = 'px-2 py-0.5 rounded text-xs font-bold uppercase ml-2 bg-green-100 text-green-700';
+        }
+    }
+    if (btnDesactivar) {
+        btnDesactivar.style.display = esInactivo ? 'none' : 'flex';
+        btnDesactivar.setAttribute('data-dni', data.alumno.dni);
+    }
+    if (btnReactivar) {
+        btnReactivar.style.display = esInactivo ? 'flex' : 'none';
+        btnReactivar.classList.toggle('hidden', !esInactivo);
+        btnReactivar.setAttribute('data-dni', data.alumno.dni);
+    }
 
 
     
@@ -1621,13 +1767,21 @@ function mostrarDetalleUsuario(data) {
 
             const esPendiente = deporte.estado_inscripcion === 'pendiente';
 
+            const esCancelada = deporte.estado_inscripcion === 'cancelada';
+
+            const esInactiva = esSuspendido || esCancelada;
+
             
 
             // Card contenedora del deporte
 
             const deporteCard = document.createElement('div');
 
-            deporteCard.className = esSuspendido 
+            deporteCard.className = esCancelada
+
+                ? 'border-2 border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 bg-red-50/50 dark:bg-red-900/10 opacity-70'
+
+                : esSuspendido 
 
                 ? 'border-2 border-gray-300 dark:border-gray-600 rounded-xl p-4 mb-4 bg-gray-50 dark:bg-gray-800 opacity-60'
 
@@ -1643,7 +1797,17 @@ function mostrarDetalleUsuario(data) {
 
             let estadoBadge;
 
-            if (esSuspendido) {
+            if (esCancelada) {
+
+                estadoBadge = `<div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-bold uppercase">Cancelada</span>
+                    <button onclick="reactivarInscripcion(${deporte.inscripcion_id}, '${deporte.deporte.replace(/'/g, "\\'")}')"
+                            class="px-2 py-0.5 rounded-full bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold uppercase transition-colors cursor-pointer flex items-center gap-1">
+                        <span class="material-symbols-outlined" style="font-size:12px">refresh</span> Reactivar
+                    </button>
+                </div>`;
+
+            } else if (esSuspendido) {
 
                 estadoBadge = `<span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold uppercase">Pausado</span>`;
 
@@ -1663,9 +1827,9 @@ function mostrarDetalleUsuario(data) {
 
             const horariosHTML = deporte.horarios.map(h => `
 
-                <div class="flex items-center gap-2 text-sm ${esSuspendido ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}">
+                <div class="flex items-center gap-2 text-sm ${esInactiva ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}">
 
-                    <span class="material-symbols-outlined text-xs ${esSuspendido ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
+                    <span class="material-symbols-outlined text-xs ${esInactiva ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
 
                     <span class="font-medium">${h.dia || '-'}</span>
 
@@ -1683,11 +1847,11 @@ function mostrarDetalleUsuario(data) {
 
                     <div class="flex items-center gap-3">
 
-                        <span class="material-symbols-outlined ${esSuspendido ? 'text-gray-400' : 'text-primary'} text-2xl">sports</span>
+                        <span class="material-symbols-outlined ${esInactiva ? 'text-gray-400' : 'text-primary'} text-2xl">sports</span>
 
                         <div>
 
-                            <h4 class="font-bold text-base ${esSuspendido ? 'text-gray-400 line-through' : 'text-black dark:text-white'}">${deporte.deporte}${deporte.categoria ? ` - ${deporte.categoria}` : ''}</h4>
+                            <h4 class="font-bold text-base ${esInactiva ? 'text-gray-400 line-through' : 'text-black dark:text-white'}">${deporte.deporte}${deporte.categoria ? ` - ${deporte.categoria}` : ''}</h4>
 
                             <p class="text-xs text-gray-500">${deporte.plan} | S/ ${parseFloat(deporte.precio || 0).toFixed(2)}</p>
 
@@ -1723,16 +1887,127 @@ function mostrarDetalleUsuario(data) {
 
 
 
+// Funciones para desactivar/reactivar desde la vista de detalle
+function desactivarDesdeDetalle() {
+    const btn = document.getElementById('btnDesactivarDetalle');
+    const dni = btn ? btn.getAttribute('data-dni') : null;
+    if (dni) desactivarUsuario(dni);
+}
+
+function reactivarDesdeDetalle() {
+    const btn = document.getElementById('btnReactivarDetalle');
+    const dni = btn ? btn.getAttribute('data-dni') : null;
+    if (dni) reactivarUsuario(dni);
+}
+
+// Función para reactivar una inscripción individual cancelada
+function reactivarInscripcion(inscripcionId, deporteNombre) {
+    const modal = document.getElementById('modalReactivarInscripcion');
+    const nombreSpan = document.getElementById('nombreDeporteReactivar');
+    const btnConfirmar = document.getElementById('btnConfirmarReactivarInscripcion');
+    const resultado = document.getElementById('reactivarInscripcionResultado');
+    const botones = document.getElementById('reactivarInscripcionBotones');
+
+    nombreSpan.textContent = deporteNombre;
+    resultado.classList.add('hidden');
+    botones.classList.remove('hidden');
+    modal.classList.remove('hidden');
+
+    // Limpiar listener anterior
+    const nuevoBtn = btnConfirmar.cloneNode(true);
+    btnConfirmar.parentNode.replaceChild(nuevoBtn, btnConfirmar);
+    nuevoBtn.id = 'btnConfirmarReactivarInscripcion';
+
+    nuevoBtn.addEventListener('click', async () => {
+        nuevoBtn.disabled = true;
+        nuevoBtn.innerHTML = '<span class="material-symbols-outlined text-base animate-spin">refresh</span> Procesando...';
+
+        const filtroDNI = document.getElementById('filtroDNI');
+        const dni = filtroDNI ? filtroDNI.value.trim() : null;
+        if (!dni) {
+            mostrarResultadoReactivar(false, 'No se pudo obtener el DNI del alumno');
+            return;
+        }
+
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3002'
+                : 'https://api.jaguarescar.com');
+
+        const session = localStorage.getItem('adminSession');
+        if (!session) { mostrarResultadoReactivar(false, 'Sesión no encontrada'); return; }
+        const { token } = JSON.parse(session);
+
+        try {
+            const response = await fetch(`${API_BASE}/api/admin/reactivar-inscripciones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ dni, inscripcion_ids: [inscripcionId] })
+            });
+            const data = await response.json();
+            if (data.success) {
+                mostrarResultadoReactivar(true, 'Inscripción reactivada exitosamente');
+                setTimeout(() => {
+                    cerrarModalReactivarInscripcion();
+                    buscarPorDNI(dni);
+                    cargarInscritos();
+                }, 1500);
+            } else {
+                mostrarResultadoReactivar(false, data.error || 'No se pudo reactivar');
+            }
+        } catch (error) {
+            console.error('Error al reactivar inscripción:', error);
+            mostrarResultadoReactivar(false, 'Error de conexión al reactivar');
+        }
+    });
+}
+
+function mostrarResultadoReactivar(exito, mensaje) {
+    const resultado = document.getElementById('reactivarInscripcionResultado');
+    const botones = document.getElementById('reactivarInscripcionBotones');
+    resultado.classList.remove('hidden');
+    if (exito) {
+        resultado.innerHTML = `
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg p-3 text-center">
+                <span class="material-symbols-outlined text-green-600 text-2xl">check_circle</span>
+                <p class="text-sm font-bold text-green-700 dark:text-green-400 mt-1">${mensaje}</p>
+            </div>`;
+        botones.classList.add('hidden');
+    } else {
+        resultado.innerHTML = `
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg p-3 text-center">
+                <span class="material-symbols-outlined text-red-600 text-2xl">error</span>
+                <p class="text-sm font-bold text-red-700 dark:text-red-400 mt-1">${mensaje}</p>
+            </div>`;
+        const btn = document.getElementById('btnConfirmarReactivarInscripcion');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-base">refresh</span> Reactivar';
+    }
+}
+
+function cerrarModalReactivarInscripcion() {
+    document.getElementById('modalReactivarInscripcion').classList.add('hidden');
+    // Resetear botón a estado original
+    const btn = document.getElementById('btnConfirmarReactivarInscripcion');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-base">refresh</span> Reactivar';
+    }
+}
+
 // Funcin para cerrar detalle del usuario
 
 function cerrarDetalleUsuario() {
 
     document.getElementById('detalleUsuario').classList.add('hidden');
 
-    document.getElementById('filtroDNI').value = '';
+}
 
-    cargarInscritos();
-
+// Funcin para ver detalle completo del alumno desde la tabla
+function verDetalleAlumno(dni) {
+    document.getElementById('filtroDNI').value = dni;
+    buscarPorDNI(dni);
 }
 
 

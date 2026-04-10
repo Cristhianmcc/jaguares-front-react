@@ -237,10 +237,9 @@ const html = `
                     </h2>
                     <div class="flex flex-wrap gap-3">
                         <div class="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 w-full sm:w-auto">
-                            <span class="material-symbols-outlined text-text-muted">badge</span>
-                            <input type="text" id="filtroDNI" placeholder="Buscar por DNI (8 dígitos)" 
-                                   maxlength="8" pattern="[0-9]{8}" 
-                                   class="bg-transparent border-none focus:outline-none text-sm font-semibold w-48 text-black dark:text-white" />
+                            <span class="material-symbols-outlined text-text-muted">search</span>
+                            <input type="text" id="filtroDNI" placeholder="Buscar por DNI, nombre o apellido" 
+                                   class="bg-transparent border-none focus:outline-none text-sm font-semibold w-64 text-black dark:text-white" />
                         </div>
                         
                         <select id="filtroDia" class="w-full sm:w-auto px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-primary">
@@ -256,12 +255,6 @@ const html = `
 
                         <select id="filtroDeporte" class="w-full sm:w-auto px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-primary">
                             <option value="">Todos los deportes</option>
-                            <option value="FÚTBOL">Fútbol</option>
-                            <option value="VÓLEY">Vóley</option>
-                            <option value="BÁSQUET">Básquet</option>
-                            <option value="FÚTBOL Femenino">Fútbol Femenino</option>
-                            <option value="ENTRENAMIENTO FUNCIONAL ADULTOS">Func. Adultos</option>
-                            <option value="ENTRENAMIENTO FUNCIONAL MenorES">Func. Menores</option>
                         </select>
 
                         <button id="btnFiltrar" class="w-full sm:w-auto px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2">
@@ -285,10 +278,21 @@ const html = `
                         <h3 class="text-xl font-bold text-black dark:text-white flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary">person</span>
                             Información del Usuario
+                            <span id="detalleEstadoUsuario" class="hidden px-2 py-0.5 rounded text-xs font-bold uppercase ml-2"></span>
                         </h3>
-                        <button onclick="cerrarDetalleUsuario()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btnDesactivarDetalle" onclick="desactivarDesdeDetalle()" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-xs transition-colors flex items-center gap-1" title="Desactivar inscripciones">
+                                <span class="material-symbols-outlined text-sm">person_off</span>
+                                Desactivar
+                            </button>
+                            <button id="btnReactivarDetalle" onclick="reactivarDesdeDetalle()" class="hidden px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-xs transition-colors flex items-center gap-1" title="Reactivar usuario">
+                                <span class="material-symbols-outlined text-sm">check_circle</span>
+                                Reactivar
+                            </button>
+                            <button onclick="cerrarDetalleUsuario()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -462,28 +466,29 @@ const html = `
 
     <!-- Modal Desactivar Usuario -->
     <div id="modalDesactivar" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-surface-dark rounded-xl p-8 max-w-md w-full shadow-2xl border-2 border-red-500/30">
+        <div class="bg-white dark:bg-surface-dark rounded-xl p-8 max-w-lg w-full shadow-2xl border-2 border-red-500/30">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                     <span class="material-symbols-outlined text-4xl text-red-600 dark:text-red-400">person_off</span>
                 </div>
-                <h3 class="text-2xl font-bold text-black dark:text-white mt-4 uppercase tracking-tight">Desactivar Usuario</h3>
+                <h3 class="text-2xl font-bold text-black dark:text-white mt-4 uppercase tracking-tight">Desactivar Inscripciones</h3>
             </div>
-            <p class="text-text-muted dark:text-gray-400 text-center mb-2">
-                ¿Estás seguro de desactivar al usuario con DNI <span id="dniDesactivar" class="font-bold text-black dark:text-white font-mono"></span>?
+            <p class="text-text-muted dark:text-gray-400 text-center mb-4">
+                Alumno con DNI <span id="dniDesactivar" class="font-bold text-black dark:text-white font-mono"></span>
+                <span id="nombreDesactivar" class="block text-sm font-semibold text-black dark:text-white mt-1"></span>
             </p>
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-3">
-                <p class="text-sm text-red-800 dark:text-red-300 font-bold mb-2">
-                    <span class="material-symbols-outlined text-base align-middle mr-1">warning</span>
-                    Se desactivarán TODAS las inscripciones de este DNI
-                </p>
-                <p class="text-xs text-red-700 dark:text-red-400">
-                    El usuario no podrá consultar sus datos ni asistir a ninguno de sus deportes/horarios registrados.
-                </p>
+            <div id="listaDeportesDesactivar" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                <!-- Se llena dinámicamente -->
             </div>
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-6">
-                <p class="text-xs text-blue-800 dark:text-blue-300">
-                    <strong>?Y'? Control granular:</strong> Para desactivar solo una inscripción específica (1 deporte/horario), hazlo manualmente desde la hoja <span class="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">INSCRIPCIONES</span> en Google Sheets cambiando el campo <span class="font-mono">estado_usuario</span> a <span class="font-mono">inactivo</span>.
+            <div class="flex items-center gap-2 mb-4">
+                <label class="flex items-center gap-2 cursor-pointer text-sm text-red-700 dark:text-red-400 font-semibold">
+                    <input type="checkbox" id="checkDesactivarTodos" class="w-4 h-4 accent-red-600">
+                    Seleccionar todos
+                </label>
+            </div>
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-4">
+                <p class="text-xs text-red-700 dark:text-red-400">
+                    Las inscripciones seleccionadas se cancelarán y el alumno ya no aparecerá en la lista de los profesores para esos deportes.
                 </p>
             </div>
             <div class="flex gap-3">
@@ -499,28 +504,23 @@ const html = `
 
     <!-- Modal Reactivar Usuario -->
     <div id="modalReactivar" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-surface-dark rounded-xl p-8 max-w-md w-full shadow-2xl border-2 border-green-500/30">
+        <div class="bg-white dark:bg-surface-dark rounded-xl p-8 max-w-lg w-full shadow-2xl border-2 border-green-500/30">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                     <span class="material-symbols-outlined text-4xl text-green-600 dark:text-green-400">check_circle</span>
                 </div>
                 <h3 class="text-2xl font-bold text-black dark:text-white mt-4 uppercase tracking-tight">Reactivar Usuario</h3>
             </div>
-            <p class="text-text-muted dark:text-gray-400 text-center mb-2">
+            <p class="text-text-muted dark:text-gray-400 text-center mb-4">
                 ¿Confirmas reactivar al usuario con DNI <span id="dniReactivar" class="font-bold text-black dark:text-white font-mono"></span>?
             </p>
-            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-3">
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
                 <p class="text-sm text-green-800 dark:text-green-300 font-bold mb-2">
                     <span class="material-symbols-outlined text-base align-middle mr-1">check_circle</span>
-                    Se reactivarán TODAS las inscripciones de este DNI
+                    Se reactivarán TODAS las inscripciones canceladas de este alumno
                 </p>
                 <p class="text-xs text-green-700 dark:text-green-400">
-                    El usuario podrá volver a consultar sus datos y asistir a todos sus deportes/horarios registrados.
-                </p>
-            </div>
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-6">
-                <p class="text-xs text-blue-800 dark:text-blue-300">
-                    <strong>?Y'? Control granular:</strong> Para reactivar solo una inscripción específica, hazlo manualmente desde la hoja <span class="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">INSCRIPCIONES</span> en Google Sheets.
+                    El alumno volverá a aparecer en la lista de los profesores y podrá consultar sus datos.
                 </p>
             </div>
             <div class="flex gap-3">
@@ -528,6 +528,38 @@ const html = `
                     Cancelar
                 </button>
                 <button id="btnConfirmarReactivar" class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold uppercase tracking-wide transition-colors shadow-lg">
+                    Reactivar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reactivar Inscripción Individual -->
+    <div id="modalReactivarInscripcion" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-dark rounded-xl p-8 max-w-md w-full shadow-2xl border-2 border-green-500/30">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-4xl text-green-600 dark:text-green-400">refresh</span>
+                </div>
+                <h3 class="text-2xl font-bold text-black dark:text-white mt-4 uppercase tracking-tight">Reactivar Inscripción</h3>
+            </div>
+            <p class="text-text-muted dark:text-gray-400 text-center mb-4">
+                ¿Confirmas reactivar la inscripción de
+                <span id="nombreDeporteReactivar" class="font-bold text-black dark:text-white block mt-1"></span>
+            </p>
+            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-6">
+                <p class="text-xs text-green-700 dark:text-green-400">
+                    <span class="material-symbols-outlined text-xs align-middle mr-1">info</span>
+                    El deporte volverá a estado activo y el alumno aparecerá nuevamente en la lista del profesor.
+                </p>
+            </div>
+            <div id="reactivarInscripcionResultado" class="hidden mb-4"></div>
+            <div id="reactivarInscripcionBotones" class="flex gap-3">
+                <button onclick="cerrarModalReactivarInscripcion()" class="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-lg font-bold uppercase tracking-wide transition-colors">
+                    Cancelar
+                </button>
+                <button id="btnConfirmarReactivarInscripcion" class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold uppercase tracking-wide transition-colors shadow-lg flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">refresh</span>
                     Reactivar
                 </button>
             </div>

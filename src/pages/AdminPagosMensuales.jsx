@@ -63,6 +63,10 @@ const html = `
                                maxlength="50"
                                class="bg-transparent border-none focus:outline-none text-sm font-semibold w-full text-black dark:text-white placeholder:text-gray-400">
                     </div>
+                    <!-- Filtro deporte/grupo -->
+                    <select id="filtroDeporte" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[170px]">
+                        <option value="">Todos los grupos</option>
+                    </select>
                     <!-- Filtro estado -->
                     <select id="filtroEstado" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[160px]">
                         <option value="todos">Todos los estados</option>

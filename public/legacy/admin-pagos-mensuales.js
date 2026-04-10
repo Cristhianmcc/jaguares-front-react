@@ -71,6 +71,36 @@ function configurarFiltros() {
 
     const selectMes = document.getElementById('filtroMes');
     if (selectMes) selectMes.addEventListener('change', () => cargarPagosMensuales());
+
+    const selectDeporte = document.getElementById('filtroDeporte');
+    if (selectDeporte) selectDeporte.addEventListener('change', () => cargarPagosMensuales());
+
+    // Cargar deportes dinámicamente
+    cargarDeportesDropdownPagos();
+}
+
+async function cargarDeportesDropdownPagos() {
+    try {
+        const API_BASE = getAPIBase();
+        const token = getToken();
+        if (!token) return;
+        const response = await fetch(`${API_BASE}/api/admin/deportes`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success && data.deportes) {
+            const select = document.getElementById('filtroDeporte');
+            if (!select) return;
+            data.deportes.forEach(dep => {
+                const option = document.createElement('option');
+                option.value = dep.nombre;
+                option.textContent = dep.nombre.toUpperCase();
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar deportes:', error);
+    }
 }
 
 async function cargarPagosMensuales() {
@@ -81,10 +111,12 @@ async function cargarPagosMensuales() {
     const buscar = (document.getElementById('buscarDNI')?.value || '').trim();
     const estado = document.getElementById('filtroEstado')?.value || 'todos';
     const mes = document.getElementById('filtroMes')?.value || '';
+    const deporte = document.getElementById('filtroDeporte')?.value || '';
 
     const params = new URLSearchParams();
     if (estado !== 'todos') params.set('estado', estado);
     if (mes) params.set('mes', mes);
+    if (deporte) params.set('deporte', deporte);
     if (buscar) params.set('buscar', buscar);
 
     const loading = document.getElementById('loadingPagos');
@@ -145,6 +177,10 @@ function renderizarPagos(pagos) {
     if (!tbody) return;
 
     tbody.innerHTML = pagos.map(p => {
+        // Guardar deportes en variable global para usar en confirmar
+        window._pagosData = window._pagosData || {};
+        window._pagosData[p.pago_id] = { deportes: p.deportes_inscritos || [], monto: parseFloat(p.monto || 0) };
+
         const estadoClase = {
             'pendiente': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
             'confirmado': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
@@ -197,11 +233,23 @@ function renderizarPagos(pagos) {
             </a>
         ` : '<span class="text-xs text-gray-400">-</span>';
 
+        // Desglose de deportes inscritos
+        const deportesHTML = (p.deportes_inscritos && p.deportes_inscritos.length > 0) ? `
+            <div class="mt-1.5 flex flex-wrap gap-1">
+                ${p.deportes_inscritos.map(d => `
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
+                        ${d.deporte} <span class="text-blue-500">S/${d.precio.toFixed(2)}</span>
+                    </span>
+                `).join('')}
+            </div>
+        ` : '';
+
         return `
             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                 <td class="px-4 py-3">
                     <p class="font-bold text-black dark:text-white text-sm">${p.nombres} ${p.apellidos}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">${p.dni}</p>
+                    ${deportesHTML}
                     ${observacionBadge}
                 </td>
                 <td class="px-4 py-3 text-sm capitalize font-semibold text-black dark:text-white">${p.mes}</td>
@@ -299,35 +347,166 @@ function mostrarToast(mensaje, tipo) {
 // ==================== CONFIRMAR / RECHAZAR ====================
 
 async function confirmarPagoMensual(pagoId) {
-    mostrarModalAccion({
-        titulo: 'Confirmar Pago',
-        mensaje: '¿Estás seguro de confirmar este pago mensual?',
-        icono: 'check_circle',
-        iconoColor: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
-        btnTexto: 'Confirmar',
-        btnColor: 'bg-green-600 hover:bg-green-700',
-        onConfirm: async () => {
-            const API_BASE = getAPIBase();
-            const token = getToken();
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/confirmar`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-                const data = await response.json();
-                if (data.success) {
-                    mostrarToast('Pago confirmado exitosamente', 'success');
-                    cargarPagosMensuales();
-                } else {
-                    mostrarToast(data.error || 'No se pudo confirmar', 'error');
-                }
-            } catch (error) {
-                console.error('❌ Error:', error);
-                mostrarToast('Error al confirmar pago', 'error');
+    const pagoData = (window._pagosData && window._pagosData[pagoId]) || {};
+    const deportes = pagoData.deportes || [];
+    const montoOriginal = pagoData.monto || 0;
+
+    // Si tiene más de 1 deporte, mostrar modal con checkboxes
+    if (deportes.length > 1) {
+        mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal);
+    } else {
+        // Solo 1 deporte: confirmar directo
+        mostrarModalAccion({
+            titulo: 'Confirmar Pago',
+            mensaje: `¿Confirmar pago de S/ ${montoOriginal.toFixed(2)}?`,
+            icono: 'check_circle',
+            iconoColor: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+            btnTexto: 'Confirmar',
+            btnColor: 'bg-green-600 hover:bg-green-700',
+            onConfirm: async () => {
+                await ejecutarConfirmarPago(pagoId, null, null);
             }
-        }
+        });
+    }
+}
+
+function mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal) {
+    const existente = document.getElementById('modalAccionPago');
+    if (existente) existente.remove();
+
+    const checkboxesHTML = deportes.map((d, i) => `
+        <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" checked class="checkbox-deporte-confirmar w-4 h-4 accent-green-600" value="${i}" data-precio="${d.precio}" data-deporte="${d.deporte}">
+                <span class="text-sm font-semibold text-black dark:text-white">${d.deporte}</span>
+            </div>
+            <span class="text-sm font-bold text-green-600">S/ ${d.precio.toFixed(2)}</span>
+        </label>
+    `).join('');
+
+    const sumaDeportes = deportes.reduce((s, d) => s + d.precio, 0);
+
+    const modal = document.createElement('div');
+    modal.id = 'modalAccionPago';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4';
+    modal.style.animation = 'fadeIn .2s ease';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 max-w-md w-full shadow-2xl" style="animation: scaleIn .2s ease">
+            <div class="flex justify-center mb-4">
+                <div class="size-16 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center justify-center">
+                    <span class="material-symbols-outlined" style="font-size:40px">check_circle</span>
+                </div>
+            </div>
+            <h3 class="text-xl font-black text-center text-black dark:text-white mb-2">Confirmar Pago</h3>
+            <p class="text-sm text-center text-gray-500 dark:text-gray-400 mb-4">Selecciona los deportes a confirmar en este pago</p>
+            
+            <div class="space-y-2 mb-4">
+                ${checkboxesHTML}
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-4">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Monto original del comprobante:</span>
+                    <span class="font-bold">S/ ${montoOriginal.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between text-sm font-bold text-black dark:text-white">
+                    <span>Monto a confirmar:</span>
+                    <span id="montoConfirmarCalc" class="text-green-600">S/ ${sumaDeportes.toFixed(2)}</span>
+                </div>
+            </div>
+
+            <div id="avisoMontoConfirmar" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 mb-4">
+                <p class="text-xs text-amber-700 dark:text-amber-400">
+                    <span class="material-symbols-outlined text-xs align-middle">info</span>
+                    El monto se ajustará automáticamente. Recuerda luego ir a <strong>Lista de Inscritos</strong> para desactivar el deporte no confirmado.
+                </p>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="modalAccionCancelar" class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm transition-colors">
+                    Cancelar
+                </button>
+                <button id="modalAccionConfirmar" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">check_circle</span>
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners para checkboxes
+    const checkboxes = modal.querySelectorAll('.checkbox-deporte-confirmar');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            let total = 0;
+            checkboxes.forEach(c => {
+                if (c.checked) total += parseFloat(c.dataset.precio);
+            });
+            document.getElementById('montoConfirmarCalc').textContent = `S/ ${total.toFixed(2)}`;
+            const aviso = document.getElementById('avisoMontoConfirmar');
+            const algunoDesmarcado = Array.from(checkboxes).some(c => !c.checked);
+            if (algunoDesmarcado && Array.from(checkboxes).some(c => c.checked)) {
+                aviso.classList.remove('hidden');
+            } else {
+                aviso.classList.add('hidden');
+            }
+        });
     });
+
+    modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModalAccion(); });
+    document.getElementById('modalAccionCancelar').addEventListener('click', cerrarModalAccion);
+    document.getElementById('modalAccionConfirmar').addEventListener('click', async () => {
+        const seleccionados = Array.from(checkboxes).filter(c => c.checked);
+        const noSeleccionados = Array.from(checkboxes).filter(c => !c.checked);
+        if (seleccionados.length === 0) {
+            mostrarToast('Selecciona al menos un deporte', 'error');
+            return;
+        }
+        let nuevoMonto = 0;
+        seleccionados.forEach(c => nuevoMonto += parseFloat(c.dataset.precio));
+
+        const todosSeleccionados = seleccionados.length === checkboxes.length;
+        const deportesConfirmados = seleccionados.map(c => c.dataset.deporte).join(', ');
+        const obs = todosSeleccionados ? null : `Confirmado solo: ${deportesConfirmados}`;
+        const montoFinal = todosSeleccionados ? null : nuevoMonto;
+
+        // Deportes no confirmados → crear pago pendiente separado
+        const deportesPendientes = todosSeleccionados ? [] : noSeleccionados.map(c => ({
+            deporte: c.dataset.deporte,
+            precio: parseFloat(c.dataset.precio)
+        }));
+
+        cerrarModalAccion();
+        await ejecutarConfirmarPago(pagoId, montoFinal, obs, deportesPendientes);
+    });
+}
+
+async function ejecutarConfirmarPago(pagoId, monto, observaciones, deportesPendientes) {
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    try {
+        const body = {};
+        if (monto !== null && monto !== undefined) body.monto = monto;
+        if (observaciones) body.observaciones = observaciones;
+        if (deportesPendientes && deportesPendientes.length > 0) body.deportes_pendientes = deportesPendientes;
+        const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/confirmar`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (data.success) {
+            mostrarToast('Pago confirmado exitosamente', 'success');
+            cargarPagosMensuales();
+        } else {
+            mostrarToast(data.error || 'No se pudo confirmar', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarToast('Error al confirmar pago', 'error');
+    }
 }
 
 async function rechazarPagoMensual(pagoId) {
