@@ -419,9 +419,11 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
             return;
         }
 
-        const rows = data.asistencias.map(asist => `
+        const rows = data.asistencias.map(asist => {
+            const fechaFormato = asist.fecha ? new Date(asist.fecha).toLocaleDateString('es-AR', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+            return `
             <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td class="px-2 md:px-4 py-2">${asist.fecha}</td>
+                <td class="px-2 md:px-4 py-2">${fechaFormato}</td>
                 <td class="px-2 md:px-4 py-2">${asist.deporte}</td>
                 <td class="px-2 md:px-4 py-2">${asist.categoria}</td>
                 <td class="px-2 md:px-4 py-2">${asist.dia || '-'}</td>
@@ -429,7 +431,8 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
                 <td class="px-2 md:px-4 py-2">${asist.presente ? '<span class="text-green-600 font-bold">✓ Presente</span>' : '<span class="text-red-600 font-bold">✗ Ausente</span>'}</td>
                 <td class="px-2 md:px-4 py-2 text-gray-600 dark:text-gray-400">${asist.observaciones || '-'}</td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
 
         body.innerHTML = `
             <div class="overflow-x-auto -mx-3 md:-mx-6">
