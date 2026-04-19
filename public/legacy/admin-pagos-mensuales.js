@@ -381,17 +381,17 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
 
     const modal = document.createElement('div');
     modal.id = 'modalAsistenciasAlumno';
-    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-2 overflow-y-auto';
     modal.innerHTML = `
-        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                    <h3 class="text-xl font-black text-black dark:text-white">Asistencias de ${nombreCompleto}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Historial de asistencia completa</p>
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col" style="max-height: 80vh; min-height: 300px;">
+            <div class="flex items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="min-w-0">
+                    <h3 class="text-lg md:text-xl font-black text-black dark:text-white truncate">Asistencias de ${nombreCompleto}</h3>
+                    <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400">Historial de asistencia completa</p>
                 </div>
-                <button id="modalAsistenciasCerrar" class="text-gray-500 hover:text-black dark:hover:text-white text-2xl">&times;</button>
+                <button id="modalAsistenciasCerrar" class="text-gray-500 hover:text-black dark:hover:text-white text-2xl flex-shrink-0 ml-4">&times;</button>
             </div>
-            <div id="modalAsistenciasBody" class="p-6 text-sm text-black dark:text-white">
+            <div id="modalAsistenciasBody" class="p-3 md:p-6 text-xs md:text-sm text-black dark:text-white overflow-y-auto flex-1">
                 <div class="text-center py-10 text-gray-500 dark:text-gray-400">Cargando asistencias...</div>
             </div>
         </div>
@@ -420,33 +420,35 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
         }
 
         const rows = data.asistencias.map(asist => `
-            <tr class="border-b border-gray-200 dark:border-gray-700">
-                <td class="px-4 py-3">${asist.fecha}</td>
-                <td class="px-4 py-3">${asist.deporte}</td>
-                <td class="px-4 py-3">${asist.categoria}</td>
-                <td class="px-4 py-3">${asist.dia || '-'}</td>
-                <td class="px-4 py-3">${asist.hora_inicio || '-'} - ${asist.hora_fin || '-'}</td>
-                <td class="px-4 py-3">${asist.presente ? '<span class="text-green-600 font-bold">Presente</span>' : '<span class="text-red-600 font-bold">Ausente</span>'}</td>
-                <td class="px-4 py-3">${asist.observaciones || '-'}</td>
+            <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <td class="px-2 md:px-4 py-2">${asist.fecha}</td>
+                <td class="px-2 md:px-4 py-2">${asist.deporte}</td>
+                <td class="px-2 md:px-4 py-2">${asist.categoria}</td>
+                <td class="px-2 md:px-4 py-2">${asist.dia || '-'}</td>
+                <td class="px-2 md:px-4 py-2 whitespace-nowrap">${asist.hora_inicio || '-'} - ${asist.hora_fin || '-'}</td>
+                <td class="px-2 md:px-4 py-2">${asist.presente ? '<span class="text-green-600 font-bold">✓ Presente</span>' : '<span class="text-red-600 font-bold">✗ Ausente</span>'}</td>
+                <td class="px-2 md:px-4 py-2 text-gray-600 dark:text-gray-400">${asist.observaciones || '-'}</td>
             </tr>
         `).join('');
 
         body.innerHTML = `
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-100 dark:bg-gray-800 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        <tr>
-                            <th class="px-4 py-3">Fecha</th>
-                            <th class="px-4 py-3">Deporte</th>
-                            <th class="px-4 py-3">Categoría</th>
-                            <th class="px-4 py-3">Día</th>
-                            <th class="px-4 py-3">Hora</th>
-                            <th class="px-4 py-3">Asistencia</th>
-                            <th class="px-4 py-3">Obs.</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
+            <div class="overflow-x-auto -mx-3 md:-mx-6">
+                <div class="inline-block min-w-full px-3 md:px-6">
+                    <table class="w-full text-left border-collapse text-xs md:text-sm">
+                        <thead class="bg-gray-100 dark:bg-gray-800 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 sticky top-0">
+                            <tr>
+                                <th class="px-2 md:px-4 py-3">Fecha</th>
+                                <th class="px-2 md:px-4 py-3">Deporte</th>
+                                <th class="px-2 md:px-4 py-3">Cat.</th>
+                                <th class="px-2 md:px-4 py-3">Día</th>
+                                <th class="px-2 md:px-4 py-3">Hora</th>
+                                <th class="px-2 md:px-4 py-3">Asistencia</th>
+                                <th class="px-2 md:px-4 py-3">Obs.</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
             </div>
         `;
     } catch (error) {
