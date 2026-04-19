@@ -177,9 +177,19 @@ function renderizarPagos(pagos) {
     if (!tbody) return;
 
     tbody.innerHTML = pagos.map(p => {
-        // Guardar deportes en variable global para usar en confirmar
+        // Guardar datos en variable global para usar en acciones rápidas
         window._pagosData = window._pagosData || {};
-        window._pagosData[p.pago_id] = { deportes: p.deportes_inscritos || [], monto: parseFloat(p.monto || 0) };
+        window._pagosData[p.pago_id] = {
+            deportes: p.deportes_inscritos || [],
+            monto: parseFloat(p.monto || 0),
+            dni: p.dni,
+            mes: p.mes,
+            anio: p['año'] || p.anio || '',
+            estado: p.estado,
+            inscripcionIds: (p.deportes_inscritos || []).map(d => d.inscripcion_id).filter(Boolean),
+            telefono: p.telefono,
+            telefonoApoderado: p.telefono_apoderado
+        };
 
         const estadoClase = {
             'pendiente': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -236,11 +246,14 @@ function renderizarPagos(pagos) {
         // Desglose de deportes inscritos
         const deportesHTML = (p.deportes_inscritos && p.deportes_inscritos.length > 0) ? `
             <div class="mt-1.5 flex flex-wrap gap-1">
-                ${p.deportes_inscritos.map(d => `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-[10px] font-semibold text-blue-700 dark:text-blue-300">
-                        ${d.deporte} <span class="text-blue-500">S/${d.precio.toFixed(2)}</span>
-                    </span>
-                `).join('')}
+                ${p.deportes_inscritos.map(d => {
+                    const isCancelada = String(d.estado || '').toLowerCase() === 'cancelada';
+                    return `
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${isCancelada ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'} text-[10px] font-semibold">
+                            ${d.deporte} <span class="${isCancelada ? 'text-red-600' : 'text-blue-500'}">S/${parseFloat(d.precio || 0).toFixed(2)}</span>${isCancelada ? ' (Cancelada)' : ''}
+                        </span>
+                    `;
+                }).join('')}
             </div>
         ` : '';
 
@@ -252,9 +265,27 @@ function renderizarPagos(pagos) {
                     ${deportesHTML}
                     ${observacionBadge}
                 </td>
-                <td class="px-4 py-3 text-sm capitalize font-semibold text-black dark:text-white">${p.mes}</td>
+                <td class="px-4 py-3 text-sm text-black dark:text-white capitalize font-semibold">${p.mes || ''}</td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white">${p['año'] || p.anio || ''}</td>
                 <td class="px-4 py-3 text-sm font-bold text-black dark:text-white">S/ ${parseFloat(p.monto || 0).toFixed(2)}</td>
+                <td class="px-4 py-3 text-sm text-black dark:text-white">
+                    <div class="flex items-center gap-2">
+                        <span>${p.telefono || p.telefono_apoderado || '-'}</span>
+                        ${(p.telefono || p.telefono_apoderado) ? `<button onclick="abrirModalWhatsApp(${p.pago_id})" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white" title="WhatsApp">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.472-.149-.671.149-.198.297-.767.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.447-.52.149-.173.198-.297.298-.497.099-.198.05-.372-.025-.521-.074-.149-.671-1.611-.92-2.207-.242-.579-.487-.5-.671-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.273-.198-.57-.347z"/></svg>
+                        </button>` : ''}
+                    </div>
+                    ${p.telefono ? '<span class="block text-xs text-gray-500 dark:text-gray-400">Alumno</span>' : p.telefono_apoderado ? '<span class="block text-xs text-gray-500 dark:text-gray-400">Apoderado</span>' : ''}
+                </td>
+                <td class="px-4 py-3 text-sm text-black dark:text-white">
+                    ${p.asistencia_resumen && p.asistencia_resumen.total_registros > 0 ? `
+                        <div class="font-semibold">${p.asistencia_resumen.ultimo_presente ? 'Presente' : 'Ausente'}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">${p.asistencia_resumen.total_presentes}P / ${p.asistencia_resumen.total_ausentes}A</div>
+                        <button onclick="abrirModalAsistenciasAlumno('${p.dni}', '${(p.nombres + ' ' + p.apellidos).replace(/'/g, "\\'") }')" class="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg">
+                            <span class="material-symbols-outlined text-sm">visibility</span> Ver asistencias
+                        </button>
+                    ` : '<span class="text-xs text-gray-500 dark:text-gray-400">Sin registros</span>'}
+                </td>
                 <td class="px-4 py-3">
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${estadoClase}">
                         <span class="material-symbols-outlined text-sm">${estadoIcono}</span>
@@ -263,10 +294,305 @@ function renderizarPagos(pagos) {
                 </td>
                 <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${fecha}</td>
                 <td class="px-4 py-3">${comprobanteBtn}</td>
-                <td class="px-4 py-3">${acciones}</td>
+                <td class="px-4 py-3">
+                    ${acciones}
+                    ${(p.deportes_inscritos && p.deportes_inscritos.length > 0) ? `
+                        <button onclick="desactivarNoShow(${p.pago_id})" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors" title="Cancelar inscripciones si el alumno no asistió">
+                            <span class="material-symbols-outlined text-sm">person_remove</span> No vino
+                        </button>
+                    ` : ''}
+                    ${(p.deportes_inscritos && p.deportes_inscritos.some(d => String(d.estado || '').toLowerCase() === 'cancelada')) ? `
+                        <button onclick="reactivarInscripcionesPago(${p.pago_id})" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors" title="Reactivar deportes cancelados">
+                            <span class="material-symbols-outlined text-sm">refresh</span> Reactivar
+                        </button>
+                    ` : (p.deportes_inscritos && p.deportes_inscritos.length > 0 ? '<!-- NO CANCELADOS -->' : '<!-- SIN DEPORTES -->')}
+                </td>
             </tr>
         `;
     }).join('');
+}
+
+function normalizarNumeroParaWhatsApp(numero) {
+    if (!numero) return null;
+    const digits = String(numero).replace(/\D/g, '');
+    if (digits.length === 9) return `51${digits}`;
+    if (digits.length === 10 && digits.startsWith('0')) return `51${digits.slice(1)}`;
+    if (digits.length === 11 && digits.startsWith('51')) return digits;
+    return digits;
+}
+
+function abrirModalWhatsApp(pagoId) {
+    const pagoData = window._pagosData?.[pagoId];
+    if (!pagoData) return;
+    const numeroRaw = pagoData.telefono || pagoData.telefonoApoderado;
+    const numero = normalizarNumeroParaWhatsApp(numeroRaw);
+    if (!numero) {
+        mostrarToast('No hay número válido para WhatsApp', 'error');
+        return;
+    }
+
+    const mensajeDefault = pagoData.estado === 'pendiente'
+        ? `Hola, soy del club Jaguares. Te escribo porque tu pago mensual de ${pagoData.mes || ''} ${pagoData.anio || ''} aún no aparece como confirmado. Por favor revisa o contáctanos.`
+        : `Hola, soy del club Jaguares. Gracias por tu pago. Te cuento que tenemos promociones y novedades para ti.`;
+
+    const existente = document.getElementById('modalWhatsApp');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalWhatsApp';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="size-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center w-12 h-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-6 h-6 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.472-.149-.671.149-.198.297-.767.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.447-.52.149-.173.198-.297.298-.497.099-.198.05-.372-.025-.521-.074-.149-.671-1.611-.92-2.207-.242-.579-.487-.5-.671-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.273-.198-.57-.347z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-xl font-black text-black dark:text-white">Enviar WhatsApp</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Edita el mensaje antes de enviar al contacto.</p>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Número destino</p>
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm text-black dark:text-white">${numero}</div>
+            </div>
+            <textarea id="modalWhatsAppMensaje" rows="6" class="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Escribe el mensaje...">${mensajeDefault}</textarea>
+            <div class="mt-5 flex gap-3 justify-end">
+                <button id="modalWhatsAppCancelar" class="px-5 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm">Cancelar</button>
+                <button id="modalWhatsAppEnviar" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm">Abrir WhatsApp</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.getElementById('modalWhatsAppCancelar').addEventListener('click', () => modal.remove());
+    document.getElementById('modalWhatsAppEnviar').addEventListener('click', () => {
+        const texto = document.getElementById('modalWhatsAppMensaje')?.value || '';
+        const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+        window.open(url, '_blank');
+        modal.remove();
+    });
+}
+
+async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
+    const existente = document.getElementById('modalAsistenciasAlumno');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalAsistenciasAlumno';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 class="text-xl font-black text-black dark:text-white">Asistencias de ${nombreCompleto}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Historial de asistencia completa</p>
+                </div>
+                <button id="modalAsistenciasCerrar" class="text-gray-500 hover:text-black dark:hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="modalAsistenciasBody" class="p-6 text-sm text-black dark:text-white">
+                <div class="text-center py-10 text-gray-500 dark:text-gray-400">Cargando asistencias...</div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.getElementById('modalAsistenciasCerrar').addEventListener('click', () => modal.remove());
+
+    try {
+        const API_BASE = getAPIBase();
+        const token = getToken();
+        const response = await fetch(`${API_BASE}/api/admin/alumnos/${encodeURIComponent(dni)}/asistencias`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        const body = document.getElementById('modalAsistenciasBody');
+        if (!data.success || !Array.isArray(data.asistencias)) {
+            body.innerHTML = `<div class="text-center py-10 text-red-500">No se pudieron cargar las asistencias.</div>`;
+            return;
+        }
+
+        if (data.asistencias.length === 0) {
+            body.innerHTML = `<div class="text-center py-10 text-gray-500 dark:text-gray-400">No hay registros de asistencia para este alumno.</div>`;
+            return;
+        }
+
+        const rows = data.asistencias.map(asist => `
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-3">${asist.fecha}</td>
+                <td class="px-4 py-3">${asist.deporte}</td>
+                <td class="px-4 py-3">${asist.categoria}</td>
+                <td class="px-4 py-3">${asist.dia || '-'}</td>
+                <td class="px-4 py-3">${asist.hora_inicio || '-'} - ${asist.hora_fin || '-'}</td>
+                <td class="px-4 py-3">${asist.presente ? '<span class="text-green-600 font-bold">Presente</span>' : '<span class="text-red-600 font-bold">Ausente</span>'}</td>
+                <td class="px-4 py-3">${asist.observaciones || '-'}</td>
+            </tr>
+        `).join('');
+
+        body.innerHTML = `
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-100 dark:bg-gray-800 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Fecha</th>
+                            <th class="px-4 py-3">Deporte</th>
+                            <th class="px-4 py-3">Categoría</th>
+                            <th class="px-4 py-3">Día</th>
+                            <th class="px-4 py-3">Hora</th>
+                            <th class="px-4 py-3">Asistencia</th>
+                            <th class="px-4 py-3">Obs.</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        const body = document.getElementById('modalAsistenciasBody');
+        if (body) {
+            body.innerHTML = `<div class="text-center py-10 text-red-500">Error al cargar asistencias.</div>`;
+        }
+        console.error('Error al obtener asistencias del alumno:', error);
+    }
+}
+
+async function desactivarNoShow(pagoId) {
+    const pagoData = window._pagosData?.[pagoId];
+    if (!pagoData || !pagoData.deportes?.length) {
+        mostrarToast('No hay inscripciones activas para desactivar', 'error');
+        return;
+    }
+
+    const deportesActivos = pagoData.deportes.filter(d => String(d.estado || '').toLowerCase() !== 'cancelada');
+    if (deportesActivos.length === 0) {
+        mostrarToast('No hay deportes activos disponibles para desactivar', 'error');
+        return;
+    }
+
+    mostrarModalSeleccionDeportes({
+        title: 'No vino',
+        description: 'Selecciona los deportes que el alumno no asistió y deseas cancelar.',
+        confirmText: 'Desactivar seleccionados',
+        deportes: deportesActivos,
+        onConfirm: async (inscripcionIds) => {
+            const API_BASE = getAPIBase();
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/desactivar-inscripciones`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dni: pagoData.dni, inscripcion_ids: inscripcionIds })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    mostrarToast('Inscripciones desactivadas correctamente', 'success');
+                    cargarPagosMensuales();
+                } else {
+                    mostrarToast(data.error || 'No se pudo desactivar', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error al desactivar inscripciones:', error);
+                mostrarToast('Error de conexión', 'error');
+            }
+        }
+    });
+}
+
+function reactivarInscripcionesPago(pagoId) {
+    const pagoData = window._pagosData?.[pagoId];
+    if (!pagoData || !pagoData.deportes?.length) {
+        mostrarToast('No hay inscripciones canceladas para reactivar', 'error');
+        return;
+    }
+
+    const deportesCancelados = pagoData.deportes.filter(d => String(d.estado || '').toLowerCase() === 'cancelada');
+    if (deportesCancelados.length === 0) {
+        mostrarToast('No hay inscripciones canceladas para reactivar', 'error');
+        return;
+    }
+
+    mostrarModalSeleccionDeportes({
+        title: 'Reactivar deporte',
+        description: 'Selecciona los deportes cancelados que deseas reactivar.',
+        confirmText: 'Reactivar seleccionados',
+        deportes: deportesCancelados,
+        onConfirm: async (inscripcionIds) => {
+            const API_BASE = getAPIBase();
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reactivar-inscripciones`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dni: pagoData.dni, inscripcion_ids: inscripcionIds })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    mostrarToast('Inscripciones reactivadas correctamente', 'success');
+                    cargarPagosMensuales();
+                } else {
+                    mostrarToast(data.error || 'No se pudo reactivar', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error al reactivar inscripciones:', error);
+                mostrarToast('Error de conexión', 'error');
+            }
+        }
+    });
+}
+
+function mostrarModalSeleccionDeportes({ title, description, confirmText, deportes, onConfirm }) {
+    const existente = document.getElementById('modalSeleccionDeportes');
+    if (existente) existente.remove();
+
+    const opcionesHTML = deportes.map((d, index) => `
+        <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+            <div>
+                <div class="text-sm font-semibold text-black dark:text-white">${d.deporte}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">S/ ${parseFloat(d.precio || 0).toFixed(2)}</div>
+            </div>
+            <input type="checkbox" class="checkbox-inscripcion-no-vino" value="${d.inscripcion_id || ''}" checked>
+        </label>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'modalSeleccionDeportes';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex justify-between items-start gap-4 mb-4">
+                <div>
+                    <h3 class="text-xl font-black text-black dark:text-white">${title}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${description}</p>
+                </div>
+                <button id="modalSeleccionDeportesCerrar" class="text-gray-500 hover:text-black dark:hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="space-y-3 mb-4">
+                ${opcionesHTML}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">Si dejas todo desmarcado no se hará ninguna acción.</div>
+            <div class="flex gap-3 justify-end">
+                <button id="modalSeleccionDeportesCancelar" class="px-5 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm">Cancelar</button>
+                <button id="modalSeleccionDeportesConfirmar" class="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm">${confirmText}</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.getElementById('modalSeleccionDeportesCerrar').addEventListener('click', () => modal.remove());
+    document.getElementById('modalSeleccionDeportesCancelar').addEventListener('click', () => modal.remove());
+    document.getElementById('modalSeleccionDeportesConfirmar').addEventListener('click', () => {
+        const checkboxes = Array.from(document.querySelectorAll('.checkbox-inscripcion-no-vino'));
+        const seleccionados = checkboxes.filter(cb => cb.checked).map(cb => cb.value).filter(Boolean);
+        if (seleccionados.length === 0) {
+            mostrarToast('Selecciona al menos un deporte', 'error');
+            return;
+        }
+        modal.remove();
+        onConfirm(seleccionados);
+    });
 }
 
 // ==================== MODAL PERSONALIZADO ====================
