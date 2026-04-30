@@ -244,7 +244,7 @@ const html = `
                         <span class="material-symbols-outlined text-primary text-xl flex-shrink-0">call</span>
                         <div class="flex-1 min-w-0">
                             <p class="text-xs text-text-muted dark:text-gray-500 uppercase font-bold">Teléfono</p>
-                            <a href="tel:+51973324460" class="text-sm sm:text-base font-bold text-text-main dark:text-white hover:text-primary transition-colors break-all">+51 973 324 460</a>
+                            <a id="contactPhoneLink" href="tel:+51973324460" class="text-sm sm:text-base font-bold text-text-main dark:text-white hover:text-primary transition-colors break-all">+51 973 324 460</a>
                         </div>
                     </div>
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -353,6 +353,19 @@ export default function Consulta() {
 
     (async () => {
       try {
+        // Cargar configuración de pagos desde API
+        const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
+        const response = await fetch(`${API_BASE}/api/admin/landing-content`);
+        const data = await response.json();
+        if (data.success && data.data.pagos && data.data.pagos.plin) {
+          const phoneLink = document.getElementById('contactPhoneLink');
+          if (phoneLink) {
+            const phoneNumber = data.data.pagos.plin.numero.replace(/\D/g, '');
+            phoneLink.href = `tel:+${phoneNumber}`;
+            phoneLink.textContent = data.data.pagos.plin.numero;
+          }
+        }
+
         await loadScript('/legacy/api-service-v2.js');
         await loadScript('/legacy/consulta-v2.js');
         await loadScript('/legacy/mobile-menu.js');

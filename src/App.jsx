@@ -20,6 +20,7 @@ import ProfesorAsistencias from './pages/ProfesorAsistencias.jsx';
 import ProfesorRanking from './pages/ProfesorRanking.jsx';
 import ProfesorReportes from './pages/ProfesorReportes.jsx';
 import AdminLandingEditor from './pages/AdminLandingEditor.jsx';
+import AdminPaymentConfig from './pages/AdminPaymentConfig.jsx';
 import AdminPagosMensuales from './pages/AdminPagosMensuales.jsx';
 import DisciplineDetail from './pages/DisciplineDetail.jsx';
 import PoliticaPrivacidad from './pages/PoliticaPrivacidad.jsx';
@@ -59,6 +60,7 @@ export default function App() {
       ['/profesor-ranking', 'profesor-ranking'],
       ['/profesor-reportes', 'profesor-reportes'],
       ['/admin-landing-editor', 'admin-landing-editor'],
+      ['/admin-payment-config', 'admin-payment-config'],
       ['/admin-pagos-mensuales', 'admin-pagos-mensuales'],
       ['/politica-privacidad', 'politica-privacidad']
     ]);
@@ -93,6 +95,7 @@ export default function App() {
     'admin-crud': <AdminCrud />,
     'admin-reubicaciones': <AdminReubicaciones />,
     'admin-dashboard': <AdminDashboard />,
+    'admin-payment-config': <AdminPaymentConfig />,
     'admin-pagos-mensuales': <AdminPagosMensuales />,
     'admin-legacy': <AdminLegacy />,
   }[route.name];

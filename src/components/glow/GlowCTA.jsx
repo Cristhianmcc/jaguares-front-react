@@ -1,16 +1,39 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, MapPin, Phone, Mail } from "lucide-react";
 import EditableText from '../EditableText.jsx';
 
 const GlowCTA = ({ ctaData, onUpdateCTA }) => {
+  const [contactData, setContactData] = useState({
+    telefono: "+51 973 324 460"
+  });
+
   const defaultCta = {
     titulo: "SUMATE A\nJAGUARES",
     descripcion: "Empieza hoy tu camino deportivo. Inscripciones abiertas para todas las disciplinas.",
     ubicacion: "Lima, Peru",
-    telefono: "+51 973 324 460",
+    telefono: contactData.telefono,
     email: "fcrealjosegalvez10@gmail.com"
   };
+
+  // Cargar configuración de pagos desde API
+  useEffect(() => {
+    const loadPaymentConfig = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
+        const response = await fetch(`${API_BASE}/api/admin/landing-content`);
+        const data = await response.json();
+        if (data.success && data.data.pagos && data.data.pagos.plin) {
+          setContactData({
+            telefono: data.data.pagos.plin.numero
+          });
+        }
+      } catch (error) {
+        console.error('Error loading payment config:', error);
+      }
+    };
+    loadPaymentConfig();
+  }, []);
 
   const withFallback = (value, fallback) => {
     if (typeof value !== "string") return fallback;
@@ -21,7 +44,7 @@ const GlowCTA = ({ ctaData, onUpdateCTA }) => {
     titulo: withFallback(ctaData?.titulo, defaultCta.titulo),
     descripcion: withFallback(ctaData?.descripcion, defaultCta.descripcion),
     ubicacion: withFallback(ctaData?.ubicacion, defaultCta.ubicacion),
-    telefono: withFallback(ctaData?.telefono, defaultCta.telefono),
+    telefono: withFallback(ctaData?.telefono, contactData.telefono),
     email: withFallback(ctaData?.email, defaultCta.email)
   };
 

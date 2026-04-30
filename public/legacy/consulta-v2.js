@@ -7,8 +7,43 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
     : 'https://api.jaguarescar.com';
 
 let datosUsuario = null;
+let configPagosConsultaReady = false;
+let configPagosConsultaPromise = null;
+let configPagosConsulta = {
+    plin: { numero: '+51973324460', destinatario: 'Oscar Orosco', qr_url: 'assets/plinqr.jpeg' }
+};
+
+// Cargar configuración de pagos al inicio
+async function cargarConfigPagosConsulta() {
+    try {
+        if (configPagosConsultaReady) return configPagosConsulta;
+        if (configPagosConsultaPromise) return configPagosConsultaPromise;
+
+        configPagosConsultaPromise = (async () => {
+            const response = await fetch(`${API_BASE}/api/admin/landing-content`, { cache: 'no-store' });
+        const data = await response.json();
+        if (data.success && data.data.pagos) {
+            configPagosConsulta = data.data.pagos;
+            configPagosConsultaReady = true;
+
+            // Si la vista de pago ya está renderizada, volver a pintarla para que use la config nueva
+            if (document.getElementById('zonaPagoMensual')) {
+                renderizarSeccionPagoMensual();
+            }
+        }
+            return configPagosConsulta;
+        })();
+
+        return configPagosConsultaPromise;
+    } catch (error) {
+        console.error('Error cargando configuración de pagos:', error);
+        configPagosConsultaPromise = null;
+        return configPagosConsulta;
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
+    cargarConfigPagosConsulta();
     inicializarConsulta();
 });
 
@@ -69,7 +104,7 @@ async function consultarPorDNI(dni) {
             
             // Pago confirmado - permitir acceso
             datosUsuario = resultado; // El resultado ya contiene alumno, pago, horarios
-            mostrarResultados();
+            await mostrarResultados();
         } else {
             // Verificar si el usuario está inactivo
             if (resultado.inactivo) {
@@ -112,7 +147,7 @@ async function consultarPorDNI(dni) {
     }
 }
 
-function mostrarResultados() {
+async function mostrarResultados() {
     // Ocultar vista de ingreso
     document.getElementById('vistaIngreso').classList.add('hidden');
     
@@ -151,6 +186,7 @@ function mostrarResultados() {
     renderizarHorarios();
     
     // Renderizar sección de pago Mensual
+    await cargarConfigPagosConsulta();
     renderizarSeccionPagoMensual();
 }
 
@@ -1338,6 +1374,25 @@ function renderizarSeccionPagoMensual() {
                         </p>
                     </div>
                 </div>
+
+                <!-- Información de Plin -->
+                <div class="bg-green-50 dark:bg-green-900/10 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <span class="material-symbols-outlined text-green-600 text-lg">qr_code_scanner</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs text-green-700 dark:text-green-300 font-bold uppercase mb-2">Pagar por Plin</p>
+                            <p class="text-sm font-black text-green-900 dark:text-green-100 mb-2">${configPagosConsulta.plin?.numero || '+51973324460'}</p>
+                            <p class="text-xs text-green-700 dark:text-green-300 mb-2">A nombre de: ${configPagosConsulta.plin?.destinatario || 'Oscar Orosco'}</p>
+                            ${configPagosConsulta.plin?.qr_url ? `
+                                <button onclick="mostrarQRConsulta(configPagosConsulta.plin.qr_url)" class="text-xs bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1 rounded transition-colors">
+                                    Ver código QR
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Zona de subida -->
@@ -1831,8 +1886,75 @@ async function confirmarAgregarHorario(inscripcionId) {
     }
 }
 
+/**
+ * Mostrar modal con código QR de Plin
+ */
+function mostrarQRConsulta(qrUrl) {
+    const existente = document.getElementById('modalQRConsulta');
+    if (existente) existente.remove();
 
+    const qrUrlActual = qrUrl ? (qrUrl.includes('?') ? `${qrUrl}&t=${Date.now()}` : `${qrUrl}?t=${Date.now()}`) : 'assets/plinqr.jpeg';
 
+    const modal = document.createElement('div');
+    modal.id = 'modalQRConsulta';
+    modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-surface-dark rounded-2xl shadow-2xl max-w-sm w-full p-6 relative">
+            <button onclick="cerrarModalQRConsulta()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                <span class="material-symbols-outlined text-2xl">close</span>
+            </button>
 
+            <div class="text-center">
+                <div class="inline-block p-4 bg-green-100 dark:bg-green-900/30 rounded-2xl mb-4">
+                    <span class="material-symbols-outlined text-6xl text-green-600 dark:text-green-400">qr_code_scanner</span>
+                </div>
+                
+                <h3 class="text-2xl font-black text-black dark:text-white mb-2 uppercase">Código QR - Plin</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    Escanea este código con tu celular para realizar el pago
+                </p>
+
+                <div class="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 mb-6 flex items-center justify-center">
+                    <img src="${qrUrlActual}" alt="Código QR Plin" class="w-full max-w-xs h-auto rounded-lg" onerror="this.src='assets/plinqr.jpeg'">
+                </div>
+
+                <div class="space-y-3">
+                    <a href="${qrUrlActual}" download class="inline-block w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined">download</span>
+                        Descargar QR
+                    </a>
+                    
+                    <button onclick="cerrarModalQRConsulta()" class="w-full py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold rounded-lg transition-colors">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) cerrarModalQRConsulta();
+    });
+
+    // Cerrar con Escape
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            cerrarModalQRConsulta();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
+function cerrarModalQRConsulta() {
+    const modal = document.getElementById('modalQRConsulta');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+}
 
 

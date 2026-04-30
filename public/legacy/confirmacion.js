@@ -8,6 +8,7 @@ let matriculaActivaGlobal = true; // Por defecto activa
 
 // Variables para comprobantes seleccionados en la página de confirmación
 let capturaConfirmacion = null;
+let comprobantePlinConf = null;
 let comprobanteBBVAConf = null;
 let comprobanteBCPConf = null;
 let comprobanteEfectivoConf = null;
@@ -32,9 +33,249 @@ async function verificarMatriculaActiva() {
     }
 }
 
+/**
+ * Carga datos de pagos desde landing-content.json
+ */
+async function cargarConfiguracionPagos() {
+    console.log('🚀 cargarConfiguracionPagos() INICIADO');
+    console.log('🌐 API_BASE_CONFIRM:', API_BASE_CONFIRM);
+    
+    try {
+        console.log('📡 Haciendo fetch a:', `${API_BASE_CONFIRM}/api/admin/landing-content`);
+        const response = await fetch(`${API_BASE_CONFIRM}/api/admin/landing-content`);
+        console.log('📡 Response status:', response.status, response.statusText);
+        
+        const data = await response.json();
+        console.log('🔍 Respuesta API completa:', data);
+        console.log('🔍 data.success:', data.success);
+        console.log('🔍 data.data:', data.data);
+        console.log('🔍 data.data?.pagos:', data.data?.pagos);
+        
+        if (data.success && data.data && data.data.pagos) {
+            const pagos = data.data.pagos;
+            console.log('✅ Pagos recibidos correctamente:', pagos);
+            
+            if (pagos.plin) {
+                console.log('✅ PLIN encontrado:', pagos.plin);
+                const plinDestinatarioEl = document.getElementById('plinDestinatario');
+                console.log('📍 Elemento plinDestinatario:', plinDestinatarioEl);
+                
+                if (plinDestinatarioEl) {
+                    const nuevoTexto = `${pagos.plin.destinatario} - ${pagos.plin.numero}`;
+                    plinDestinatarioEl.textContent = nuevoTexto;
+                    console.log('✅ PLIN destinatario actualizado a:', nuevoTexto);
+                } else {
+                    console.error('❌ Elemento plinDestinatario NO existe en el DOM');
+                }
+                
+                // Agregar timestamp para cache-busting
+                const qrUrl = pagos.plin.qr_url;
+                const timestamp = new Date().getTime();
+                const qrUrlWithTimestamp = qrUrl.includes('?') ? `${qrUrl}&t=${timestamp}` : `${qrUrl}?t=${timestamp}`;
+                console.log('📸 QR original:', qrUrl);
+                console.log('📸 QR con timestamp:', qrUrlWithTimestamp);
+                
+                const plinQrUrlEl = document.getElementById('plinQrUrl');
+                console.log('📍 Elemento plinQrUrl:', plinQrUrlEl);
+                
+                if (plinQrUrlEl) {
+                    plinQrUrlEl.value = qrUrlWithTimestamp;
+                    console.log('✅ QR URL actualizado');
+                } else {
+                    console.error('❌ Elemento plinQrUrl NO existe en el DOM');
+                }
+            } else {
+                console.warn('⚠️ PLIN NO encontrado en pagos. Estructura pagos:', Object.keys(pagos));
+            }
+            
+            // Actualizar datos dinámicos de BBVA y BCP
+            console.log('🏦 Actualizando BBVA/BCP con:', pagos.transferencias);
+            actualizarDatosBancos(pagos.transferencias || []);
+            
+            // Si hay transferencias (array), renderizarlas dinámicamente
+            if (pagos.transferencias && Array.isArray(pagos.transferencias)) {
+                console.log('🔄 Renderizando transferencias:', pagos.transferencias.length, 'bancos');
+                renderTransferencias(pagos.transferencias);
+            }
+        } else {
+            console.error('❌ Respuesta API inválida:');
+            console.error('  - success:', data.success);
+            console.error('  - data existe:', !!data.data);
+            console.error('  - pagos existe:', !!data.data?.pagos);
+        }
+    } catch (error) {
+        console.error('❌ Error en cargarConfiguracionPagos:', error);
+        console.error('Stack:', error.stack);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('📍 DOMContentLoaded disparado');
     cargarDatosConfirmacion();
 });
+
+/**
+ * Render transferencias dinámicamente en el contenedor `bancosContainer`.
+ */
+function getGradientForBank(code) {
+    switch ((code || '').toUpperCase()) {
+        case 'BBVA': return 'linear-gradient(90deg,#2563eb 0%,#1d4ed8 100%)';
+        case 'BCP': return 'linear-gradient(90deg,#dc2626 0%,#ea580c 100%)';
+        default: return 'linear-gradient(90deg,#64748b 0%,#374151 100%)';
+    }
+}
+
+/**
+ * Actualiza dinámicamente los datos de BBVA y BCP en el DOM
+ */
+function actualizarDatosBancos(transferencias) {
+    if (!Array.isArray(transferencias)) return;
+    
+    transferencias.forEach(function(banco) {
+        const codigo = (banco.codigo || banco.nombre || '').toUpperCase();
+        
+        if (codigo === 'BBVA') {
+            if (document.getElementById('bbvaCuenta')) {
+                document.getElementById('bbvaCuenta').textContent = banco.cuenta || '';
+            }
+            if (document.getElementById('bbvaCCI')) {
+                document.getElementById('bbvaCCI').textContent = banco.cci || '';
+            }
+            if (document.getElementById('bbvaTitular')) {
+                document.getElementById('bbvaTitular').textContent = banco.titular || '';
+            }
+            if (document.getElementById('bbvaNombre')) {
+                document.getElementById('bbvaNombre').textContent = banco.nombre || 'BBVA';
+            }
+        } else if (codigo === 'BCP') {
+            if (document.getElementById('bcpCuenta')) {
+                document.getElementById('bcpCuenta').textContent = banco.cuenta || '';
+            }
+            if (document.getElementById('bcpCCI')) {
+                document.getElementById('bcpCCI').textContent = banco.cci || '';
+            }
+            if (document.getElementById('bcpTitular')) {
+                document.getElementById('bcpTitular').textContent = banco.titular || '';
+            }
+            if (document.getElementById('bcpNombre')) {
+                document.getElementById('bcpNombre').textContent = banco.nombre || 'BCP';
+            }
+        }
+    });
+}
+
+function renderTransferencias(transferencias) {
+    const container = document.getElementById('bancosContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    const renderedCodes = new Set();
+
+    transferencias.forEach(function(b) {
+        const codigo = (b.codigo || b.nombre || 'BANCO').toString();
+        const codeUpper = codigo.toUpperCase().replace(/\s+/g, '');
+
+        // BBVA y BCP se muestran en bloques fijos; OTRO es un placeholder que no debe mostrarse.
+        if (codeUpper === 'BBVA' || codeUpper === 'BCP' || codeUpper === 'OTRO') {
+            return;
+        }
+
+        if (renderedCodes.has(codeUpper)) {
+            return;
+        }
+        renderedCodes.add(codeUpper);
+
+        const codeLower = codigo.toLowerCase().replace(/\s+/g, '');
+        const capitalized = codeLower.charAt(0).toUpperCase() + codeLower.slice(1);
+        const gradient = getGradientForBank(codeUpper);
+        const logo = b.logo || '';
+        const cuenta = b.cuenta || '';
+        const cci = b.cci || '';
+        const titular = b.titular || '';
+
+        const html = `
+            <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
+                <button onclick="toggleMetodoPagoConf('${codeLower}')" class="w-full flex items-center justify-between p-4 transition-all" style="background:${gradient};">
+                    <div class="flex items-center gap-3">
+                        ${logo ? `<img src="${logo}" alt="${codigo}" class="h-8 object-contain bg-white rounded-lg px-2 py-1">` : `<div class="size-9 bg-white rounded-lg flex items-center justify-center px-1"><span class="material-symbols-outlined text-white text-lg">payments</span></div>`}
+                        <div class="text-left">
+                            <p class="font-black text-lg" style="color:#ffffff;">${b.nombre || codigo}</p>
+                            <p class="text-xs" style="color:#fef9c3;">Transferencia Bancaria</p>
+                        </div>
+                    </div>
+                    <span id="icon${capitalized}Conf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
+                </button>
+                <div id="content${capitalized}Conf" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-gray-200 dark:border-white/10 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
+                    <div class="space-y-3">
+                        <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-gray-200 dark:border-white/10">
+                            <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-1 font-medium uppercase">Cuenta Ahorros</p>
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-base font-black text-gray-900 dark:text-white font-mono">${cuenta}</p>
+                                <button onclick="copiarCuentaConf('${cuenta}', event)" class="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
+                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-gray-200 dark:border-white/10">
+                            <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-1 font-medium uppercase">CCI</p>
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-base font-black text-gray-900 dark:text-white font-mono">${cci}</p>
+                                <button onclick="copiarCuentaConf('${cci}', event)" class="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
+                                    <span class="material-symbols-outlined text-sm">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-white/10 rounded-lg p-2 border border-gray-200 dark:border-white/10">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-gray-600 text-base">person</span>
+                                <div>
+                                    <p class="text-[10px] text-gray-600 dark:text-gray-400 font-medium">Titular</p>
+                                    <p class="text-xs font-bold text-gray-900 dark:text-gray-100">${titular}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-gray-200 dark:border-white/10">
+                            <div class="flex flex-col gap-2">
+                                <p class="text-xs text-text-main/70 dark:text-white/70 font-medium flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">upload_file</span>
+                                    ¿Ya transferiste?
+                                </p>
+                                <input type="file" id="inputComprobante${codeUpper}Conf" accept="image/*" class="hidden" onchange="handleComprobanteConf(event, '${codeUpper}')">
+                                <button onclick="document.getElementById('inputComprobante${codeUpper}Conf').click()" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all">
+                                    <span class="material-symbols-outlined text-base">add_photo_alternate</span>
+                                    <span>Subir Comprobante</span>
+                                </button>
+                                <div id="preview${codeUpper}Conf" class="hidden mt-2 bg-white/90 dark:bg-white/10 rounded-lg p-2">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <p class="text-[10px] font-bold text-blue-600 flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-xs">check_circle</span>
+                                            Adjunto
+                                        </p>
+                                        <button onclick="eliminarComprobanteConf('${codeUpper}')" class="text-red-600 hover:text-red-700">
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                    <img id="imagenPreview${codeUpper}Conf" src="" alt="Preview" class="w-full object-contain rounded" style="max-height:180px;display:block;">
+                                    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
+                                        <label class="text-xs font-bold text-gray-700 dark:text-gray-400 flex items-center gap-1 mb-0.5">
+                                            <span class="material-symbols-outlined text-sm">pin</span>
+                                            Nro. de Operación (obligatorio)
+                                        </label>
+                                        <p class="text-[11px] text-gray-600/80 dark:text-gray-400/70 mb-2 leading-tight">Ingresa el número de operación de la transferencia.</p>
+                                        <input type="text" data-numop="true" placeholder="Ej: 00012345678" maxlength="50" oninput="syncNumeroOperacionConf(this)" class="w-full px-3 py-2.5 bg-white dark:bg-black/20 border-2 border-gray-300 dark:border-gray-700 rounded-lg text-base font-mono font-bold text-text-main dark:text-white placeholder:text-text-main/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition-all">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    });
+}
 
 async function cargarDatosConfirmacion() {
     const datosInscripcion = LocalStorage.get('datosInscripcion');
@@ -68,6 +309,11 @@ async function cargarDatosConfirmacion() {
     
     // Renderizar
     renderizarConfirmacion(alumno, horariosCompletos, deportesConMatricula);
+
+    // Cargar pagos después de insertar el HTML de confirmación para que existan los nodos del DOM
+    setTimeout(() => {
+        cargarConfiguracionPagos();
+    }, 0);
 }
 
 /**
@@ -442,7 +688,8 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                     <div id="contentPlinConf" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-green-200 dark:border-green-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
                         <div class="flex flex-col gap-3">
                             <!-- BOTÓN QR -->
-                            <button onclick="abrirModalQRConf('assets/plinqr.jpeg', 'Plin')" class="flex flex-col items-center gap-3 p-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] group w-full" style="background:linear-gradient(145deg,#16a34a 0%,#166534 100%);">
+                            <button onclick="abrirModalQRConf(document.getElementById('plinQrUrl').value, 'Plin')" class="flex flex-col items-center gap-3 p-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] group w-full" style="background:linear-gradient(145deg,#16a34a 0%,#166534 100%);">
+                                <input type="hidden" id="plinQrUrl" value="assets/plinqr.jpeg">
                                 <div class="size-12 bg-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                                     <span class="material-symbols-outlined text-green-600 text-4xl font-bold">qr_code_scanner</span>
                                 </div>
@@ -458,7 +705,7 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                     <span class="material-symbols-outlined text-green-600 text-xl">person</span>
                                     <div>
                                         <p class="text-[10px] text-text-main/50 dark:text-white/50 font-medium uppercase">Destinatario</p>
-                                        <p class="text-sm font-black text-text-main dark:text-white">Oscar Orosco - 973 324 460</p>
+                                        <p id="plinDestinatario" class="text-sm font-black text-text-main dark:text-white">Cargando...</p>
                                     </div>
                                 </div>
                             </div>
@@ -502,58 +749,50 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                     </div>
                 </div>
 
-                <!-- ACORDEÓN: BBVA -->
+                <!-- ACORDEÓN: BBVA (dinámico) -->
                 <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
-                    <!-- HEADER BBVA -->
                     <button onclick="toggleMetodoPagoConf('bbva')" class="w-full flex items-center justify-between p-4 transition-all" style="background:linear-gradient(90deg,#2563eb 0%,#1d4ed8 100%);">
                         <div class="flex items-center gap-3">
                             <img src="assets/logo-bbva.jpg" alt="BBVA" class="h-8 object-contain bg-white rounded-lg px-2 py-1">
                             <div class="text-left">
-                                <p class="font-black text-lg" style="color:#ffffff;">BBVA</p>
+                                <p class="font-black text-lg" style="color:#ffffff;" id="bbvaNombre">BBVA</p>
                                 <p class="text-xs" style="color:#dbeafe;">Transferencia Bancaria</p>
                             </div>
                         </div>
                         <span id="iconBbvaConf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
                     </button>
-                    
-                    <!-- CONTENIDO BBVA (OCULTO POR DEFECTO) -->
                     <div id="contentBbvaConf" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-blue-200 dark:border-blue-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
                         <div class="space-y-3">
-                        <div class="space-y-3">
-                            <!-- Cuenta BBVA -->
                             <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                                 <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-1 font-medium uppercase">Cuenta Ahorros</p>
                                 <div class="flex items-center justify-between gap-2">
-                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono">001108140277791167</p>
-                                    <button onclick="copiarCuentaConf('001108140277791167', event)" class="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
+                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono" id="bbvaCuenta">001108140277791167</p>
+                                    <button onclick="copiarCuentaConf(document.getElementById('bbvaCuenta').textContent, event)" class="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
                                         <span class="material-symbols-outlined text-sm">content_copy</span>
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- CCI BBVA -->
+
                             <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                                 <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-1 font-medium uppercase">CCI</p>
                                 <div class="flex items-center justify-between gap-2">
-                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono">01181400027779116714</p>
-                                    <button onclick="copiarCuentaConf('01181400027779116714', event)" class="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
+                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono" id="bbvaCCI">01181400027779116714</p>
+                                    <button onclick="copiarCuentaConf(document.getElementById('bbvaCCI').textContent, event)" class="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
                                         <span class="material-symbols-outlined text-sm">content_copy</span>
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- Titular BBVA -->
+
                             <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 border border-blue-200 dark:border-blue-800">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-blue-600 text-base">person</span>
                                     <div>
                                         <p class="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Titular</p>
-                                        <p class="text-xs font-bold text-blue-900 dark:text-blue-100">Oscar Orosco</p>
+                                        <p class="text-xs font-bold text-blue-900 dark:text-blue-100" id="bbvaTitular">Oscar Orosco</p>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Subir Comprobante BBVA -->
+
                             <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                                 <div class="flex flex-col gap-2">
                                     <p class="text-xs text-text-main/70 dark:text-white/70 font-medium flex items-center gap-1">
@@ -576,7 +815,6 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                             </button>
                                         </div>
                                         <img id="imagenPreviewBBVAConf" src="" alt="Preview" class="w-full object-contain rounded" style="max-height:180px;display:block;">
-                                        <!-- Nro Operación dentro de BBVA -->
                                         <div class="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
                                             <label class="text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1 mb-0.5">
                                                 <span class="material-symbols-outlined text-sm">pin</span>
@@ -592,57 +830,50 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                     </div>
                 </div>
 
-                <!-- ACORDEÓN: BCP -->
+                <!-- ACORDEÓN: BCP (dinámico) -->
                 <div class="border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
-                    <!-- HEADER BCP -->
                     <button onclick="toggleMetodoPagoConf('bcp')" class="w-full flex items-center justify-between p-4 transition-all" style="background:linear-gradient(90deg,#dc2626 0%,#ea580c 100%);">
                         <div class="flex items-center gap-3">
                             <img src="assets/logo-bcp.jpg" alt="BCP" class="h-8 object-contain bg-white rounded-lg px-2 py-1">
                             <div class="text-left">
-                                <p class="font-black text-lg" style="color:#ffffff;">BCP</p>
+                                <p class="font-black text-lg" style="color:#ffffff;" id="bcpNombre">BCP</p>
                                 <p class="text-xs" style="color:#ffedd5;">Transferencia Bancaria</p>
                             </div>
                         </div>
                         <span id="iconBcpConf" class="material-symbols-outlined text-2xl transition-transform" style="color:#ffffff;">expand_more</span>
                     </button>
-                    
-                    <!-- CONTENIDO BCP (OCULTO POR DEFECTO) -->
                     <div id="contentBcpConf" class="hidden bg-gray-50 dark:bg-white/5 p-4 border-t border-red-200 dark:border-red-800 overflow-hidden transition-all duration-300 ease-in-out" style="max-height: 0; opacity: 0;">
                         <div class="space-y-3">
-                            <!-- Cuenta BCP -->
                             <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-red-200 dark:border-red-800">
                                 <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-1 font-medium uppercase">Cuenta Ahorros</p>
                                 <div class="flex items-center justify-between gap-2">
-                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono">19407824258089</p>
-                                    <button onclick="copiarCuentaConf('19407824258089', event)" class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
+                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono" id="bcpCuenta">19407824258089</p>
+                                    <button onclick="copiarCuentaConf(document.getElementById('bcpCuenta').textContent, event)" class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
                                         <span class="material-symbols-outlined text-sm">content_copy</span>
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- CCI BCP -->
+
                             <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-red-200 dark:border-red-800">
                                 <p class="text-[10px] text-gray-600 dark:text-gray-400 mb-1 font-medium uppercase">CCI</p>
                                 <div class="flex items-center justify-between gap-2">
-                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono">00219410782425808997</p>
-                                    <button onclick="copiarCuentaConf('00219410782425808997', event)" class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
+                                    <p class="text-base font-black text-gray-900 dark:text-white font-mono" id="bcpCCI">00219410782425808997</p>
+                                    <button onclick="copiarCuentaConf(document.getElementById('bcpCCI').textContent, event)" class="flex items-center gap-1 px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs transition-all flex-shrink-0">
                                         <span class="material-symbols-outlined text-sm">content_copy</span>
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- Titular BCP -->
+
                             <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-2 border border-red-200 dark:border-red-800">
                                 <div class="flex items-center gap-2">
                                     <span class="material-symbols-outlined text-red-600 text-base">person</span>
                                     <div>
                                         <p class="text-[10px] text-red-600 dark:text-red-400 font-medium">Titular</p>
-                                        <p class="text-xs font-bold text-red-900 dark:text-red-100">Oscar Orosco Aldonate</p>
+                                        <p class="text-xs font-bold text-red-900 dark:text-red-100" id="bcpTitular">Oscar Orosco Aldonate</p>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- Subir Comprobante BCP -->
+
                             <div class="bg-white dark:bg-white/10 rounded-lg p-3 border border-red-200 dark:border-red-800">
                                 <div class="flex flex-col gap-2">
                                     <p class="text-xs text-text-main/70 dark:text-white/70 font-medium flex items-center gap-1">
@@ -665,7 +896,6 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                                             </button>
                                         </div>
                                         <img id="imagenPreviewBCPConf" src="" alt="Preview" class="w-full object-contain rounded" style="max-height:180px;display:block;">
-                                        <!-- Nro Operación dentro de BCP -->
                                         <div class="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
                                             <label class="text-xs font-bold text-red-700 dark:text-red-400 flex items-center gap-1 mb-0.5">
                                                 <span class="material-symbols-outlined text-sm">pin</span>
@@ -680,6 +910,9 @@ function renderizarConfirmacion(alumno, horarios, deportesConMatricula = []) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Contenedor adicional para otros bancos dinámicos -->
+                <div id="bancosContainer"></div>
             </div>
         </div>
 
@@ -1302,7 +1535,8 @@ function procesarImagenConf(file, onSuccess) {
 function handleCapturaPagoConf(event) {
     var file = event.target.files[0];
     procesarImagenConf(file, function(base64, nombre) {
-        capturaConfirmacion = { nombre: nombre, tipo: 'image/jpeg', base64: base64, banco: 'Plin' };
+        comprobantePlinConf = { nombre: nombre, tipo: 'image/jpeg', base64: base64, banco: 'Plin' };
+        capturaConfirmacion = comprobantePlinConf;
         // Actualizar preview en el acordeón de Plin
         var preview = document.getElementById('previewPlinConf');
         var imagen = document.getElementById('imagenPreviewPlinConf');
@@ -1351,6 +1585,9 @@ function eliminarComprobanteConf(tipo) {
     // También ocultar preview del modal QR si existe
     var previewModal = document.getElementById('previewCapturaConf');
     if (previewModal) previewModal.classList.add('hidden');
+    if (tipo === 'plin') {
+        comprobantePlinConf = null;
+    }
     if (tipo === 'BBVA') { comprobanteBBVAConf = null; if (capturaConfirmacion && capturaConfirmacion.banco === 'BBVA') capturaConfirmacion = null; }
     else if (tipo === 'BCP') { comprobanteBCPConf = null; if (capturaConfirmacion && capturaConfirmacion.banco === 'BCP') capturaConfirmacion = null; }
     else if (tipo === 'plin') {
@@ -1358,7 +1595,7 @@ function eliminarComprobanteConf(tipo) {
         var inputPlin = document.getElementById('inputCapturaPlinConf');
         if (inputPlin) inputPlin.value = '';
     } else { comprobanteEfectivoConf = null; if (capturaConfirmacion && capturaConfirmacion.banco === 'Efectivo') capturaConfirmacion = null; }
-    if (!capturaConfirmacion) capturaConfirmacion = comprobanteBBVAConf || comprobanteBCPConf || comprobanteEfectivoConf || null;
+    if (!capturaConfirmacion) capturaConfirmacion = comprobantePlinConf || comprobanteBBVAConf || comprobanteBCPConf || comprobanteEfectivoConf || null;
     if (!capturaConfirmacion) {
         var banner = document.getElementById('bannerComprobanteConf');
         if (banner) banner.classList.add('hidden');

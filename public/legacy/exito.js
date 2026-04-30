@@ -2,6 +2,15 @@
  * Script para la página de éxito
  */
 
+// Variables globales para configuración de pagos
+let configPagos = {
+    plin: {
+        numero: '+51973324460',
+        destinatario: 'Oscar Orosco',
+        qr_url: 'assets/plinqr.jpeg'
+    }
+};
+
 // Función auxiliar para esperar a que un elemento exista en el DOM
 function waitForElementExito(selector, timeout = 5000) {
     return new Promise((resolve, reject) => {
@@ -30,13 +39,35 @@ function waitForElementExito(selector, timeout = 5000) {
     });
 }
 
+// API_BASE dinámico
+const API_BASE_EXITO = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3002'
+    : 'https://api.jaguarescar.com';
+
+/**
+ * Carga configuración de pagos desde API
+ */
+async function cargarConfiguracionPagosExito() {
+    try {
+        const response = await fetch(`${API_BASE_EXITO}/api/admin/landing-content`);
+        const data = await response.json();
+        if (data.success && data.data.pagos) {
+            configPagos = data.data.pagos;
+        }
+    } catch (error) {
+        console.error('Error cargando configuración de pagos:', error);
+    }
+}
+
 // Ejecutar cuando el script se carga (React lo carga después del DOM)
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        cargarConfiguracionPagosExito();
         cargarDatosExito();
     });
 } else {
     // DOM ya está listo (caso de React)
+    cargarConfiguracionPagosExito();
     cargarDatosExito();
 }
 
@@ -495,10 +526,11 @@ function consultarEstado() {
 }
 
 function copiarNumero(event) {
-    const numero = '973324460'; // Sin espacios para copiar
+    const numeroCompleto = configPagos.plin?.numero || '+51973324460';
+    const numero = numeroCompleto.replace(/\D/g, ''); // Sin espacios para copiar
     
     navigator.clipboard.writeText(numero).then(() => {
-        Utils.mostrarNotificacion('Número copiado: 973 324 460', 'success');
+        Utils.mostrarNotificacion(`Número copiado: ${numeroCompleto}`, 'success');
         
         // Cambiar temporalmente el texto del botón si existe el evento
         if (event) {
@@ -518,7 +550,7 @@ function copiarNumero(event) {
         }
     }).catch(err => {
         console.error('Error al copiar:', err);
-        Utils.mostrarNotificacion('No se pudo copiar. Usa: 973 324 460', 'warning');
+        Utils.mostrarNotificacion(`No se pudo copiar. Usa: ${numeroCompleto}`, 'warning');
     });
 }
 
