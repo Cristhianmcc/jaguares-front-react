@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script para el formulario de inscripción
  */
 
@@ -56,6 +56,15 @@ export function initInscripcion() {
 
     // Cargar datos guardados si existen
     cargarDatosGuardados();
+    
+    // VERIFICAR SI VIENE DE "INSCRIBIRSE EN OTRO DEPORTE"
+    const urlParams = new URLSearchParams(window.location.search);
+    const nuevoDeporteParam = urlParams.get('nuevo_deporte');
+    const dniParam = urlParams.get('dni');
+    
+    if (nuevoDeporteParam === '1' && dniParam) {
+        autocompletarDatosExistentes(dniParam);
+    }
     
     // Listener para detectar si es Menor de edad
     fechaNacimientoInput.addEventListener('change', verificarEdad);
@@ -451,5 +460,74 @@ async function handleSubmit(e) {
     window.location.href = 'seleccion-horarios-new.html';
 }
 
-
-
+async function autocompletarDatosExistentes(dni) {
+    try {
+        Utils.mostrarNotificacion('Obteniendo tus datos para inscripción...', 'info');
+        
+        // El API service ya está instanciado globalmente o podemos usar fetch directo
+        const response = await fetch(`/api/consultar/${dni}`);
+        const data = await response.json();
+        
+        if (data.success && data.datosUsuario && data.datosUsuario.alumno) {
+            const alumno = data.datosUsuario.alumno;
+            
+            // Llenar inputs
+            document.getElementById('dni').value = alumno.dni || dni;
+            document.getElementById('nombres').value = alumno.nombres || '';
+            document.getElementById('apellido_paterno').value = alumno.apellido_paterno || '';
+            document.getElementById('apellido_materno').value = alumno.apellido_materno || '';
+            document.getElementById('telefono').value = alumno.telefono || '';
+            document.getElementById('direccion').value = alumno.direccion || '';
+            document.getElementById('email').value = alumno.email || '';
+            document.getElementById('seguro_tipo').value = alumno.seguro_tipo || '';
+            document.getElementById('condicion_medica').value = alumno.condicion_medica || '';
+            
+            if (alumno.fecha_nacimiento) {
+                // Formato devuelto suele ser YYYY-MM-DDT... o YYYY-MM-DD
+                const fecha = alumno.fecha_nacimiento.split('T')[0];
+                const partes = fecha.split('-');
+                if (partes.length === 3) {
+                    const selAnio = document.getElementById('anio_nac');
+                    const selMes = document.getElementById('mes_nac');
+                    const selDia = document.getElementById('dia_nac');
+                    if (selAnio) selAnio.value = partes[0];
+                    if (selMes) selMes.value = partes[1];
+                    if (selDia) selDia.value = partes[2];
+                    
+                    document.getElementById('fecha_nacimiento').value = fecha;
+                    document.getElementById('fecha_nacimiento').dispatchEvent(new Event('change'));
+                }
+            }
+            
+            if (alumno.sexo) {
+                const radioSexo = document.querySelector(`input[name="sexo"][value="${alumno.sexo}"]`);
+                if (radioSexo) radioSexo.checked = true;
+            }
+            
+            if (alumno.apoderado) {
+                document.getElementById('apoderado').value = alumno.apoderado || '';
+                document.getElementById('telefono_apoderado').value = alumno.telefono_apoderado || '';
+            }
+            
+            // Hacer el DNI readonly para evitar que lo cambien y rompan la validación bypass
+            const dniInput = document.getElementById('dni');
+            dniInput.readOnly = true;
+            dniInput.classList.add('bg-gray-100');
+            
+            // BYPASS de la validación estricta de DNI
+            dniValidado = true;
+            
+            const helper = document.getElementById('dni-helper');
+            if (helper) {
+                helper.classList.remove('hidden');
+                helper.textContent = '✓ Datos cargados correctamente';
+                helper.className = 'text-sm text-green-600 mt-1 font-semibold';
+            }
+            
+            Utils.mostrarNotificacion('Datos completados. Por favor sube las fotos requeridas para continuar.', 'success');
+        }
+    } catch (error) {
+        console.error('Error al autocompletar:', error);
+        Utils.mostrarNotificacion('No se pudieron cargar tus datos. Por favor, llénalos manualmente.', 'warning');
+    }
+}

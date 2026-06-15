@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script para la página de consulta de estado
  */
 
@@ -21,16 +21,16 @@ async function cargarConfigPagosConsulta() {
 
         configPagosConsultaPromise = (async () => {
             const response = await fetch(`${API_BASE}/api/admin/landing-content`, { cache: 'no-store' });
-        const data = await response.json();
-        if (data.success && data.data.pagos) {
-            configPagosConsulta = data.data.pagos;
-            configPagosConsultaReady = true;
+            const data = await response.json();
+            if (data.success && data.data.pagos) {
+                configPagosConsulta = data.data.pagos;
+                configPagosConsultaReady = true;
 
-            // Si la vista de pago ya está renderizada, volver a pintarla para que use la config nueva
-            if (document.getElementById('zonaPagoMensual')) {
-                renderizarSeccionPagoMensual();
+                // Si la vista de pago ya está renderizada, volver a pintarla para que use la config nueva
+                if (document.getElementById('zonaPagoMensual')) {
+                    renderizarSeccionPagoMensual();
+                }
             }
-        }
             return configPagosConsulta;
         })();
 
@@ -49,26 +49,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function inicializarConsulta() {
     const formConsulta = document.getElementById('formConsulta');
-    
+
     // Verificar si viene desde URL con DNI
     const params = new URLSearchParams(window.location.search);
     const dniUrl = params.get('dni');
-    
+
     if (dniUrl) {
         document.getElementById('dniConsulta').value = dniUrl;
         consultarPorDNI(dniUrl);
     }
-    
+
     // Manejar submit del formulario
     formConsulta.addEventListener('submit', async (e) => {
         e.preventDefault();
         const dni = document.getElementById('dniConsulta').value.trim();
-        
+
         if (dni.length !== 8 || !/^\d+$/.test(dni)) {
             mostrarNotificacion('Por favor ingrese un DNI válido de 8 dígitos', 'error');
             return;
         }
-        
+
         await consultarPorDNI(dni);
     });
 }
@@ -80,15 +80,15 @@ async function consultarPorDNI(dni) {
         <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-black"></div>
         <span>Consultando...</span>
     `;
-    
+
     try {
         // Buscar inscripción por DNI
         const resultado = await academiaAPI.consultarInscripcion(dni);
-        
+
         if (resultado.success) {
             // ✅ VALIDACIÓN: Verificar que el pago esté confirmado
             const estadoPago = resultado.pago.estado ? resultado.pago.estado.toLowerCase().trim() : '';
-            
+
             if (estadoPago !== 'confirmado' && estadoPago !== 'activo') {
                 // Pago no confirmado - mostrar Mensaje y no permitir acceso
                 console.log('📋 Resultado completo:', resultado);
@@ -101,7 +101,7 @@ async function consultarPorDNI(dni) {
                 `;
                 return;
             }
-            
+
             // Pago confirmado - permitir acceso
             datosUsuario = resultado; // El resultado ya contiene alumno, pago, horarios
             await mostrarResultados();
@@ -116,7 +116,7 @@ async function consultarPorDNI(dni) {
                 `;
                 return;
             }
-            
+
             mostrarNotificacion(resultado.error || 'No se encontró ninguna inscripción con ese DNI', 'error');
             btnSubmit.disabled = false;
             btnSubmit.innerHTML = `
@@ -135,7 +135,7 @@ async function consultarPorDNI(dni) {
             `;
             return;
         }
-        
+
         // Solo mostrar error en consola si NO es 403
         console.error('Error al consultar:', error);
         mostrarNotificacion('Error al consultar. Intente nuevamente.', 'error');
@@ -150,22 +150,22 @@ async function consultarPorDNI(dni) {
 async function mostrarResultados() {
     // Ocultar vista de ingreso
     document.getElementById('vistaIngreso').classList.add('hidden');
-    
+
     // Mostrar vista de resultados
     document.getElementById('vistaResultados').classList.remove('hidden');
-    
+
     // Mostrar info de usuario en header (desktop y móvil)
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
     const userInfoMobile = document.getElementById('userInfoMobile');
     const userNameMobile = document.getElementById('userNameMobile');
-    
+
     const nombreCompleto = `${datosUsuario.alumno.nombres} ${datosUsuario.alumno.apellidos}`;
-    
+
     userInfo.classList.remove('hidden');
     userInfo.classList.add('flex');
     userName.textContent = nombreCompleto;
-    
+
     // Actualizar móvil también
     if (userInfoMobile && userNameMobile) {
         userInfoMobile.classList.remove('hidden');
@@ -175,16 +175,16 @@ async function mostrarResultados() {
     userName.textContent = datosUsuario.alumno.nombres || 'Usuario';
     userInfo.classList.remove('hidden');
     userInfo.classList.add('flex');
-    
+
     // Renderizar estado de inscripción
     renderizarEstado();
-    
+
     // Renderizar datos del alumno
     renderizarDatosAlumno();
-    
+
     // Renderizar horarios
     renderizarHorarios();
-    
+
     // Renderizar sección de pago Mensual
     await cargarConfigPagosConsulta();
     renderizarSeccionPagoMensual();
@@ -197,10 +197,10 @@ function mostrarPagoNoConfirmado(resultado) {
     const vistaIngreso = document.getElementById('vistaIngreso');
     const datosPago = resultado.pago;
     const dni = resultado.alumno.dni;
-    
+
     // Guardar DNI globalmente para el modal de subida tardía
     window.dniUsuarioActual = dni;
-    
+
     // Crear HTML del Mensaje (sin ocultarlo del DOM, solo reemplazamos el contenido)
     vistaIngreso.innerHTML = `
         <div class="w-full max-w-[600px] flex flex-col gap-8">
@@ -309,13 +309,13 @@ function mostrarPagoNoConfirmado(resultado) {
 function renderizarEstado() {
     const container = document.getElementById('estadoInscripcion');
     const estado = datosUsuario.pago.estado || 'pendiente';
-    
+
     let colorBorde = 'border-yellow-500';
     let colorFondo = 'bg-yellow-50 dark:bg-yellow-900/10';
     let colorTexto = 'text-yellow-800 dark:text-yellow-200';
     let icono = 'pending';
     let Mensaje = 'Tu inscripción está pendiente de confirmación. Recuerda enviar tu comprobante de pago.';
-    
+
     if (estado.toLowerCase() === 'confirmado' || estado.toLowerCase() === 'activo') {
         colorBorde = 'border-green-500';
         colorFondo = 'bg-green-50 dark:bg-green-900/10';
@@ -329,7 +329,7 @@ function renderizarEstado() {
         icono = 'cancel';
         Mensaje = 'Tu inscripción no pudo ser procesada. Contacta con administración.';
     }
-    
+
     container.className = `bg-surface-light dark:bg-surface-dark rounded-xl p-6 md:p-8 shadow-xl border-l-4 ${colorBorde}`;
     container.innerHTML = `
         <div class="flex items-start gap-4">
@@ -358,7 +358,7 @@ function renderizarEstado() {
 
 function renderizarDatosAlumno() {
     const container = document.getElementById('datosAlumno');
-    
+
     container.innerHTML = `
         <div class="flex items-center gap-4 mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
             <div class="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
@@ -403,7 +403,7 @@ function renderizarDatosAlumno() {
 
 function renderizarHorarios() {
     const container = document.getElementById('horariosInscritos');
-    
+
     if (!datosUsuario.horarios || datosUsuario.horarios.length === 0) {
         container.innerHTML = `
             <div class="col-span-2 text-center py-8">
@@ -413,7 +413,7 @@ function renderizarHorarios() {
         `;
         return;
     }
-    
+
     // Agrupar horarios por deporte (inscripcion_id)
     const deportesAgrupados = {};
     datosUsuario.horarios.forEach(horario => {
@@ -439,21 +439,21 @@ function renderizarHorarios() {
 
     // Sin restricción de días - se puede pausar cualquier día del mes
     const puedePausar = true;
-    
+
     container.innerHTML = Object.values(deportesAgrupados).map(deporte => {
         const icono = obtenerIconoDeporte(deporte.deporte);
         const esSuspendido = deporte.estado === 'suspendida';
         const esPendiente = deporte.estado === 'pendiente';
-        
+
         // Clases condicionales según estado
         const cardClasses = esSuspendido || esPendiente
-            ? 'bg-gray-100 dark:bg-gray-800/50 opacity-70 border-gray-300 dark:border-gray-700' 
+            ? 'bg-gray-100 dark:bg-gray-800/50 opacity-70 border-gray-300 dark:border-gray-700'
             : 'bg-white dark:bg-[#222] border-gray-100 dark:border-gray-800 hover:border-primary dark:hover:border-primary';
-        
+
         const iconBgClasses = esSuspendido || esPendiente
             ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
             : 'bg-primary/10 text-primary';
-        
+
         // Botón de acción
         let botonAccion = '';
         if (esPendiente) {
@@ -494,7 +494,7 @@ function renderizarHorarios() {
                 </div>
             `;
         }
-        
+
         // Lista de horarios (con botón eliminar si hay más de 1 y la inscripción está activa)
         const totalDiasDeporte = deporte.horarios.length;
         const horariosHtml = deporte.horarios.map(h => `
@@ -527,7 +527,7 @@ function renderizarHorarios() {
                 Dejar Deporte
             </button>
         ` : '';
-        
+
         return `
             <div class="rounded-lg p-5 shadow-md border transition-all ${cardClasses}">
                 <div class="flex items-start gap-4 mb-3">
@@ -581,9 +581,9 @@ function renderizarHorarios() {
  */
 function mostrarModalToggleDeporte(inscripcionId, accion) {
     const nombreDeporte = Object.values(datosUsuario.horarios).find(h => h.inscripcion_id === inscripcionId)?.deporte || 'el deporte';
-    
+
     const esPausar = accion === 'pausar';
-    
+
     const config = esPausar ? {
         titulo: 'Pausar Deporte',
         icono: 'pause_circle',
@@ -605,11 +605,11 @@ function mostrarModalToggleDeporte(inscripcionId, accion) {
         btnClass: 'bg-green-500 hover:bg-green-600',
         btnIcon: 'play_arrow'
     };
-    
+
     // Remover modal anterior si existe
     const existente = document.getElementById('modalToggleDeporte');
     if (existente) existente.remove();
-    
+
     const modal = document.createElement('div');
     modal.id = 'modalToggleDeporte';
     modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
@@ -651,15 +651,15 @@ function mostrarModalToggleDeporte(inscripcionId, accion) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
-    
+
     // Cerrar con click fuera
     modal.addEventListener('click', (e) => {
         if (e.target === modal) cerrarModalToggleDeporte();
     });
-    
+
     // Cerrar con Escape
     const handleEscape = (e) => {
         if (e.key === 'Escape') {
@@ -793,22 +793,22 @@ async function ejecutarDejarDeporte(inscripcionId) {
  */
 async function ejecutarToggleDeporte(inscripcionId, accion) {
     const dni = datosUsuario.alumno.dni;
-    
+
     // Cambiar botón a loading
     const btnConfirmar = document.querySelector('#modalToggleDeporte button:last-child');
     if (btnConfirmar) {
         btnConfirmar.disabled = true;
         btnConfirmar.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div><span class="ml-2">Procesando...</span>';
     }
-    
+
     try {
         const resultado = await academiaAPI.toggleDeporte(dni, inscripcionId, accion);
-        
+
         cerrarModalToggleDeporte();
-        
+
         if (resultado.success) {
             mostrarNotificacion(resultado.message, 'success');
-            
+
             // Actualizar datos y re-renderizar
             const nuevosDatos = await academiaAPI.consultarInscripcion(dni, true);
             if (nuevosDatos.success) {
@@ -856,7 +856,7 @@ function formatearHora(horaString) {
     if (horaString && /^\d{1,2}:\d{2}$/.test(horaString)) {
         return horaString;
     }
-    
+
     // Si es un timestamp ISO, convertirlo a hora de Lima
     try {
         const fecha = new Date(horaString);
@@ -871,27 +871,27 @@ function formatearHora(horaString) {
     } catch (e) {
         console.error('Error al formatear hora:', e);
     }
-    
+
     // Si no se puede parsear, devolver el string original
     return horaString || '';
 }
 
 function cerrarSesion() {
     datosUsuario = null;
-    
+
     // Ocultar vista de resultados
     document.getElementById('vistaResultados').classList.add('hidden');
-    
+
     // Mostrar vista de ingreso
     document.getElementById('vistaIngreso').classList.remove('hidden');
-    
+
     // Ocultar info de usuario
     document.getElementById('userInfo').classList.add('hidden');
     document.getElementById('userInfo').classList.remove('flex');
-    
+
     // Limpiar formulario
     document.getElementById('dniConsulta').value = '';
-    
+
     // Restaurar botón
     const btnSubmit = document.querySelector('#formConsulta button[type="submit"]');
     btnSubmit.disabled = false;
@@ -907,17 +907,17 @@ function cerrarSesion() {
 function mostrarModalInactivo(dni) {
     const modal = document.getElementById('modalInactivo');
     const modalDni = document.getElementById('modalInactivoDni');
-    
+
     modalDni.textContent = dni;
-    
+
     // Guardar DNI globalmente para usar en la subida de comprobante
     window.dniUsuarioInactivo = dni;
-    
+
     // Actualizar link de WhatsApp con DNI
     const whatsappBtn = document.getElementById('btnWhatsAppInactivo');
     const MensajeWhatsApp = `Hola, acabo de subir mi comprobante de pago para reactivar mi membresía. Mi DNI es: ${dni}`;
     whatsappBtn.href = `https://wa.me/51973324460?text=${encodeURIComponent(MensajeWhatsApp)}`;
-    
+
     // Resetear el formulario de subida si existe
     const inputComprobante = document.getElementById('inputComprobanteInactivo');
     if (inputComprobante) {
@@ -926,11 +926,11 @@ function mostrarModalInactivo(dni) {
         document.getElementById('previewComprobanteInactivo').classList.add('hidden');
         document.getElementById('btnSubirComprobanteInactivo').disabled = true;
     }
-    
+
     // Mostrar modal
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    
+
     // Prevenir scroll del body
     document.body.style.overflow = 'hidden';
 }
@@ -949,7 +949,7 @@ function previsualizarComprobanteInactivo(event) {
 
     const img = new Image();
     const url = URL.createObjectURL(file);
-    img.onload = function() {
+    img.onload = function () {
         URL.revokeObjectURL(url);
         const maxW = 1024;
         let w = img.width, h = img.height;
@@ -964,7 +964,7 @@ function previsualizarComprobanteInactivo(event) {
         document.getElementById('previewComprobanteInactivo').classList.remove('hidden');
         document.getElementById('btnSubirComprobanteInactivo').disabled = false;
     };
-    img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
+    img.onerror = function () { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
     img.src = url;
 }
 
@@ -974,44 +974,48 @@ function previsualizarComprobanteInactivo(event) {
 async function subirComprobanteInactivo() {
     const input = document.getElementById('inputComprobanteInactivo');
     const file = input.files[0];
-    
+
     if (!file) {
         mostrarNotificacion('Por favor selecciona un comprobante', 'error');
         return;
     }
-    
+
     const dni = window.dniUsuarioInactivo;
     if (!dni) {
         mostrarNotificacion('Error: No se pudo identificar el DNI', 'error');
         return;
     }
-    
+
     const btn = document.getElementById('btnSubirComprobanteInactivo');
     btn.disabled = true;
     btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div><span>Subiendo...</span>';
-    
+
     try {
         // Usar base64 comprimido generado al previsualizar
         const base64 = window._base64Inactivo;
         if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+
+        // Obtener mes actual para el nombre y registro
+        const hoy = new Date();
+        const mesAnio = hoy.toLocaleString('es-PE', { month: 'long', year: 'numeric' }).replace(' ', '-');
 
         // Usar el endpoint de pago Mensual (que es el que usa el modal de inactivo para regularizar)
         const resultado = await academiaAPI.subirPagoMensual({
             dni: dni,
             alumno: `Usuario DNI ${dni}`, // No tenemos el nombre completo aquí
             imagen: base64,
-            nombre_archivo: `REGULARIZACION_${dni}_${file.name}`,
-            mes: 'Regularización',
+            nombre_archivo: `REGULARIZACION_${mesAnio}_${dni}_${file.name}`,
+            mes: mesAnio,
             monto: 0, // El admin verificará el monto correcto
             esRegularizacion: true
         });
-        
+
         if (resultado.success) {
             mostrarModalExitoComprobanteInactivo();
         } else {
             throw new Error(resultado.error || 'Error al subir comprobante');
         }
-        
+
     } catch (error) {
         console.error('❌ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante. Intenta nuevamente.', 'error');
@@ -1026,7 +1030,7 @@ async function subirComprobanteInactivo() {
 function mostrarModalExitoComprobanteInactivo() {
     // Cerrar modal de inactivo primero
     cerrarModalInactivo();
-    
+
     const modal = document.createElement('div');
     modal.id = 'modalExitoComprobanteInactivo';
     modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in';
@@ -1071,7 +1075,7 @@ function mostrarModalExitoComprobanteInactivo() {
             </button>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
 }
@@ -1081,7 +1085,7 @@ function cerrarModalExitoComprobanteInactivo() {
     if (modal) {
         modal.remove();
         document.body.style.overflow = '';
-        
+
         // Redirigir al inicio después de cerrar
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -1096,7 +1100,7 @@ function cerrarModalInactivo() {
     const modal = document.getElementById('modalInactivo');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
-    
+
     // Restaurar scroll del body
     document.body.style.overflow = '';
 }
@@ -1127,7 +1131,7 @@ function abrirModalSubirComprobante() {
         mostrarNotificacion('Error: No se pudo identificar el DNI', 'error');
         return;
     }
-    
+
     const modal = document.createElement('div');
     modal.id = 'modalSubirComprobante';
     modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4';
@@ -1185,7 +1189,7 @@ function abrirModalSubirComprobante() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
 }
@@ -1209,7 +1213,7 @@ function previsualizarComprobante(event) {
 
     const img = new Image();
     const url = URL.createObjectURL(file);
-    img.onload = function() {
+    img.onload = function () {
         URL.revokeObjectURL(url);
         const maxW = 1024;
         let w = img.width, h = img.height;
@@ -1221,14 +1225,14 @@ function previsualizarComprobante(event) {
         document.getElementById('imgPreview').src = window._base64Tardio;
         document.getElementById('previsualizacionComprobante').classList.remove('hidden');
     };
-    img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
+    img.onerror = function () { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
     img.src = url;
 }
 
 async function subirComprobanteTardio() {
     const input = document.getElementById('inputComprobanteTardio');
     const file = input.files[0];
-    
+
     if (!file) {
         mostrarNotificacion('Por favor selecciona un comprobante', 'error');
         return;
@@ -1245,12 +1249,12 @@ async function subirComprobanteTardio() {
         mostrarNotificacion('Debes ingresar el número de operación de tu comprobante', 'error');
         return;
     }
-    
+
     const dni = window.dniUsuarioActual;
     const btn = document.getElementById('btnSubirComprobante');
     btn.disabled = true;
     btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-black"></div><span>Subiendo...</span>';
-    
+
     try {
         // Usar base64 comprimido generado al previsualizar
         const base64 = window._base64Tardio;
@@ -1263,11 +1267,11 @@ async function subirComprobanteTardio() {
             metodo_pago: 'Transferencia/Plin',
             numero_operacion: numOp
         });
-        
+
         if (resultado.success) {
             mostrarNotificacion('Comprobante subido exitosamente. El administrador lo revisará pronto.', 'success');
             cerrarModalSubirComprobante();
-            
+
             // Recargar después de 2 segundos
             setTimeout(() => {
                 location.reload();
@@ -1275,7 +1279,7 @@ async function subirComprobanteTardio() {
         } else {
             throw new Error(resultado.error || 'Error al subir comprobante');
         }
-        
+
     } catch (error) {
         console.error('❌ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante', 'error');
@@ -1292,22 +1296,22 @@ async function subirComprobanteTardio() {
 function renderizarSeccionPagoMensual() {
     // Obtener el contenedor
     const container = document.getElementById('seccionPagoMensual');
-    
+
     if (!container) {
         console.error('❌ No se encontró el contenedor seccionPagoMensual');
         return;
     }
-    
+
     // Calcular mes actual de pago
     const hoy = new Date();
     const mesActual = hoy.toLocaleString('es-PE', { month: 'long' });
     const mesPago = hoy.toLocaleString('es-PE', { month: 'long', year: 'numeric' });
-    
+
     // Verificar si hay deportes pausados
     const deportesPausados = datosUsuario.horarios?.filter(h => h.estado_inscripcion === 'suspendida') || [];
     const deportesPausadosUnicos = [...new Set(deportesPausados.map(h => h.deporte))];
     const hayDeportesPausados = deportesPausadosUnicos.length > 0;
-    
+
     // Nota de deportes pausados
     const notaDeportesPausados = hayDeportesPausados ? `
         <div class="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-3 border border-orange-200 dark:border-orange-800 mt-2">
@@ -1320,7 +1324,7 @@ function renderizarSeccionPagoMensual() {
             </div>
         </div>
     ` : '';
-    
+
     container.innerHTML = `
         <!-- Aviso importante -->
         <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-5 mb-6">
@@ -1439,7 +1443,7 @@ function previsualizarPagoMensual(event) {
 
     const img = new Image();
     const url = URL.createObjectURL(file);
-    img.onload = function() {
+    img.onload = function () {
         URL.revokeObjectURL(url);
         const maxW = 1024;
         let w = img.width, h = img.height;
@@ -1453,7 +1457,7 @@ function previsualizarPagoMensual(event) {
         document.getElementById('iconoSubidaMensual').classList.add('hidden');
         document.getElementById('previewPagoMensual').classList.remove('hidden');
     };
-    img.onerror = function() { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
+    img.onerror = function () { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
     img.src = url;
 }
 
@@ -1467,7 +1471,7 @@ async function subirPagoMensual() {
 
     const input = document.getElementById('inputPagoMensual');
     const file = input.files[0];
-    
+
     if (!file) {
         mostrarNotificacion('Primero selecciona la foto de tu comprobante de pago', 'error');
         input.click();
@@ -1475,11 +1479,11 @@ async function subirPagoMensual() {
     }
 
     _subiendoPagoMensual = true;
-    
+
     const btn = document.getElementById('btnSubirPagoMensual');
     btn.disabled = true;
     btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div><span>Subiendo a Drive...</span>';
-    
+
     try {
         // Usar base64 comprimido generado al previsualizar
         const base64 = window._base64Mensual;
@@ -1488,7 +1492,7 @@ async function subirPagoMensual() {
         // Obtener mes actual para el nombre
         const hoy = new Date();
         const mesAnio = hoy.toLocaleString('es-PE', { month: 'long', year: 'numeric' }).replace(' ', '-');
-        
+
         // Subir usando el endpoint de pago Mensual
         const resultado = await academiaAPI.subirPagoMensual({
             dni: datosUsuario.alumno.dni,
@@ -1498,7 +1502,7 @@ async function subirPagoMensual() {
             mes: mesAnio,
             monto: datosUsuario.pago.monto
         });
-        
+
         if (resultado.success) {
             if (resultado.duplicado) {
                 mostrarNotificacion('Ya tienes un comprobante registrado para este mes. No es necesario enviarlo de nuevo.', 'info');
@@ -1510,7 +1514,7 @@ async function subirPagoMensual() {
         } else {
             throw new Error(resultado.error || 'Error al subir comprobante');
         }
-        
+
     } catch (error) {
         console.error('❌ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante', 'error');
@@ -1569,7 +1573,7 @@ function mostrarModalExitoPagoMensual(driveUrl) {
             </button>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
 }
@@ -1579,7 +1583,7 @@ function cerrarModalExitoPagoMensual() {
     if (modal) {
         modal.remove();
         document.body.style.overflow = '';
-        
+
         // Resetear el formulario
         document.getElementById('inputPagoMensual').value = '';
         document.getElementById('iconoSubidaMensual').classList.remove('hidden');
@@ -1777,8 +1781,8 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
         const clavesInscritas = new Set(horariosInscritos.map(h => `${h.dia}-${h.hora_inicio}`));
 
         // Obtener horarios de OTROS deportes activos para detectar cruces
-        const horariosOtrosDeportes = datosUsuario.horarios.filter(h => 
-            h.inscripcion_id !== inscripcionId && 
+        const horariosOtrosDeportes = datosUsuario.horarios.filter(h =>
+            h.inscripcion_id !== inscripcionId &&
             (h.estado_inscripcion === 'activa' || !h.estado_inscripcion)
         );
 

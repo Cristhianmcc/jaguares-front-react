@@ -1139,9 +1139,15 @@ function imprimirReporte() {
 function formatearFecha(fecha) {
   if (!fecha) return 'N/A';
   // Extraer solo la parte YYYY-MM-DD (funciona tanto para "2016-06-19" como "2016-06-19T00:00:00.000Z")
-  // y usar T12:00:00 para evitar desfase UTC-5 (Perú)
+  // y parsear como hora local para evitar desfase UTC-5 (Perú)
   const datePart = typeof fecha === 'string' ? fecha.substring(0, 10) : null;
-  const d = datePart ? new Date(datePart + 'T12:00:00') : new Date(fecha);
+  let d;
+  if (datePart) {
+    const parts = datePart.split('-');
+    d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 12, 0, 0);
+  } else {
+    d = new Date(fecha);
+  }
   return d.toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
@@ -1235,8 +1241,8 @@ async function verAsistenciasAlumno(dni, nombre) {
 
         // Determinar mes más reciente con datos
         const fechas = data.asistencias.map(a => {
-            const solo = a.fecha.split('T')[0];
-            return new Date(solo + 'T12:00:00');
+            const parts = a.fecha.split('T')[0].split('-');
+            return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 12, 0, 0);
         });
         const maxFecha = new Date(Math.max(...fechas));
         renderCalendarioAsistencias(maxFecha.getFullYear(), maxFecha.getMonth(), data);
@@ -1295,7 +1301,8 @@ function renderCalendarioAsistencias(anio, mes, data, filtroDeporte) {
 
     // Calcular meses disponibles (sobre datos filtrados o todos para navegación)
     const mesesConDatos = [...new Set(asistenciasFiltradas.map(a => {
-        const d = new Date(a.fecha.split('T')[0] + 'T12:00:00');
+        const parts = a.fecha.split('T')[0].split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 12, 0, 0);
         return `${d.getFullYear()}-${d.getMonth()}`;
     }))].sort().reverse();
     const mesActualKey = `${anio}-${mes}`;
@@ -1483,7 +1490,8 @@ function renderCalendarioAsistencias(anio, mes, data, filtroDeporte) {
 function mostrarDetalleDiaAsistencia(fecha, registros) {
     const cont = document.getElementById('detalleDiaAsistencia');
     if (!cont) return;
-    const d = new Date(fecha + 'T12:00:00');
+    const parts = fecha.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]), 12, 0, 0);
     const fechaStr = d.toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
     cont.innerHTML = `
         <div style="margin-top:14px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
