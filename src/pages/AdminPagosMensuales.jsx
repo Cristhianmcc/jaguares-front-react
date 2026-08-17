@@ -64,18 +64,22 @@ const html = `
                                class="bg-transparent border-none focus:outline-none text-sm font-semibold w-full text-black dark:text-white placeholder:text-gray-400">
                     </div>
                     <!-- Filtro deporte/grupo -->
-                    <select id="filtroDeporte" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[170px]">
-                        <option value="">Todos los grupos</option>
+                    <select id="filtroDeporte" onchange="onCambioDeporte(this.value)" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[170px]">
+                        <option value="">Todos los deportes</option>
+                    </select>
+                    <!-- Filtro categoría (se carga dinámicamente al elegir deporte) -->
+                    <select id="filtroCategoria" onchange="cargarPagosMensuales()" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[170px]">
+                        <option value="">Todas las categorías</option>
                     </select>
                     <!-- Filtro estado -->
-                    <select id="filtroEstado" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[160px]">
+                    <select id="filtroEstado" onchange="cargarPagosMensuales()" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[160px]">
                         <option value="todos">Todos los estados</option>
                         <option value="pendiente" selected>Pendientes</option>
                         <option value="confirmado">Confirmados</option>
                         <option value="rechazado">Rechazados</option>
                     </select>
                     <!-- Filtro mes -->
-                    <select id="filtroMes" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[150px]">
+                    <select id="filtroMes" onchange="cargarPagosMensuales()" class="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-black dark:text-white min-w-[150px]">
                         <option value="">Todos los meses</option>
                         <option value="enero">Enero</option>
                         <option value="febrero">Febrero</option>
@@ -134,8 +138,9 @@ const html = `
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
+    // Eliminar versión anterior para garantizar que siempre se ejecuta el código más reciente
     const existing = document.querySelector(`script[src="${src}"]`);
-    if (existing) { resolve(false); return; }
+    if (existing) existing.remove();
     const s = document.createElement('script');
     s.src = src;
     s.onload = () => resolve(true);

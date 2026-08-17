@@ -73,7 +73,15 @@ function configurarFiltros() {
     if (selectMes) selectMes.addEventListener('change', () => cargarPagosMensuales());
 
     const selectDeporte = document.getElementById('filtroDeporte');
-    if (selectDeporte) selectDeporte.addEventListener('change', () => cargarPagosMensuales());
+    if (selectDeporte) selectDeporte.addEventListener('change', () => {
+        // Al cambiar deporte: recargar categorías y luego pagos
+        cargarCategoriasPorDeporte(selectDeporte.value);
+        cargarPagosMensuales();
+    });
+
+    // Listener de categoría
+    const selectCategoria = document.getElementById('filtroCategoria');
+    if (selectCategoria) selectCategoria.addEventListener('change', () => cargarPagosMensuales());
 
     // Cargar deportes dinámicamente
     cargarDeportesDropdownPagos();
@@ -101,6 +109,49 @@ async function cargarDeportesDropdownPagos() {
     } catch (error) {
         console.error('Error al cargar deportes:', error);
     }
+    // Cargar todas las categorías al inicio (sin deporte seleccionado)
+    cargarCategoriasPorDeporte('');
+}
+
+// Función global llamada desde el atributo onchange del select de deporte
+window.onCambioDeporte = function(valor) {
+    cargarCategoriasPorDeporte(valor);
+    cargarPagosMensuales();
+};
+
+async function cargarCategoriasPorDeporte(deporte) {
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    const select = document.getElementById('filtroCategoria');
+    if (!select) return;
+
+    // Resetear a solo la opción por defecto
+    select.innerHTML = '<option value="">Todas las categorías</option>';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/horarios?refresh=false`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (!data.horarios) return;
+
+        // Si hay deporte seleccionado, filtrar solo sus categorías.
+        // Si no, mostrar todas las categorías de todos los deportes.
+        const horariosFiltrados = deporte
+            ? data.horarios.filter(h => h.deporte && h.deporte.toLowerCase() === deporte.toLowerCase() && h.categoria)
+            : data.horarios.filter(h => h.categoria);
+
+        const categorias = [...new Set(horariosFiltrados.map(h => h.categoria))].sort();
+
+        categorias.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            select.appendChild(opt);
+        });
+    } catch (error) {
+        console.error('Error al cargar categorías:', error);
+    }
 }
 
 async function cargarPagosMensuales() {
@@ -112,11 +163,13 @@ async function cargarPagosMensuales() {
     const estado = document.getElementById('filtroEstado')?.value || 'todos';
     const mes = document.getElementById('filtroMes')?.value || '';
     const deporte = document.getElementById('filtroDeporte')?.value || '';
+    const categoria = document.getElementById('filtroCategoria')?.value || '';
 
     const params = new URLSearchParams();
     if (estado !== 'todos') params.set('estado', estado);
     if (mes) params.set('mes', mes);
     if (deporte) params.set('deporte', deporte);
+    if (categoria) params.set('grupo', categoria);
     if (buscar) params.set('buscar', buscar);
 
     const loading = document.getElementById('loadingPagos');
