@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:cms": "node scripts/vite-cms-dev.mjs",
+    "preview:cms": "node scripts/preview-cms.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },

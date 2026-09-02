@@ -109,7 +109,7 @@ const cache = new CacheManager();
 const API_CONFIG = {
     // Detectar automáticamente el entorno
     baseUrl: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002' // Desarrollo local
+        ? 'http://localhost:3003' // Desarrollo local (copia CMS)
         : 'https://api.jaguarescar.com', // Producción en Dokploy
     endpoints: {
         horarios: '/api/horarios',

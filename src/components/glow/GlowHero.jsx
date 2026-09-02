@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditableText from '../EditableText.jsx';
 
-const GlowHero = ({ slidesData, onUpdateSlide }) => {
+const GlowHero = ({ slidesData, heroConfig = {}, onUpdateSlide }) => {
   const [current, setCurrent] = useState(0);
 
   // Fallback igual al slider de sport-hub cuando no hay datos del backend.
@@ -26,11 +26,19 @@ const GlowHero = ({ slidesData, onUpdateSlide }) => {
     return () => clearInterval(timer);
   }, [next]);
 
+  useEffect(() => {
+    if (current >= slides.length) setCurrent(0);
+  }, [current, slides.length]);
+
   // Si no hay slide seguro, retornamos nulo o manejamos error
   if (!slides || slides.length === 0) return null;
 
   const currentSlide = slides[current];
-  const slideId = currentSlide.id;
+  const eyebrow = heroConfig.antetitulo || 'Escuela Deportiva Jaguares';
+  const primaryText = heroConfig.botonPrimarioTexto || 'Ver disciplinas';
+  const primaryHref = heroConfig.botonPrimarioEnlace || '#disciplinas';
+  const secondaryText = heroConfig.botonSecundarioTexto || 'Inscríbete ahora';
+  const secondaryHref = heroConfig.botonSecundarioEnlace || '/inscripcion';
 
   return (
     <section data-section="hero" className="relative h-screen w-full overflow-hidden">
@@ -64,7 +72,7 @@ const GlowHero = ({ slidesData, onUpdateSlide }) => {
             transition={{ duration: 0.5 }}
           >
             <p className="mb-2 text-sm font-semibold uppercase tracking-[0.3em] text-primary md:text-base">
-              Escuela Deportiva Jaguares
+              {eyebrow}
             </p>
 
             <EditableText 
@@ -72,7 +80,7 @@ const GlowHero = ({ slidesData, onUpdateSlide }) => {
               className="font-display text-4xl leading-tight tracking-tight md:text-7xl lg:text-8xl text-white drop-shadow-lg max-w-4xl" 
               value={currentSlide.title} 
               multiline
-              onChange={onUpdateSlide ? v => onUpdateSlide(slideId, 'title', v) : undefined}
+              onChange={onUpdateSlide ? v => onUpdateSlide(current, 'title', v) : undefined}
             />
 
             <EditableText 
@@ -80,23 +88,23 @@ const GlowHero = ({ slidesData, onUpdateSlide }) => {
               className="mt-4 max-w-lg text-lg text-gray-200 md:text-xl drop-shadow-md" 
               value={currentSlide.description || currentSlide.subtitle} 
               multiline
-              onChange={onUpdateSlide ? v => onUpdateSlide(slideId, 'description', v) : undefined}
+              onChange={onUpdateSlide ? v => onUpdateSlide(current, 'description', v) : undefined}
             />
           </motion.div>
         </AnimatePresence>
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <a
-            href="#disciplinas"
+            href={primaryHref}
             className="bg-gradient-primary inline-flex w-fit items-center justify-center rounded-lg px-8 py-4 font-semibold text-primary-foreground transition-all hover:scale-105 hover:shadow-glow"
           >
-            Ver Disciplinas
+            {primaryText}
           </a>
           <a
-            href="/inscripcion"
+            href={secondaryHref}
             className="inline-flex items-center w-fit justify-center rounded-lg border border-border bg-secondary/50 px-8 py-4 font-semibold text-foreground backdrop-blur-sm transition-all hover:bg-secondary text-white"
           >
-            Inscribite Ahora
+            {secondaryText}
           </a>
         </div>
       </div>

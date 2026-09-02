@@ -64,13 +64,14 @@ export function useLandingContent() {
 
 /** Orden por defecto = orden actual visible en Home.jsx */
 export const DEFAULT_SECTION_STRUCTURE = [
-  { section_slug: 'hero',           orden: 10,  visible: 1, label: 'Hero / Carrusel'     },
-  { section_slug: 'deportes',       orden: 20,  visible: 1, label: 'Deportes'            },
-  { section_slug: 'galeria',        orden: 30,  visible: 1, label: 'Galería / Instagram'  },
-  { section_slug: 'docentes',       orden: 40,  visible: 1, label: 'Docentes'            },
-  { section_slug: 'estadisticas',   orden: 50,  visible: 1, label: 'Sobre Nosotros'      },
-  { section_slug: 'cta',            orden: 60,  visible: 1, label: 'CTA / Contacto'      },
-  { section_slug: 'footer',         orden: 70,  visible: 1, label: 'Footer'              },
+  { section_slug: 'hero',           orden: 10, visible: 1, label: 'Portada / Carrusel' },
+  { section_slug: 'deportes',       orden: 20, visible: 1, label: 'Deportes' },
+  { section_slug: 'ranking',        orden: 30, visible: 1, label: 'Ranking' },
+  { section_slug: 'galeria',        orden: 40, visible: 1, label: 'Galería' },
+  { section_slug: 'docentes',       orden: 50, visible: 1, label: 'Docentes' },
+  { section_slug: 'estadisticas',   orden: 60, visible: 1, label: 'Sobre nosotros' },
+  { section_slug: 'cta',            orden: 70, visible: 1, label: 'Contacto' },
+  { section_slug: 'footer',         orden: 80, visible: 1, label: 'Pie de página' },
 ];
 
 /**

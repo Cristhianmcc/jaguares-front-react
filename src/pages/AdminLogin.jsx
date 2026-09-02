@@ -117,9 +117,7 @@ export default function AdminLogin() {
       btnLogin.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Verificando...';
 
       try {
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? 'http://localhost:3002'
-          : 'https://api.jaguarescar.com';
+        const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
         const response = await fetch(`${API_BASE}/api/admin/login`, {
           method: 'POST',
