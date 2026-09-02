@@ -1,19 +1,27 @@
 import React from "react";
+import EditableText from '../EditableText.jsx';
 
-const GlowFooter = ({ generalData = {} }) => {
-  const copyright = generalData.copyright || `© ${new Date().getFullYear()} Jaguares - Escuela Deportiva. Todos los derechos reservados.`;
-  const instagram = generalData.instagram || '#';
-  const facebook  = generalData.facebook  || '#';
-  const whatsapp  = generalData.whatsapp  || '#';
+const GlowFooter = ({ generalData = {}, onUpdateGeneral }) => {
+  const currentYear = new Date().getFullYear();
+  const values = {
+    copyright: generalData.copyright || `© ${currentYear} Jaguares - Escuela Deportiva. Todos los derechos reservados.`,
+    instagram: generalData.instagram || '#',
+    facebook: generalData.facebook || '#',
+    whatsapp: generalData.whatsapp || '#',
+    instagramTexto: generalData.instagramTexto || 'Instagram',
+    facebookTexto: generalData.facebookTexto || 'Facebook',
+    whatsappTexto: generalData.whatsappTexto || 'WhatsApp',
+  };
+  const update = (field) => onUpdateGeneral ? (value) => onUpdateGeneral(field, value) : undefined;
 
   return (
-    <footer className="border-t border-border px-6 py-10 md:px-16 lg:px-24 bg-background">
+    <footer data-section="footer" className="border-t border-border px-6 py-10 md:px-16 lg:px-24 bg-background">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
-        <p>{copyright}</p>
+        <EditableText tag="p" value={values.copyright} onChange={update('copyright')} />
         <div className="flex gap-6">
-          <a href={instagram} className="transition-colors hover:text-foreground">Instagram</a>
-          <a href={facebook}  className="transition-colors hover:text-foreground">Facebook</a>
-          <a href={whatsapp}  className="transition-colors hover:text-foreground">WhatsApp</a>
+          <a href={values.instagram} className="transition-colors hover:text-foreground"><EditableText tag="span" value={values.instagramTexto} onChange={update('instagramTexto')} /></a>
+          <a href={values.facebook} className="transition-colors hover:text-foreground"><EditableText tag="span" value={values.facebookTexto} onChange={update('facebookTexto')} /></a>
+          <a href={values.whatsapp} className="transition-colors hover:text-foreground"><EditableText tag="span" value={values.whatsappTexto} onChange={update('whatsappTexto')} /></a>
         </div>
       </div>
     </footer>

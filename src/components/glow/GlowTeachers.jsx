@@ -33,8 +33,14 @@ const fallbackTeachers = [
   }
 ];
 
-const GlowTeachers = ({ docentesData = [], onUpdate }) => {
+const GlowTeachers = ({ docentesData = [], headingData = {}, onUpdate, onUpdateHeading }) => {
   const teachers = docentesData.length > 0 ? docentesData : fallbackTeachers;
+  const heading = {
+    antetitulo: headingData.antetitulo || 'Nuestro equipo',
+    titulo: headingData.titulo || 'Conoce a nuestros',
+    destacado: headingData.destacado || 'Docentes',
+  };
+  const updateHeading = (field, value) => onUpdateHeading?.({ ...headingData, [field]: value });
 
   const updateField = (idx, field, val) => {
     if (!onUpdate) return;
@@ -51,11 +57,13 @@ const GlowTeachers = ({ docentesData = [], onUpdate }) => {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
-            Nuestro equipo
-          </p>
+          <EditableText tag="p" className="text-sm font-semibold uppercase tracking-[0.3em] text-primary"
+            value={heading.antetitulo} onChange={onUpdateHeading ? value => updateHeading('antetitulo', value) : undefined} />
           <h2 className="mt-2 font-display text-5xl md:text-7xl uppercase">
-            Cuerpo <span className="text-gradient">Docente</span>
+            <EditableText tag="span" value={heading.titulo}
+              onChange={onUpdateHeading ? value => updateHeading('titulo', value) : undefined} />{' '}
+            <EditableText tag="span" className="text-gradient" value={heading.destacado}
+              onChange={onUpdateHeading ? value => updateHeading('destacado', value) : undefined} />
           </h2>
         </motion.div>
 

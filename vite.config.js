@@ -1,36 +1,34 @@
 ﻿import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(configDir, "./src"),
     },
   },
   server: {
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3002',
+        target: 'http://localhost:3003',
+        changeOrigin: true,
+        secure: false
+      },
+      '/uploads': {
+        target: 'http://localhost:3003',
         changeOrigin: true,
         secure: false
       }
     }
   },
   build: {
-    // Split inteligente: cada vendor en su propio chunk → mejor cache de browser
-    // cuando solo cambia el código de la app, los chunks de vendor no cambian
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor-react':  ['react', 'react-dom'],
-          'vendor-swr':    ['swr'],
-          'vendor-dndkit': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-        }
-      }
-    },
-    chunkSizeWarningLimit: 600,  // kB — silencia avisos en chunks grandes del template
+    // Rollup decide los chunks para evitar dependencias circulares entre React y DnD Kit.
+    chunkSizeWarningLimit: 900,
   }
 });

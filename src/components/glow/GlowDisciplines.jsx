@@ -29,7 +29,7 @@ const getDefaultImage = (title) => {
   return "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80&fit=crop";
 };
 
-const GlowDisciplines = ({ deportesData, onUpdate }) => {
+const GlowDisciplines = ({ deportesData, headingData = {}, onUpdate, onUpdateHeading }) => {
   const fallbackDisciplines = [
     { id: 1, titulo: "Futbol", descripcion: "Formacion tecnica y tactica para todas las categorias." },
     { id: 2, titulo: "Voley", descripcion: "Entrenamientos para mejorar tecnica, salto y juego en equipo." },
@@ -40,6 +40,13 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
   ];
 
   const disciplines = deportesData?.length > 0 ? deportesData : fallbackDisciplines;
+  const heading = {
+    antetitulo: headingData.antetitulo || 'Nuestras disciplinas',
+    titulo: headingData.titulo || 'Elige tu',
+    destacado: headingData.destacado || 'Deporte',
+    enlaceTexto: headingData.enlaceTexto || 'Ver categorías y horarios →',
+  };
+  const updateHeading = (field, value) => onUpdateHeading?.({ ...headingData, [field]: value });
 
   return (
     <section id="disciplinas" data-section="deportes" className="px-6 py-24 md:px-16 lg:px-24">
@@ -51,11 +58,13 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
           transition={{ duration: 0.6 }}
           className="mb-16"
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
-            Nuestras disciplinas
-          </p>
+          <EditableText tag="p" className="text-sm font-semibold uppercase tracking-[0.3em] text-primary"
+            value={heading.antetitulo} onChange={onUpdateHeading ? value => updateHeading('antetitulo', value) : undefined} />
           <h2 className="mt-2 font-display text-5xl md:text-7xl uppercase">
-            Elige tu <span className="text-gradient">Deporte</span>
+            <EditableText tag="span" value={heading.titulo}
+              onChange={onUpdateHeading ? value => updateHeading('titulo', value) : undefined} />{' '}
+            <EditableText tag="span" className="text-gradient" value={heading.destacado}
+              onChange={onUpdateHeading ? value => updateHeading('destacado', value) : undefined} />
           </h2>
         </motion.div>
 
@@ -111,7 +120,7 @@ const GlowDisciplines = ({ deportesData, onUpdate }) => {
                     href={`/disciplina/${toDisciplineSlug(discipline.slug || discipline.titulo || discipline.id)}`}
                     className="mt-4 inline-block text-sm font-semibold text-primary transition-colors hover:text-primary/80"
                   >
-                    Ver categorías y horarios →
+                    {heading.enlaceTexto}
                   </a>
                 </div>
               </motion.div>

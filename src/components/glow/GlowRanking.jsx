@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import EditableText from '../EditableText.jsx';
 
-const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:3002"
-  : "https://api.jaguarescar.com";
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
 const fallbackRanking = [
   { rank: 1, name: "Valentina Lopez", discipline: "Futbol Femenino", points: 2840 },
@@ -192,7 +191,7 @@ const PodiumCard = ({ student, position, isActive, isChampionBurst }) => {
   );
 };
 
-const GlowRanking = () => {
+const GlowRanking = ({ headingData = {}, onUpdateHeading }) => {
   const [ranking, setRanking] = useState([]);
   const [podiumPhase, setPodiumPhase] = useState(0);
   const [visibleRows, setVisibleRows] = useState(0);
@@ -277,14 +276,29 @@ const GlowRanking = () => {
     return () => clearInterval(interval);
   }, [inView, podiumPhase, top3.length, restTop10.length, noPodiumTop10.length]);
 
+  const heading = {
+    antetitulo: headingData.antetitulo || 'Tabla de posiciones',
+    titulo: headingData.titulo || 'Ranking de',
+    destacado: headingData.destacado || 'Alumnos',
+    puestoTexto: headingData.puestoTexto || '#',
+    alumnoTexto: headingData.alumnoTexto || 'Alumno',
+    disciplinaTexto: headingData.disciplinaTexto || 'Disciplina',
+    puntosTexto: headingData.puntosTexto || 'Puntos',
+  };
+  const updateHeading = (field, value) => onUpdateHeading?.({ ...headingData, [field]: value });
+
   return (
-    <section ref={sectionRef} id="ranking" className="relative overflow-hidden px-6 py-24 md:px-16 lg:px-24">
+    <section ref={sectionRef} id="ranking" data-section="ranking" className="relative overflow-hidden px-6 py-24 md:px-16 lg:px-24">
       <ChampionFlash isActive={podiumPhase >= 4} />
       <div className="mx-auto max-w-7xl">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-16">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">Tabla de posiciones</p>
+          <EditableText tag="p" className="text-sm font-semibold uppercase tracking-[0.3em] text-primary"
+            value={heading.antetitulo} onChange={onUpdateHeading ? value => updateHeading('antetitulo', value) : undefined} />
           <h2 className="mt-2 font-display text-5xl md:text-7xl uppercase">
-            Ranking de <span className="text-gradient">Alumnos</span>
+            <EditableText tag="span" value={heading.titulo}
+              onChange={onUpdateHeading ? value => updateHeading('titulo', value) : undefined} />{' '}
+            <EditableText tag="span" className="text-gradient" value={heading.destacado}
+              onChange={onUpdateHeading ? value => updateHeading('destacado', value) : undefined} />
           </h2>
         </motion.div>
 
@@ -302,10 +316,10 @@ const GlowRanking = () => {
 
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
           <div className="grid grid-cols-[60px_1fr_1fr_100px] items-center gap-4 border-b border-border bg-secondary/50 px-6 py-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground md:grid-cols-[80px_1fr_1fr_120px]">
-            <span>#</span>
-            <span>Alumno</span>
-            <span>Disciplina</span>
-            <span className="text-right">Puntos</span>
+            <span>{heading.puestoTexto}</span>
+            <span>{heading.alumnoTexto}</span>
+            <span>{heading.disciplinaTexto}</span>
+            <span className="text-right">{heading.puntosTexto}</span>
           </div>
 
           {(top3.length === 3 ? restTop10 : noPodiumTop10).slice(0, visibleRows).map((student, index) => (

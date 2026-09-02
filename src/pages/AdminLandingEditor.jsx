@@ -65,6 +65,9 @@ function FieldImage({ label, value, onChange }) {
   const [error, setError] = useState('');
   const [imgBroken, setImgBroken] = useState(false);
   const fileRef = useRef(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [media, setMedia] = useState([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
 
   // Reset broken state cuando cambia la URL
   useEffect(() => { setImgBroken(false); }, [value]);
@@ -96,6 +99,35 @@ function FieldImage({ label, value, onChange }) {
     }
   };
 
+  const openLibrary = async () => {
+    setLibraryOpen(true);
+    setLibraryLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/landing/media`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo cargar la biblioteca');
+      setMedia(data.media || []);
+    } catch (err) {
+      setError(err.message || 'No se pudo cargar la biblioteca');
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const deleteMedia = async (item) => {
+    if (!window.confirm(`¿Eliminar "${item.original_name || 'imagen'}" de la biblioteca?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/landing/media/${item.id}`, { method: 'DELETE', headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'No se pudo eliminar');
+      setMedia(current => current.filter(entry => entry.id !== item.id));
+      if (value === item.url) onChange('');
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar la imagen');
+    }
+  };
+
   return (
     <div style={{ marginBottom: 14 }}>
       <label style={styles.label}>{label}</label>
@@ -117,11 +149,12 @@ function FieldImage({ label, value, onChange }) {
       />
       {/* Botón subir */}
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+      <div style={{ display: 'flex', gap: 6 }}>
       <button
-        onClick={() => fileRef.current?.click()}
+        type="button" onClick={() => fileRef.current?.click()}
         disabled={uploading}
         style={{
-          width: '100%', padding: '8px 0',
+          flex: 1, padding: '8px 0',
           background: uploading ? '#e2e8f0' : '#1e293b',
           color: uploading ? '#94a3b8' : '#fff',
           border: 'none', borderRadius: 8,
@@ -136,7 +169,36 @@ function FieldImage({ label, value, onChange }) {
         </svg>
         {uploading ? 'Subiendo...' : 'Subir imagen desde tu PC'}
       </button>
+      <button type="button" onClick={openLibrary}
+        style={{ padding: '8px 12px', background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+        Biblioteca
+      </button>
+      </div>
       {error && <p style={{ color: '#ef4444', fontSize: 11, margin: '4px 0 0' }}>{error}</p>}
+      {libraryOpen && (
+        <div role="dialog" aria-modal="true" aria-label="Biblioteca de imágenes"
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, background: '#0f172acc', display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div style={{ width: 'min(860px, 96vw)', maxHeight: '82vh', overflow: 'auto', background: '#fff', borderRadius: 14, padding: 18, boxShadow: '0 24px 70px #0007' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div><strong style={{ color: '#0f172a' }}>Biblioteca de imágenes</strong><div style={{ color: '#64748b', fontSize: 12 }}>Selecciona una imagen ya subida.</div></div>
+              <button type="button" onClick={() => setLibraryOpen(false)} style={{ border: 0, background: '#e2e8f0', borderRadius: 7, padding: '6px 10px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
+            {libraryLoading ? <p style={{ color: '#64748b' }}>Cargando…</p> : media.length === 0 ? <p style={{ color: '#64748b' }}>La biblioteca está vacía.</p> : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: 12 }}>
+                {media.map(item => (
+                  <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: 9, overflow: 'hidden', background: '#f8fafc' }}>
+                    <button type="button" onClick={() => { onChange(item.url); setLibraryOpen(false); }} style={{ width: '100%', border: 0, padding: 0, cursor: 'pointer', background: 'transparent' }}>
+                      <img src={item.url} alt={item.alt_text || item.original_name || 'Imagen'} style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
+                      <span style={{ display: 'block', padding: 7, color: '#334155', fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.original_name || item.filename}</span>
+                    </button>
+                    <button type="button" onClick={() => deleteMedia(item)} style={{ width: '100%', border: 0, borderTop: '1px solid #fee2e2', padding: 6, color: '#dc2626', background: '#fff', fontSize: 10, cursor: 'pointer' }}>Eliminar</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -282,7 +344,9 @@ function TextStyleControls({ textStyle = {}, onStyleChange }) {
 // Tabs de secciones
 // ─────────────────────────────────────────────────────────────
 const TABS = [
+  { id: 'navegacion',   label: 'Menú' },
   { id: 'hero',         label: 'Hero' },
+  { id: 'encabezados',  label: 'Títulos' },
   { id: 'deportes',     label: 'Deportes' },
   { id: 'docentes',     label: 'Docentes' },
   { id: 'galeria',      label: 'Galería' },
@@ -296,17 +360,81 @@ const TABS = [
 // ─────────────────────────────────────────────────────────────
 // Paneles de edición por sección
 // ─────────────────────────────────────────────────────────────
-function HeroPanel({ data, onChange }) {
+function NavigationPanel({ data = {}, onChange }) {
+  const links = Array.isArray(data.links) ? data.links : [];
+  const update = (field, value) => onChange({ ...data, [field]: value });
+  const updateLink = (index, field, value) => update('links', links.map((link, i) => i === index ? { ...link, [field]: value } : link));
+  return (
+    <div>
+      <p style={styles.hint}>Logo, nombre, enlaces y botón del menú principal.</p>
+      <SectionCard title="Identidad del menú">
+        <FieldText label="Nombre del club" value={data.nombreClub} onChange={v => update('nombreClub', v)} />
+        <FieldImage label="Logo" value={data.logo} onChange={v => update('logo', v)} />
+        <FieldText label="Texto del botón" value={data.botonTexto} onChange={v => update('botonTexto', v)} />
+        <FieldText label="Enlace del botón" value={data.botonEnlace} onChange={v => update('botonEnlace', v)} />
+      </SectionCard>
+      {links.map((link, index) => (
+        <SectionCard key={link.id || index} title={`Enlace ${index + 1}`}>
+          <FieldText label="Texto" value={link.label} onChange={v => updateLink(index, 'label', v)} />
+          <FieldText label="Destino" value={link.href} onChange={v => updateLink(index, 'href', v)} />
+          <button type="button" onClick={() => update('links', links.filter((_, i) => i !== index))}
+            style={{ width: '100%', padding: 7, color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer' }}>Eliminar enlace</button>
+        </SectionCard>
+      ))}
+      <button type="button" onClick={() => update('links', [...links, { id: `link-${Date.now()}`, label: 'Nuevo enlace', href: '#' }])}
+        style={{ width: '100%', padding: 9, color: '#4338ca', background: '#eef2ff', border: '1px dashed #818cf8', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>+ Agregar enlace</button>
+    </div>
+  );
+}
+
+function HeadingsPanel({ data = {}, onChange }) {
+  const sections = [['deportes', 'Deportes'], ['ranking', 'Ranking'], ['galeria', 'Galería'], ['docentes', 'Docentes']];
+  const update = (slug, field, value) => onChange({ ...data, [slug]: { ...(data[slug] || {}), [field]: value } });
+  return (
+    <div>
+      <p style={styles.hint}>Encabezados y textos auxiliares de cada sección.</p>
+      {sections.map(([slug, label]) => (
+        <SectionCard key={slug} title={label}>
+          <FieldText label="Antetítulo" value={data[slug]?.antetitulo} onChange={v => update(slug, 'antetitulo', v)} />
+          <FieldText label="Título" value={data[slug]?.titulo} onChange={v => update(slug, 'titulo', v)} />
+          <FieldText label="Texto destacado" value={data[slug]?.destacado} onChange={v => update(slug, 'destacado', v)} />
+          {slug === 'deportes' && <FieldText label="Texto del enlace" value={data[slug]?.enlaceTexto} onChange={v => update(slug, 'enlaceTexto', v)} />}
+          {slug === 'ranking' && <>
+            <FieldText label="Columna posición" value={data[slug]?.puestoTexto} onChange={v => update(slug, 'puestoTexto', v)} />
+            <FieldText label="Columna alumno" value={data[slug]?.alumnoTexto} onChange={v => update(slug, 'alumnoTexto', v)} />
+            <FieldText label="Columna disciplina" value={data[slug]?.disciplinaTexto} onChange={v => update(slug, 'disciplinaTexto', v)} />
+            <FieldText label="Columna puntos" value={data[slug]?.puntosTexto} onChange={v => update(slug, 'puntosTexto', v)} />
+          </>}
+        </SectionCard>
+      ))}
+    </div>
+  );
+}
+
+function HeroPanel({ data, onChange, config = {}, onConfigChange }) {
   if (!data?.slides) return null;
 
   const updateSlide = (idx, field, val) => {
     const slides = data.slides.map((s, i) => i === idx ? { ...s, [field]: val } : s);
     onChange({ ...data, slides });
   };
+  const addSlide = () => onChange({ ...data, slides: [...data.slides, { id: Date.now(), sport: 'Nuevo deporte', title: 'NUEVO SLIDE', subtitle: '', description: '', image: '', accent: '#f59e0b' }] });
+  const removeSlide = (idx) => {
+    if (data.slides.length <= 1) return window.alert('El hero debe conservar al menos un slide.');
+    onChange({ ...data, slides: data.slides.filter((_, i) => i !== idx) });
+  };
+  const updateConfig = (field, value) => onConfigChange?.({ ...config, [field]: value });
 
   return (
     <div>
       <p style={styles.hint}>Edita los textos e imagen de cada slide del carrusel principal.</p>
+      <SectionCard title="Botones y presentación">
+        <FieldText label="Antetítulo" value={config.antetitulo} onChange={v => updateConfig('antetitulo', v)} />
+        <FieldText label="Botón principal" value={config.botonPrimarioTexto} onChange={v => updateConfig('botonPrimarioTexto', v)} />
+        <FieldText label="Enlace principal" value={config.botonPrimarioEnlace} onChange={v => updateConfig('botonPrimarioEnlace', v)} />
+        <FieldText label="Botón secundario" value={config.botonSecundarioTexto} onChange={v => updateConfig('botonSecundarioTexto', v)} />
+        <FieldText label="Enlace secundario" value={config.botonSecundarioEnlace} onChange={v => updateConfig('botonSecundarioEnlace', v)} />
+      </SectionCard>
       {data.slides.map((slide, idx) => (
         <SectionCard key={slide.id} title={`Slide ${idx + 1} — ${slide.sport}`}>
           <FieldText label="Deporte / Categoría" value={slide.sport}
@@ -325,8 +453,10 @@ function HeroPanel({ data, onChange }) {
             onChange={v => updateSlide(idx, 'image', v)} />
           <FieldColor label="Color de acento" value={slide.accent}
             onChange={v => updateSlide(idx, 'accent', v)} />
+          <button type="button" onClick={() => removeSlide(idx)} style={{ width: '100%', padding: 7, color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer' }}>Eliminar slide</button>
         </SectionCard>
       ))}
+      <button type="button" onClick={addSlide} style={{ width: '100%', padding: 9, color: '#166534', background: '#f0fdf4', border: '1px dashed #4ade80', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>+ Agregar slide</button>
     </div>
   );
 }
@@ -337,6 +467,14 @@ function DeportesPanel({ data, onChange }) {
   const updateDeporte = (idx, field, val) => {
     const updated = data.map((d, i) => i === idx ? { ...d, [field]: val } : d);
     onChange(updated);
+  };
+  const addDeporte = () => onChange([...data, {
+    id: Date.now(), titulo: 'Nuevo deporte', descripcion: '', imagen: '', slug: `deporte-${Date.now()}`,
+    longDescription: '', heroImage: '', categories: [], gallery: [],
+  }]);
+  const removeDeporte = (idx) => {
+    if (!window.confirm(`¿Eliminar el deporte "${data[idx]?.titulo || idx + 1}"?`)) return;
+    onChange(data.filter((_, i) => i !== idx));
   };
 
   const addCategory = (depIdx) => {
@@ -450,8 +588,11 @@ function DeportesPanel({ data, onChange }) {
           ))}
           <button onClick={() => addGalleryImage(idx)}
             style={{ width: '100%', padding: '7px 0', background: '#f0f9ff', color: '#0284c7', border: '1.5px dashed #7dd3fc', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Agregar imagen a galería</button>
+          <Divider />
+          <button type="button" onClick={() => removeDeporte(idx)} style={{ width: '100%', padding: 7, color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer' }}>Eliminar deporte</button>
         </SectionCard>
       ))}
+      <button type="button" onClick={addDeporte} style={{ width: '100%', padding: 10, color: '#166534', background: '#f0fdf4', border: '1px dashed #4ade80', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>+ Agregar deporte</button>
     </div>
   );
 }
@@ -501,7 +642,7 @@ function DocentesPanel({ data, onChange }) {
 
   const addDocente = () => {
     const newId = Date.now();
-    onChange([...data, { id: newId, nombre: '', especialidad: '', foto: '' }]);
+    onChange([...data, { id: newId, nombre: '', especialidad: '', descripcion: '', foto: '' }]);
   };
 
   const removeDocente = (idx) => {
@@ -520,6 +661,7 @@ function DocentesPanel({ data, onChange }) {
           <FieldText label="Especialidad" value={doc.especialidad}
             onChange={v => updateDocente(idx, 'especialidad', v)}
             textStyle={doc.especialidadStyle||{}} onStyleChange={s => updateDocente(idx,'especialidadStyle',s)} />
+          <FieldTextarea label="Descripción" value={doc.descripcion} onChange={v => updateDocente(idx, 'descripcion', v)} rows={3} />
           <FieldImage label="Foto" value={doc.foto}
             onChange={v => updateDocente(idx, 'foto', v)} />
           {/* Botón eliminar */}
@@ -562,10 +704,16 @@ function CTAPanel({ data, onChange }) {
       <SectionCard title="Textos principales">
         <FieldTextarea label="Título (usa Enter para salto de línea)" value={data.titulo} onChange={v => update('titulo', v)} rows={2} />
         <FieldTextarea label="Descripción" value={data.descripcion} onChange={v => update('descripcion', v)} rows={3} />
+        <FieldText label="Texto del botón" value={data.botonTexto} onChange={v => update('botonTexto', v)} />
+        <FieldText label="Enlace del botón" value={data.botonEnlace} onChange={v => update('botonEnlace', v)} />
+        <FieldImage label="Imagen de fondo opcional" value={data.imagen} onChange={v => update('imagen', v)} />
       </SectionCard>
       <SectionCard title="Datos de contacto">
+        <FieldText label="Etiqueta de ubicación" value={data.ubicacionEtiqueta} onChange={v => update('ubicacionEtiqueta', v)} />
         <FieldText label="Ubicación" value={data.ubicacion} onChange={v => update('ubicacion', v)} />
+        <FieldText label="Etiqueta de teléfono" value={data.telefonoEtiqueta} onChange={v => update('telefonoEtiqueta', v)} />
         <FieldText label="Teléfono" value={data.telefono} onChange={v => update('telefono', v)} />
+        <FieldText label="Etiqueta de email" value={data.emailEtiqueta} onChange={v => update('emailEtiqueta', v)} />
         <FieldText label="Email" value={data.email} onChange={v => update('email', v)} />
       </SectionCard>
     </div>
@@ -579,20 +727,26 @@ function GaleriaPanel({ data, onChange }) {
     const newItems = items.map((it, i) => i === idx ? { ...it, [field]: val } : it);
     onChange({ ...data, items: newItems });
   };
+  const addItem = () => onChange({ ...data, items: [...items, { imagen: '', alt: '', categoria: '' }] });
+  const removeItem = (idx) => onChange({ ...data, items: items.filter((_, i) => i !== idx) });
   return (
     <div>
       <p style={styles.hint}>Galería de 6 imágenes + botón de redes sociales en la parte inferior.</p>
       <SectionCard title="Botón de red social">
         <FieldText label="Texto del botón" value={data.botonTexto} onChange={v => onChange({ ...data, botonTexto: v })}
           textStyle={data.botonTextoStyle||{}} onStyleChange={s => onChange({ ...data, botonTextoStyle: s })} />
+        <FieldText label="Enlace del botón" value={data.botonEnlace} onChange={v => onChange({ ...data, botonEnlace: v })} />
       </SectionCard>
       {items.map((item, idx) => (
         <SectionCard key={idx} title={`Imagen ${idx + 1}`}>
           <FieldImage label="Imagen" value={item.imagen} onChange={v => updateItem(idx, 'imagen', v)} />
           <FieldText label="Texto alternativo" value={item.alt} onChange={v => updateItem(idx, 'alt', v)}
             textStyle={item.altStyle||{}} onStyleChange={s => updateItem(idx,'altStyle',s)} />
+          <FieldText label="Categoría" value={item.categoria} onChange={v => updateItem(idx, 'categoria', v)} />
+          <button type="button" onClick={() => removeItem(idx)} style={{ width: '100%', padding: 7, color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: 8, cursor: 'pointer' }}>Eliminar imagen</button>
         </SectionCard>
       ))}
+      <button type="button" onClick={addItem} style={{ width: '100%', padding: 9, color: '#166534', background: '#f0fdf4', border: '1px dashed #4ade80', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>+ Agregar imagen</button>
     </div>
   );
 }
@@ -612,6 +766,9 @@ function GeneralPanel({ data, onChange }) {
         <FieldText label="URL Instagram" value={data.instagram} onChange={v => update('instagram', v)} />
         <FieldText label="URL Facebook" value={data.facebook} onChange={v => update('facebook', v)} />
         <FieldText label="URL WhatsApp" value={data.whatsapp} onChange={v => update('whatsapp', v)} />
+        <FieldText label="Texto Instagram" value={data.instagramTexto} onChange={v => update('instagramTexto', v)} />
+        <FieldText label="Texto Facebook" value={data.facebookTexto} onChange={v => update('facebookTexto', v)} />
+        <FieldText label="Texto WhatsApp" value={data.whatsappTexto} onChange={v => update('whatsappTexto', v)} />
       </SectionCard>
     </div>
   );
@@ -1027,7 +1184,9 @@ export default function AdminLandingEditor() {
                 ? <p style={{ color: '#999', textAlign: 'center', padding: 20 }}>Sin contenido</p>
                 : (
                   <>
-                    {activeTab === 'hero'         && <HeroPanel data={content.hero} onChange={v => updateSection('hero', v)} />}
+                    {activeTab === 'navegacion'   && <NavigationPanel data={content.navegacion} onChange={v => updateSection('navegacion', v)} />}
+                    {activeTab === 'hero'         && <HeroPanel data={content.hero} onChange={v => updateSection('hero', v)} config={content.heroConfig} onConfigChange={v => updateSection('heroConfig', v)} />}
+                    {activeTab === 'encabezados'  && <HeadingsPanel data={content.encabezados} onChange={v => updateSection('encabezados', v)} />}
                     {activeTab === 'deportes'     && <DeportesPanel data={content.deportes} onChange={v => updateSection('deportes', v)} />}
                     {activeTab === 'estadisticas' && <EstadisticasPanel data={content.estadisticas} onChange={v => updateSection('estadisticas', v)} />}
                     {activeTab === 'docentes'     && <DocentesPanel data={content.docentes} onChange={v => updateSection('docentes', v)} />}

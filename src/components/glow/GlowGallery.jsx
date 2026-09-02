@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import EditableText from '../EditableText.jsx';
 
 const defaultGalleryItems = [
   { src: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1600&q=80", alt: "Entrenamiento de basquet", category: "Basquet" },
@@ -13,13 +14,19 @@ const defaultGalleryItems = [
   { src: "https://images.unsplash.com/photo-1543357480-c60d400e2ef9?auto=format&fit=crop&w=1600&q=80", alt: "Sesion de entrenamiento", category: "General" }
 ];
 
-const GlowGallery = ({ galeriaData, onUpdate }) => {
+const GlowGallery = ({ galeriaData, headingData = {}, onUpdate, onUpdateHeading }) => {
   const [selected, setSelected] = useState(null);
 
   // Map from backend format { items: [{imagen, alt}], botonTexto } to display format
   const galleryItems = (galeriaData?.items && galeriaData.items.length > 0)
-    ? galeriaData.items.map(it => ({ src: it.imagen || '', alt: it.alt || '', category: '' }))
+    ? galeriaData.items.map(it => ({ src: it.imagen || '', alt: it.alt || '', category: it.categoria || '' }))
     : defaultGalleryItems;
+  const heading = {
+    antetitulo: headingData.antetitulo || 'Nuestros momentos',
+    titulo: headingData.titulo || 'Galería',
+    destacado: headingData.destacado || 'Jaguares',
+  };
+  const updateHeading = (field, value) => onUpdateHeading?.({ ...headingData, [field]: value });
 
   return (
     <section id="galeria" data-section="galeria" className="px-6 py-24 md:px-16 lg:px-24">
@@ -30,11 +37,13 @@ const GlowGallery = ({ galeriaData, onUpdate }) => {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
-            Nuestros momentos
-          </p>
+          <EditableText tag="p" className="text-sm font-semibold uppercase tracking-[0.3em] text-primary"
+            value={heading.antetitulo} onChange={onUpdateHeading ? value => updateHeading('antetitulo', value) : undefined} />
           <h2 className="mt-2 font-display text-5xl md:text-7xl uppercase">
-            Galeria <span className="text-gradient">Jaguares</span>
+            <EditableText tag="span" value={heading.titulo}
+              onChange={onUpdateHeading ? value => updateHeading('titulo', value) : undefined} />{' '}
+            <EditableText tag="span" className="text-gradient" value={heading.destacado}
+              onChange={onUpdateHeading ? value => updateHeading('destacado', value) : undefined} />
           </h2>
         </motion.div>
 
@@ -66,6 +75,14 @@ const GlowGallery = ({ galeriaData, onUpdate }) => {
             </motion.div>
           ))}
         </div>
+
+        {galeriaData?.botonTexto && (
+          <div className="mt-10 text-center">
+            <a href={galeriaData.botonEnlace || '#'} className="inline-flex rounded-xl border border-primary/40 px-6 py-3 font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
+              {galeriaData.botonTexto}
+            </a>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
