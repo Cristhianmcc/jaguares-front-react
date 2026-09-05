@@ -1,4 +1,4 @@
-﻿/**
+/**
 
  * Servicio de API para comunicacin con el backend de JAGUARES
 
@@ -217,7 +217,7 @@ const API_CONFIG = {
         ? window.API_BASE_OVERRIDE
         : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
-            ? 'http://localhost:3002' // Desarrollo local
+            ? 'http://localhost:3003' // Desarrollo local
             : 'https://api.jaguarescar.com'), // Produccin en Dokploy
 
     endpoints: {

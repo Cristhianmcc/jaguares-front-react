@@ -1,4 +1,4 @@
-﻿﻿/**
+﻿/**
  * Script para la página de éxito
  */
 
@@ -41,7 +41,7 @@ function waitForElementExito(selector, timeout = 5000) {
 
 // API_BASE dinámico
 const API_BASE_EXITO = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3002'
+    ? 'http://localhost:3003'
     : 'https://api.jaguarescar.com';
 
 /**

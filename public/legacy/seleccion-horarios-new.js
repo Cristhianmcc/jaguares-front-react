@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script para selección de horarios con cronograma por deportes
  * Nueva versin con Restricción de horarios a la misma hora
  */
@@ -14,7 +14,7 @@ let horariosExistentesAlumno = []; // Horarios de inscripciones activas previas 
 const API_BASE_GLOBAL = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002'
+        ? 'http://localhost:3003'
         : 'https://api.jaguarescar.com');
 
 // Planes y precios actualizados según la estructura del negocio
@@ -75,7 +75,7 @@ async function cargarPlanesDesdeBD() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3002'
+                ? 'http://localhost:3003'
                 : 'https://api.jaguarescar.com');
 
         const res = await fetch(`${API_BASE}/api/planes`);

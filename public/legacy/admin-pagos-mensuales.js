@@ -1,5 +1,5 @@
 /**
- * JavaScript para Gestión de Pagos Mensuales (Admin)
+ * JavaScript para GestiÃ³n de Pagos Mensuales (Admin)
  */
 
 function initAdminPagosMensuales() {
@@ -18,7 +18,7 @@ function getAPIBase() {
     return (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
         ? window.API_BASE_OVERRIDE
         : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3002'
+            ? 'http://localhost:3003'
             : 'https://api.jaguarescar.com');
 }
 
@@ -74,16 +74,16 @@ function configurarFiltros() {
 
     const selectDeporte = document.getElementById('filtroDeporte');
     if (selectDeporte) selectDeporte.addEventListener('change', () => {
-        // Al cambiar deporte: recargar categorías y luego pagos
+        // Al cambiar deporte: recargar categorÃ­as y luego pagos
         cargarCategoriasPorDeporte(selectDeporte.value);
         cargarPagosMensuales();
     });
 
-    // Listener de categoría
+    // Listener de categorÃ­a
     const selectCategoria = document.getElementById('filtroCategoria');
     if (selectCategoria) selectCategoria.addEventListener('change', () => cargarPagosMensuales());
 
-    // Cargar deportes dinámicamente
+    // Cargar deportes dinÃ¡micamente
     cargarDeportesDropdownPagos();
 }
 
@@ -109,11 +109,11 @@ async function cargarDeportesDropdownPagos() {
     } catch (error) {
         console.error('Error al cargar deportes:', error);
     }
-    // Cargar todas las categorías al inicio (sin deporte seleccionado)
+    // Cargar todas las categorÃ­as al inicio (sin deporte seleccionado)
     cargarCategoriasPorDeporte('');
 }
 
-// Función global llamada desde el atributo onchange del select de deporte
+// FunciÃ³n global llamada desde el atributo onchange del select de deporte
 window.onCambioDeporte = function(valor) {
     cargarCategoriasPorDeporte(valor);
     cargarPagosMensuales();
@@ -125,8 +125,8 @@ async function cargarCategoriasPorDeporte(deporte) {
     const select = document.getElementById('filtroCategoria');
     if (!select) return;
 
-    // Resetear a solo la opción por defecto
-    select.innerHTML = '<option value="">Todas las categorías</option>';
+    // Resetear a solo la opciÃ³n por defecto
+    select.innerHTML = '<option value="">Todas las categorÃ­as</option>';
 
     try {
         const response = await fetch(`${API_BASE}/api/horarios?refresh=false`, {
@@ -135,8 +135,8 @@ async function cargarCategoriasPorDeporte(deporte) {
         const data = await response.json();
         if (!data.horarios) return;
 
-        // Si hay deporte seleccionado, filtrar solo sus categorías.
-        // Si no, mostrar todas las categorías de todos los deportes.
+        // Si hay deporte seleccionado, filtrar solo sus categorÃ­as.
+        // Si no, mostrar todas las categorÃ­as de todos los deportes.
         const horariosFiltrados = deporte
             ? data.horarios.filter(h => h.deporte && h.deporte.toLowerCase() === deporte.toLowerCase() && h.categoria)
             : data.horarios.filter(h => h.categoria);
@@ -150,7 +150,7 @@ async function cargarCategoriasPorDeporte(deporte) {
             select.appendChild(opt);
         });
     } catch (error) {
-        console.error('Error al cargar categorías:', error);
+        console.error('Error al cargar categorÃ­as:', error);
     }
 }
 
@@ -202,7 +202,7 @@ async function cargarPagosMensuales() {
         // Actualizar contadores
         actualizarContadores(data.pagos || []);
     } catch (error) {
-        console.error('❌ Error al cargar pagos mensuales:', error);
+        console.error('âŒ Error al cargar pagos mensuales:', error);
         if (loading) loading.classList.add('hidden');
         if (sinResultados) sinResultados.classList.remove('hidden');
     }
@@ -230,14 +230,14 @@ function renderizarPagos(pagos) {
     if (!tbody) return;
 
     tbody.innerHTML = pagos.map(p => {
-        // Guardar datos en variable global para usar en acciones rápidas
+        // Guardar datos en variable global para usar en acciones rÃ¡pidas
         window._pagosData = window._pagosData || {};
         window._pagosData[p.pago_id] = {
             deportes: p.deportes_inscritos || [],
             monto: parseFloat(p.monto || 0),
             dni: p.dni,
             mes: p.mes,
-            anio: p['año'] || p.anio || '',
+            anio: p['aÃ±o'] || p.anio || '',
             estado: p.estado,
             inscripcionIds: (p.deportes_inscritos || []).map(d => d.inscripcion_id).filter(Boolean),
             telefono: p.telefono,
@@ -266,7 +266,7 @@ function renderizarPagos(pagos) {
                 <button onclick="rechazarPagoMensual(${p.pago_id})" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Rechazar">
                     <span class="material-symbols-outlined text-sm">close</span> Rechazar
                 </button>
-                <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Observación">
+                <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="ObservaciÃ³n">
                     <span class="material-symbols-outlined text-sm">edit_note</span> ${p.observaciones ? 'Editar Obs.' : 'Obs.'}
                 </button>
                 <button onclick="abrirModalEditarMonto(${p.pago_id}, ${parseFloat(p.monto || 0)})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Editar Monto">
@@ -275,7 +275,7 @@ function renderizarPagos(pagos) {
             </div>
         ` : `
             <div class="flex gap-2 flex-wrap">
-                <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Observación">
+                <button onclick="abrirModalObservacionPago(${p.pago_id}, \`${(p.observaciones || '').replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="ObservaciÃ³n">
                     <span class="material-symbols-outlined text-sm">edit_note</span> ${p.observaciones ? 'Editar Obs.' : 'Obs.'}
                 </button>
                 <button onclick="abrirModalEditarMonto(${p.pago_id}, ${parseFloat(p.monto || 0)})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1" title="Editar Monto">
@@ -319,7 +319,7 @@ function renderizarPagos(pagos) {
                     ${observacionBadge}
                 </td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white capitalize font-semibold">${p.mes || ''}</td>
-                <td class="px-4 py-3 text-sm text-black dark:text-white">${p['año'] || p.anio || ''}</td>
+                <td class="px-4 py-3 text-sm text-black dark:text-white">${p['aÃ±o'] || p.anio || ''}</td>
                 <td class="px-4 py-3 text-sm font-bold text-black dark:text-white">S/ ${parseFloat(p.monto || 0).toFixed(2)}</td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white">
                     <div class="flex items-center gap-2">
@@ -350,7 +350,7 @@ function renderizarPagos(pagos) {
                 <td class="px-4 py-3">
                     ${acciones}
                     ${(p.deportes_inscritos && p.deportes_inscritos.length > 0) ? `
-                        <button onclick="desactivarNoShow(${p.pago_id})" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors" title="Cancelar inscripciones si el alumno no asistió">
+                        <button onclick="desactivarNoShow(${p.pago_id})" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors" title="Cancelar inscripciones si el alumno no asistiÃ³">
                             <span class="material-symbols-outlined text-sm">person_remove</span> No vino
                         </button>
                     ` : ''}
@@ -380,12 +380,12 @@ function abrirModalWhatsApp(pagoId) {
     const numeroRaw = pagoData.telefono || pagoData.telefonoApoderado;
     const numero = normalizarNumeroParaWhatsApp(numeroRaw);
     if (!numero) {
-        mostrarToast('No hay número válido para WhatsApp', 'error');
+        mostrarToast('No hay nÃºmero vÃ¡lido para WhatsApp', 'error');
         return;
     }
 
     const mensajeDefault = pagoData.estado === 'pendiente'
-        ? `Hola, soy del club Jaguares. Te escribo porque tu pago mensual de ${pagoData.mes || ''} ${pagoData.anio || ''} aún no aparece como confirmado. Por favor revisa o contáctanos.`
+        ? `Hola, soy del club Jaguares. Te escribo porque tu pago mensual de ${pagoData.mes || ''} ${pagoData.anio || ''} aÃºn no aparece como confirmado. Por favor revisa o contÃ¡ctanos.`
         : `Hola, soy del club Jaguares. Gracias por tu pago. Te cuento que tenemos promociones y novedades para ti.`;
 
     const existente = document.getElementById('modalWhatsApp');
@@ -406,7 +406,7 @@ function abrirModalWhatsApp(pagoId) {
                 </div>
             </div>
             <div class="mb-4">
-                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Número destino</p>
+                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">NÃºmero destino</p>
                 <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3 text-sm text-black dark:text-white">${numero}</div>
             </div>
             <textarea id="modalWhatsAppMensaje" rows="6" class="w-full border border-gray-300 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-900 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Escribe el mensaje...">${mensajeDefault}</textarea>
@@ -481,7 +481,7 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
                 <td class="px-2 md:px-4 py-2">${asist.categoria}</td>
                 <td class="px-2 md:px-4 py-2">${asist.dia || '-'}</td>
                 <td class="px-2 md:px-4 py-2 whitespace-nowrap">${asist.hora_inicio || '-'} - ${asist.hora_fin || '-'}</td>
-                <td class="px-2 md:px-4 py-2">${asist.presente ? '<span class="text-green-600 font-bold">✓ Presente</span>' : '<span class="text-red-600 font-bold">✗ Ausente</span>'}</td>
+                <td class="px-2 md:px-4 py-2">${asist.presente ? '<span class="text-green-600 font-bold">âœ“ Presente</span>' : '<span class="text-red-600 font-bold">âœ— Ausente</span>'}</td>
                 <td class="px-2 md:px-4 py-2 text-gray-600 dark:text-gray-400">${asist.observaciones || '-'}</td>
             </tr>
         `;
@@ -496,7 +496,7 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
                                 <th class="px-2 md:px-4 py-3">Fecha</th>
                                 <th class="px-2 md:px-4 py-3">Deporte</th>
                                 <th class="px-2 md:px-4 py-3">Cat.</th>
-                                <th class="px-2 md:px-4 py-3">Día</th>
+                                <th class="px-2 md:px-4 py-3">DÃ­a</th>
                                 <th class="px-2 md:px-4 py-3">Hora</th>
                                 <th class="px-2 md:px-4 py-3">Asistencia</th>
                                 <th class="px-2 md:px-4 py-3">Obs.</th>
@@ -531,7 +531,7 @@ async function desactivarNoShow(pagoId) {
 
     mostrarModalSeleccionDeportes({
         title: 'No vino',
-        description: 'Selecciona los deportes que el alumno no asistió y deseas cancelar.',
+        description: 'Selecciona los deportes que el alumno no asistiÃ³ y deseas cancelar.',
         confirmText: 'Desactivar seleccionados',
         deportes: deportesActivos,
         onConfirm: async (inscripcionIds) => {
@@ -551,8 +551,8 @@ async function desactivarNoShow(pagoId) {
                     mostrarToast(data.error || 'No se pudo desactivar', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error al desactivar inscripciones:', error);
-                mostrarToast('Error de conexión', 'error');
+                console.error('âŒ Error al desactivar inscripciones:', error);
+                mostrarToast('Error de conexiÃ³n', 'error');
             }
         }
     });
@@ -593,8 +593,8 @@ function reactivarInscripcionesPago(pagoId) {
                     mostrarToast(data.error || 'No se pudo reactivar', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error al reactivar inscripciones:', error);
-                mostrarToast('Error de conexión', 'error');
+                console.error('âŒ Error al reactivar inscripciones:', error);
+                mostrarToast('Error de conexiÃ³n', 'error');
             }
         }
     });
@@ -629,7 +629,7 @@ function mostrarModalSeleccionDeportes({ title, description, confirmText, deport
             <div class="space-y-3 mb-4">
                 ${opcionesHTML}
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">Si dejas todo desmarcado no se hará ninguna acción.</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">Si dejas todo desmarcado no se harÃ¡ ninguna acciÃ³n.</div>
             <div class="flex gap-3 justify-end">
                 <button id="modalSeleccionDeportesCancelar" class="px-5 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm">Cancelar</button>
                 <button id="modalSeleccionDeportesConfirmar" class="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm">${confirmText}</button>
@@ -735,14 +735,14 @@ async function confirmarPagoMensual(pagoId) {
     const deportes = pagoData.deportes || [];
     const montoOriginal = pagoData.monto || 0;
 
-    // Si tiene más de 1 deporte, mostrar modal con checkboxes
+    // Si tiene mÃ¡s de 1 deporte, mostrar modal con checkboxes
     if (deportes.length > 1) {
         mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal);
     } else {
         // Solo 1 deporte: confirmar directo
         mostrarModalAccion({
             titulo: 'Confirmar Pago',
-            mensaje: `¿Confirmar pago de S/ ${montoOriginal.toFixed(2)}?`,
+            mensaje: `Â¿Confirmar pago de S/ ${montoOriginal.toFixed(2)}?`,
             icono: 'check_circle',
             iconoColor: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
             btnTexto: 'Confirmar',
@@ -802,7 +802,7 @@ function mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal) {
             <div id="avisoMontoConfirmar" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 mb-4">
                 <p class="text-xs text-amber-700 dark:text-amber-400">
                     <span class="material-symbols-outlined text-xs align-middle">info</span>
-                    El monto se ajustará automáticamente. Recuerda luego ir a <strong>Lista de Inscritos</strong> para desactivar el deporte no confirmado.
+                    El monto se ajustarÃ¡ automÃ¡ticamente. Recuerda luego ir a <strong>Lista de Inscritos</strong> para desactivar el deporte no confirmado.
                 </p>
             </div>
 
@@ -856,7 +856,7 @@ function mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal) {
         const obs = todosSeleccionados ? null : `Confirmado solo: ${deportesConfirmados}`;
         const montoFinal = todosSeleccionados ? null : nuevoMonto;
 
-        // Deportes no confirmados → crear pago pendiente separado
+        // Deportes no confirmados â†’ crear pago pendiente separado
         const deportesPendientes = todosSeleccionados ? [] : noSeleccionados.map(c => ({
             deporte: c.dataset.deporte,
             precio: parseFloat(c.dataset.precio)
@@ -888,7 +888,7 @@ async function ejecutarConfirmarPago(pagoId, monto, observaciones, deportesPendi
             mostrarToast(data.error || 'No se pudo confirmar', 'error');
         }
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('âŒ Error:', error);
         mostrarToast('Error al confirmar pago', 'error');
     }
 }
@@ -896,7 +896,7 @@ async function ejecutarConfirmarPago(pagoId, monto, observaciones, deportesPendi
 async function rechazarPagoMensual(pagoId) {
     mostrarModalAccion({
         titulo: 'Rechazar Pago',
-        mensaje: '¿Estás seguro de rechazar este pago mensual?',
+        mensaje: 'Â¿EstÃ¡s seguro de rechazar este pago mensual?',
         icono: 'cancel',
         iconoColor: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
         inputPlaceholder: 'Motivo del rechazo (opcional)...',
@@ -919,7 +919,7 @@ async function rechazarPagoMensual(pagoId) {
                     mostrarToast(data.error || 'No se pudo rechazar', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error:', error);
+                console.error('âŒ Error:', error);
                 mostrarToast('Error al rechazar pago', 'error');
             }
         }
@@ -943,13 +943,13 @@ function abrirModalObservacionPago(pagoId, notaActual) {
                         <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">edit_note</span>
                     </div>
                     <div>
-                        <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
+                        <h3 class="text-lg font-black text-black dark:text-white uppercase">ObservaciÃ³n</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
                     </div>
                 </div>
             </div>
             <div class="p-6">
-                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nota u observación del pago</label>
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nota u observaciÃ³n del pago</label>
                 <textarea id="inputObservacionPago" rows="4"
                     class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
                     placeholder="Ej: Paga S/.60 hasta el 15/04 y el resto en quincena...">${notaActual}</textarea>
@@ -988,13 +988,13 @@ async function guardarObservacionPago(pagoId) {
         const data = await response.json();
         document.getElementById('modalObservacionPago')?.remove();
         if (data.success) {
-            mostrarToast('Observación guardada correctamente', 'success');
+            mostrarToast('ObservaciÃ³n guardada correctamente', 'success');
             cargarPagosMensuales();
         } else {
             mostrarToast(data.error || 'Error al guardar', 'error');
         }
     } catch (e) {
-        mostrarToast('Error de conexión', 'error');
+        mostrarToast('Error de conexiÃ³n', 'error');
         document.getElementById('modalObservacionPago')?.remove();
     }
 }
@@ -1048,7 +1048,7 @@ function abrirModalEditarMonto(pagoId, montoActual) {
 
 async function guardarMontoPago(pagoId) {
     const monto = parseFloat(document.getElementById('inputEditarMonto')?.value);
-    if (isNaN(monto) || monto < 0) { mostrarToast('Ingresa un monto válido', 'error'); return; }
+    if (isNaN(monto) || monto < 0) { mostrarToast('Ingresa un monto vÃ¡lido', 'error'); return; }
 
     const btn = document.querySelector('#modalEditarMonto button:last-child');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
@@ -1070,7 +1070,7 @@ async function guardarMontoPago(pagoId) {
             mostrarToast(data.error || 'Error al actualizar', 'error');
         }
     } catch (e) {
-        mostrarToast('Error de conexión', 'error');
+        mostrarToast('Error de conexiÃ³n', 'error');
         document.getElementById('modalEditarMonto')?.remove();
     }
 }

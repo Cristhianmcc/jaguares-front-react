@@ -1,4 +1,4 @@
-﻿/**
+/**
  * JavaScript para Gestión de Datos (CRUD) - Sistema Completo
  * Administración de Deportes, Horarios, Categorías y Calendario Semanal
  */
@@ -60,7 +60,7 @@ let modoEdicion = false;
 const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002'
+        ? 'http://localhost:3003'
         : 'https://api.jaguarescar.com');
 
 // Helper para obtener headers con autenticación
