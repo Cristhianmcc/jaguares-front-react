@@ -1,4 +1,4 @@
-﻿/**
+/**
 
  * JavaScript para el Panel de Administración
 
@@ -204,7 +204,7 @@ async function cargarDeportesDropdown() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3002'
+                ? 'http://localhost:3003'
                 : 'https://api.jaguarescar.com');
 
         const session = localStorage.getItem('adminSession');
@@ -396,7 +396,7 @@ async function cargarInscritos(dia = null, deporte = null, busquedaTexto = null)
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3002'
+                ? 'http://localhost:3003'
                 : 'https://api.jaguarescar.com');
         
 
@@ -987,7 +987,7 @@ async function cargarInscripcionesParaDesactivar(dni) {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3002'
+                ? 'http://localhost:3003'
                 : 'https://api.jaguarescar.com');
         const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
         const token = session.token || '';
@@ -1109,7 +1109,7 @@ async function confirmarDesactivar() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002'
+        ? 'http://localhost:3003'
         : 'https://api.jaguarescar.com');
 
         const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
@@ -1200,7 +1200,7 @@ async function confirmarReactivar() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002'
+        ? 'http://localhost:3003'
         : 'https://api.jaguarescar.com');
 
         
@@ -1299,7 +1299,7 @@ async function buscarPorDNI(dni) {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002'
+        ? 'http://localhost:3003'
         : 'https://api.jaguarescar.com');
 
         
@@ -1932,7 +1932,7 @@ function reactivarInscripcion(inscripcionId, deporteNombre) {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3002'
+                ? 'http://localhost:3003'
                 : 'https://api.jaguarescar.com');
 
         const session = localStorage.getItem('adminSession');
@@ -2018,7 +2018,7 @@ function verDetalleAlumno(dni) {
 
 const API_BASE_CONFIG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
-    ? 'http://localhost:3002'
+    ? 'http://localhost:3003'
 
     : 'https://api.jaguarescar.com';
 
@@ -2306,7 +2306,7 @@ async function buscarNumeroOperacion() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3002'
+                ? 'http://localhost:3003'
                 : 'https://api.jaguarescar.com');
         const resp = await fetch(`${API_BASE}/api/admin/buscar-numero-operacion?numero_operacion=${encodeURIComponent(valor)}`);
         const data = await resp.json();

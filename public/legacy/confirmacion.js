@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script para la pgina de confirmación
  */
 
@@ -16,7 +16,7 @@ let numeroOperacionConf = ''; // Número de operación del pago (obligatorio al 
 
 // API_BASE dinmico
 const API_BASE_CONFIRM = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3002'
+    ? 'http://localhost:3003'
     : 'https://api.jaguarescar.com';
 
 /**

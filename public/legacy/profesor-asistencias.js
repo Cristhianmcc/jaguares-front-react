@@ -1,11 +1,11 @@
-﻿/**
+/**
  * JavaScript para Tomar Asistencia
  */
 
 const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3002'
+        ? 'http://localhost:3003'
         : 'https://api.jaguarescar.com');
 
 // Helper para obtener fecha local de Perú (UTC-5)

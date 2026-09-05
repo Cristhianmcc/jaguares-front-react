@@ -1,9 +1,9 @@
 /**
- * Script para la página de consulta de estado
+ * Script para la pÃ¡gina de consulta de estado
  */
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3002'
+    ? 'http://localhost:3003'
     : 'https://api.jaguarescar.com';
 
 let datosUsuario = null;
@@ -13,7 +13,7 @@ let configPagosConsulta = {
     plin: { numero: '+51973324460', destinatario: 'Oscar Orosco', qr_url: 'assets/plinqr.jpeg' }
 };
 
-// Cargar configuración de pagos al inicio
+// Cargar configuraciÃ³n de pagos al inicio
 async function cargarConfigPagosConsulta() {
     try {
         if (configPagosConsultaReady) return configPagosConsulta;
@@ -26,7 +26,7 @@ async function cargarConfigPagosConsulta() {
                 configPagosConsulta = data.data.pagos;
                 configPagosConsultaReady = true;
 
-                // Si la vista de pago ya está renderizada, volver a pintarla para que use la config nueva
+                // Si la vista de pago ya estÃ¡ renderizada, volver a pintarla para que use la config nueva
                 if (document.getElementById('zonaPagoMensual')) {
                     renderizarSeccionPagoMensual();
                 }
@@ -36,7 +36,7 @@ async function cargarConfigPagosConsulta() {
 
         return configPagosConsultaPromise;
     } catch (error) {
-        console.error('Error cargando configuración de pagos:', error);
+        console.error('Error cargando configuraciÃ³n de pagos:', error);
         configPagosConsultaPromise = null;
         return configPagosConsulta;
     }
@@ -65,7 +65,7 @@ function inicializarConsulta() {
         const dni = document.getElementById('dniConsulta').value.trim();
 
         if (dni.length !== 8 || !/^\d+$/.test(dni)) {
-            mostrarNotificacion('Por favor ingrese un DNI válido de 8 dígitos', 'error');
+            mostrarNotificacion('Por favor ingrese un DNI vÃ¡lido de 8 dÃ­gitos', 'error');
             return;
         }
 
@@ -82,17 +82,17 @@ async function consultarPorDNI(dni) {
     `;
 
     try {
-        // Buscar inscripción por DNI
+        // Buscar inscripciÃ³n por DNI
         const resultado = await academiaAPI.consultarInscripcion(dni);
 
         if (resultado.success) {
-            // ✅ VALIDACIÓN: Verificar que el pago esté confirmado
+            // âœ… VALIDACIÃ“N: Verificar que el pago estÃ© confirmado
             const estadoPago = resultado.pago.estado ? resultado.pago.estado.toLowerCase().trim() : '';
 
             if (estadoPago !== 'confirmado' && estadoPago !== 'activo') {
                 // Pago no confirmado - mostrar Mensaje y no permitir acceso
-                console.log('📋 Resultado completo:', resultado);
-                console.log('🔍 Comprobante URL:', resultado.pago.comprobante_url);
+                console.log('ðŸ“‹ Resultado completo:', resultado);
+                console.log('ðŸ” Comprobante URL:', resultado.pago.comprobante_url);
                 mostrarPagoNoConfirmado(resultado);
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `
@@ -106,7 +106,7 @@ async function consultarPorDNI(dni) {
             datosUsuario = resultado; // El resultado ya contiene alumno, pago, horarios
             await mostrarResultados();
         } else {
-            // Verificar si el usuario está inactivo
+            // Verificar si el usuario estÃ¡ inactivo
             if (resultado.inactivo) {
                 mostrarModalInactivo(dni);
                 btnSubmit.disabled = false;
@@ -117,7 +117,7 @@ async function consultarPorDNI(dni) {
                 return;
             }
 
-            mostrarNotificacion(resultado.error || 'No se encontró ninguna inscripción con ese DNI', 'error');
+            mostrarNotificacion(resultado.error || 'No se encontrÃ³ ninguna inscripciÃ³n con ese DNI', 'error');
             btnSubmit.disabled = false;
             btnSubmit.innerHTML = `
                 <span>Consultar Estado</span>
@@ -154,7 +154,7 @@ async function mostrarResultados() {
     // Mostrar vista de resultados
     document.getElementById('vistaResultados').classList.remove('hidden');
 
-    // Mostrar info de usuario en header (desktop y móvil)
+    // Mostrar info de usuario en header (desktop y mÃ³vil)
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
     const userInfoMobile = document.getElementById('userInfoMobile');
@@ -166,7 +166,7 @@ async function mostrarResultados() {
     userInfo.classList.add('flex');
     userName.textContent = nombreCompleto;
 
-    // Actualizar móvil también
+    // Actualizar mÃ³vil tambiÃ©n
     if (userInfoMobile && userNameMobile) {
         userInfoMobile.classList.remove('hidden');
         userInfoMobile.classList.add('flex');
@@ -176,7 +176,7 @@ async function mostrarResultados() {
     userInfo.classList.remove('hidden');
     userInfo.classList.add('flex');
 
-    // Renderizar estado de inscripción
+    // Renderizar estado de inscripciÃ³n
     renderizarEstado();
 
     // Renderizar datos del alumno
@@ -185,26 +185,26 @@ async function mostrarResultados() {
     // Renderizar horarios
     renderizarHorarios();
 
-    // Renderizar sección de pago Mensual
+    // Renderizar secciÃ³n de pago Mensual
     await cargarConfigPagosConsulta();
     renderizarSeccionPagoMensual();
 }
 
 /**
- * Mostrar Mensaje cuando el pago no está confirmado
+ * Mostrar Mensaje cuando el pago no estÃ¡ confirmado
  */
 function mostrarPagoNoConfirmado(resultado) {
     const vistaIngreso = document.getElementById('vistaIngreso');
     const datosPago = resultado.pago;
     const dni = resultado.alumno.dni;
 
-    // Guardar DNI globalmente para el modal de subida tardía
+    // Guardar DNI globalmente para el modal de subida tardÃ­a
     window.dniUsuarioActual = dni;
 
     // Crear HTML del Mensaje (sin ocultarlo del DOM, solo reemplazamos el contenido)
     vistaIngreso.innerHTML = `
         <div class="w-full max-w-[600px] flex flex-col gap-8">
-            <!-- Icono y título -->
+            <!-- Icono y tÃ­tulo -->
             <div class="flex flex-col gap-6 text-center">
                 <div class="flex justify-center">
                     <div class="size-20 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-600 border-2 border-yellow-500/30">
@@ -216,12 +216,12 @@ function mostrarPagoNoConfirmado(resultado) {
                         Pago <span class="text-yellow-600">Pendiente</span>
                     </h1>
                     <p class="text-text-muted dark:text-gray-400 text-lg font-medium">
-                        Tu inscripción aún no ha sido confirmada
+                        Tu inscripciÃ³n aÃºn no ha sido confirmada
                     </p>
                 </div>
             </div>
 
-            <!-- Tarjeta de información -->
+            <!-- Tarjeta de informaciÃ³n -->
             <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-8 shadow-xl border-l-4 border-yellow-500">
                 <div class="flex items-start gap-4 mb-6">
                     <div class="size-12 rounded-full bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 flex items-center justify-center flex-shrink-0">
@@ -233,47 +233,47 @@ function mostrarPagoNoConfirmado(resultado) {
                             ${datosPago.estado || 'PENDIENTE'}
                         </span>
                         <p class="text-text-muted dark:text-gray-400 text-sm leading-relaxed">
-                            Tu inscripción ha sido registrada correctamente, pero el pago aún no ha sido confirmado por nuestro equipo administrativo.
+                            Tu inscripciÃ³n ha sido registrada correctamente, pero el pago aÃºn no ha sido confirmado por nuestro equipo administrativo.
                         </p>
                     </div>
                 </div>
 
-                <!-- Información del pago -->
+                <!-- InformaciÃ³n del pago -->
                 ${datosPago.codigo_operacion ? `
                 <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-6">
                     <div class="flex items-center gap-3 mb-3">
                         <span class="material-symbols-outlined text-primary">confirmation_number</span>
-                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">Código de Operación</p>
+                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">CÃ³digo de OperaciÃ³n</p>
                     </div>
                     <p class="text-lg font-black text-black dark:text-white font-mono">${datosPago.codigo_operacion}</p>
                 </div>
                 ` : ''}
 
-                <!-- Qué hacer -->
+                <!-- QuÃ© hacer -->
                 <div class="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-5 border border-blue-200 dark:border-blue-800">
                     <div class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-blue-600 flex-shrink-0">lightbulb</span>
                         <div>
-                            <h4 class="text-blue-900 dark:text-blue-300 font-bold text-sm uppercase mb-2">¿Qué puedo hacer?</h4>
+                            <h4 class="text-blue-900 dark:text-blue-300 font-bold text-sm uppercase mb-2">Â¿QuÃ© puedo hacer?</h4>
                             <ul class="space-y-2 text-text-muted dark:text-gray-400 text-sm">
                                 <li class="flex items-start gap-2">
-                                    <span class="text-primary">•</span>
-                                    <span>Si aún no subiste tu comprobante de pago, hazlo desde el enlace que recibiste al inscribirte.</span>
+                                    <span class="text-primary">â€¢</span>
+                                    <span>Si aÃºn no subiste tu comprobante de pago, hazlo desde el enlace que recibiste al inscribirte.</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="text-primary">•</span>
+                                    <span class="text-primary">â€¢</span>
                                     <span>Si ya subiste el comprobante, espera a que el administrador verifique tu pago (puede tomar hasta 24 horas).</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <span class="text-primary">•</span>
-                                    <span>Una vez confirmado, podrás ver toda tu información de inscripción aquí.</span>
+                                    <span class="text-primary">â€¢</span>
+                                    <span>Una vez confirmado, podrÃ¡s ver toda tu informaciÃ³n de inscripciÃ³n aquÃ­.</span>
                                 </li>
                             </ul>
                         </div>
                     </div>
                 </div>
 
-                <!-- Botones de acción -->
+                <!-- Botones de acciÃ³n -->
                 <div class="flex flex-col gap-3 mt-6">
                     ${!datosPago.comprobante_url ? `
                     <button onclick="abrirModalSubirComprobante()" 
@@ -314,20 +314,20 @@ function renderizarEstado() {
     let colorFondo = 'bg-yellow-50 dark:bg-yellow-900/10';
     let colorTexto = 'text-yellow-800 dark:text-yellow-200';
     let icono = 'pending';
-    let Mensaje = 'Tu inscripción está pendiente de confirmación. Recuerda enviar tu comprobante de pago.';
+    let Mensaje = 'Tu inscripciÃ³n estÃ¡ pendiente de confirmaciÃ³n. Recuerda enviar tu comprobante de pago.';
 
     if (estado.toLowerCase() === 'confirmado' || estado.toLowerCase() === 'activo') {
         colorBorde = 'border-green-500';
         colorFondo = 'bg-green-50 dark:bg-green-900/10';
         colorTexto = 'text-green-800 dark:text-green-200';
         icono = 'check_circle';
-        Mensaje = '¡Tu inscripción ha sido confirmada! Ya puedes asistir a tus clases.';
+        Mensaje = 'Â¡Tu inscripciÃ³n ha sido confirmada! Ya puedes asistir a tus clases.';
     } else if (estado.toLowerCase() === 'rechazado' || estado.toLowerCase() === 'cancelado') {
         colorBorde = 'border-red-500';
         colorFondo = 'bg-red-50 dark:bg-red-900/10';
         colorTexto = 'text-red-800 dark:text-red-200';
         icono = 'cancel';
-        Mensaje = 'Tu inscripción no pudo ser procesada. Contacta con administración.';
+        Mensaje = 'Tu inscripciÃ³n no pudo ser procesada. Contacta con administraciÃ³n.';
     }
 
     container.className = `bg-surface-light dark:bg-surface-dark rounded-xl p-6 md:p-8 shadow-xl border-l-4 ${colorBorde}`;
@@ -338,7 +338,7 @@ function renderizarEstado() {
             </div>
             <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
-                    <h3 class="text-xl font-black text-black dark:text-white uppercase">Estado de Inscripción</h3>
+                    <h3 class="text-xl font-black text-black dark:text-white uppercase">Estado de InscripciÃ³n</h3>
                     <span class="px-3 py-1 rounded-full ${colorFondo} ${colorTexto} text-xs font-black uppercase tracking-wider">${estado}</span>
                 </div>
                 <p class="text-text-muted dark:text-gray-400 text-sm mb-3">${Mensaje}</p>
@@ -346,7 +346,7 @@ function renderizarEstado() {
                 <div class="flex items-center gap-2 mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <span class="material-symbols-outlined text-primary">confirmation_number</span>
                     <div>
-                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">Código de Operación</p>
+                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">CÃ³digo de OperaciÃ³n</p>
                         <p class="text-sm font-black text-black dark:text-white font-mono">${datosUsuario.pago.codigo}</p>
                     </div>
                 </div>
@@ -379,7 +379,7 @@ function renderizarDatosAlumno() {
             </div>
             
             <div>
-                <p class="text-primary text-xs font-black uppercase tracking-widest mb-1">Teléfono</p>
+                <p class="text-primary text-xs font-black uppercase tracking-widest mb-1">TelÃ©fono</p>
                 <p class="text-text-main dark:text-white text-base font-bold">${datosUsuario.alumno.telefono}</p>
             </div>
             
@@ -389,7 +389,7 @@ function renderizarDatosAlumno() {
             </div>
             
             <div>
-                <p class="text-primary text-xs font-black uppercase tracking-widest mb-1">Método de Pago</p>
+                <p class="text-primary text-xs font-black uppercase tracking-widest mb-1">MÃ©todo de Pago</p>
                 <p class="text-text-main dark:text-white text-base font-bold">${datosUsuario.pago.metodo_pago}</p>
             </div>
             
@@ -437,7 +437,7 @@ function renderizarHorarios() {
         });
     });
 
-    // Sin restricción de días - se puede pausar cualquier día del mes
+    // Sin restricciÃ³n de dÃ­as - se puede pausar cualquier dÃ­a del mes
     const puedePausar = true;
 
     container.innerHTML = Object.values(deportesAgrupados).map(deporte => {
@@ -445,7 +445,7 @@ function renderizarHorarios() {
         const esSuspendido = deporte.estado === 'suspendida';
         const esPendiente = deporte.estado === 'pendiente';
 
-        // Clases condicionales según estado
+        // Clases condicionales segÃºn estado
         const cardClasses = esSuspendido || esPendiente
             ? 'bg-gray-100 dark:bg-gray-800/50 opacity-70 border-gray-300 dark:border-gray-700'
             : 'bg-white dark:bg-[#222] border-gray-100 dark:border-gray-800 hover:border-primary dark:hover:border-primary';
@@ -454,14 +454,14 @@ function renderizarHorarios() {
             ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
             : 'bg-primary/10 text-primary';
 
-        // Botón de acción
+        // BotÃ³n de acciÃ³n
         let botonAccion = '';
         if (esPendiente) {
             botonAccion = `
                 <div class="mt-3 text-center">
                     <p class="text-xs text-yellow-600 dark:text-yellow-400 italic font-semibold">
                         <span class="material-symbols-outlined text-sm align-middle">schedule</span>
-                        Pendiente de activación por el administrador
+                        Pendiente de activaciÃ³n por el administrador
                     </p>
                 </div>
             `;
@@ -484,18 +484,18 @@ function renderizarHorarios() {
                 </button>
             `;
         } else {
-            // No puede pausar (después del día 5)
+            // No puede pausar (despuÃ©s del dÃ­a 5)
             botonAccion = `
                 <div class="mt-3 text-center">
                     <p class="text-xs text-gray-500 dark:text-gray-400 italic">
                         <span class="material-symbols-outlined text-sm align-middle">info</span>
-                        Podrás pausar este deporte a partir del día 1 del próximo mes
+                        PodrÃ¡s pausar este deporte a partir del dÃ­a 1 del prÃ³ximo mes
                     </p>
                 </div>
             `;
         }
 
-        // Lista de horarios (con botón eliminar si hay más de 1 y la inscripción está activa)
+        // Lista de horarios (con botÃ³n eliminar si hay mÃ¡s de 1 y la inscripciÃ³n estÃ¡ activa)
         const totalDiasDeporte = deporte.horarios.length;
         const horariosHtml = deporte.horarios.map(h => `
             <div class="flex items-center gap-2 text-text-muted dark:text-gray-400 text-sm">
@@ -504,22 +504,22 @@ function renderizarHorarios() {
                 ${!esSuspendido && !esPendiente && totalDiasDeporte > 1 && h.horario_id ? `
                 <button onclick="confirmarEliminarHorario(${deporte.inscripcion_id}, ${h.horario_id}, '${h.dia}')"
                         class="ml-1 p-0.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        title="Eliminar este día">
+                        title="Eliminar este dÃ­a">
                     <span class="material-symbols-outlined text-base">delete</span>
                 </button>` : ''}
             </div>
         `).join('');
 
-        // Botón agregar día (solo para inscripciones activas)
+        // BotÃ³n agregar dÃ­a (solo para inscripciones activas)
         const botonAgregarDia = !esSuspendido && !esPendiente ? `
             <button onclick="abrirModalAgregarHorario(${deporte.inscripcion_id})"
                     class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold uppercase transition-all">
                 <span class="material-symbols-outlined text-sm">add_circle</span>
-                Agregar día
+                Agregar dÃ­a
             </button>
         ` : '';
 
-        // Botón dejar deporte (para activas y suspendidas, no pendientes)
+        // BotÃ³n dejar deporte (para activas y suspendidas, no pendientes)
         const botonDejarDeporte = !esPendiente ? `
             <button onclick="confirmarDejarDeporte(${deporte.inscripcion_id}, '${deporte.deporte}')"
                     class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 border-red-300 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-bold uppercase transition-all">
@@ -552,7 +552,7 @@ function renderizarHorarios() {
                             `}
                         </div>
                         <p class="text-xs ${esSuspendido || esPendiente ? 'text-gray-400' : 'text-primary'} font-bold uppercase">${deporte.sede}</p>
-                        ${deporte.categoria ? `<p class="text-xs text-gray-500 mt-0.5"><span class="font-semibold">Categoría:</span> ${deporte.categoria}</p>` : ''}
+                        ${deporte.categoria ? `<p class="text-xs text-gray-500 mt-0.5"><span class="font-semibold">CategorÃ­a:</span> ${deporte.categoria}</p>` : ''}
                         <p class="text-xs text-gray-500 mt-1">S/ ${parseFloat(deporte.precio).toFixed(2)}/mes</p>
                     </div>
                 </div>
@@ -577,7 +577,7 @@ function renderizarHorarios() {
 }
 
 /**
- * Mostrar modal de confirmación para pausar/reactivar deporte
+ * Mostrar modal de confirmaciÃ³n para pausar/reactivar deporte
  */
 function mostrarModalToggleDeporte(inscripcionId, accion) {
     const nombreDeporte = Object.values(datosUsuario.horarios).find(h => h.inscripcion_id === inscripcionId)?.deporte || 'el deporte';
@@ -589,9 +589,9 @@ function mostrarModalToggleDeporte(inscripcionId, accion) {
         icono: 'pause_circle',
         iconBg: 'bg-orange-100 dark:bg-orange-900/30',
         iconColor: 'text-orange-600 dark:text-orange-400',
-        Mensaje: `¿Estás seguro de pausar <strong>"${nombreDeporte}"</strong>?`,
-        detalle: 'No se incluirá en tu próximo pago Mensual y no podrás asistir a las clases hasta que lo reactives.',
-        btnTexto: 'Sí, pausar deporte',
+        Mensaje: `Â¿EstÃ¡s seguro de pausar <strong>"${nombreDeporte}"</strong>?`,
+        detalle: 'No se incluirÃ¡ en tu prÃ³ximo pago Mensual y no podrÃ¡s asistir a las clases hasta que lo reactives.',
+        btnTexto: 'SÃ­, pausar deporte',
         btnClass: 'bg-orange-500 hover:bg-orange-600',
         btnIcon: 'pause'
     } : {
@@ -599,9 +599,9 @@ function mostrarModalToggleDeporte(inscripcionId, accion) {
         icono: 'play_circle',
         iconBg: 'bg-green-100 dark:bg-green-900/30',
         iconColor: 'text-green-600 dark:text-green-400',
-        Mensaje: `¿Quieres reactivar <strong>"${nombreDeporte}"</strong>?`,
-        detalle: 'Se incluirá en tu próximo pago Mensual y podrás volver a asistir a las clases.',
-        btnTexto: 'Sí, reactivar',
+        Mensaje: `Â¿Quieres reactivar <strong>"${nombreDeporte}"</strong>?`,
+        detalle: 'Se incluirÃ¡ en tu prÃ³ximo pago Mensual y podrÃ¡s volver a asistir a las clases.',
+        btnTexto: 'SÃ­, reactivar',
         btnClass: 'bg-green-500 hover:bg-green-600',
         btnIcon: 'play_arrow'
     };
@@ -705,10 +705,10 @@ function confirmarDejarDeporte(inscripcionId, nombreDeporte) {
             
             <!-- Contenido -->
             <div class="p-6">
-                <p class="text-gray-700 dark:text-gray-300 mb-3">¿Estás seguro de dejar <strong>"${nombreDeporte}"</strong>?</p>
+                <p class="text-gray-700 dark:text-gray-300 mb-3">Â¿EstÃ¡s seguro de dejar <strong>"${nombreDeporte}"</strong>?</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400 bg-red-50 dark:bg-red-900/10 rounded-lg p-3">
                     <span class="material-symbols-outlined text-sm align-middle mr-1">warning</span>
-                    Se eliminarán todos los horarios de este deporte. Si deseas volver, tendrás que inscribirte de nuevo.
+                    Se eliminarÃ¡n todos los horarios de este deporte. Si deseas volver, tendrÃ¡s que inscribirte de nuevo.
                 </p>
             </div>
             
@@ -721,7 +721,7 @@ function confirmarDejarDeporte(inscripcionId, nombreDeporte) {
                 <button id="btnConfirmarDejar" onclick="ejecutarDejarDeporte(${inscripcionId})" 
                         class="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg">logout</span>
-                    Sí, dejar deporte
+                    SÃ­, dejar deporte
                 </button>
             </div>
         </div>
@@ -784,17 +784,17 @@ async function ejecutarDejarDeporte(inscripcionId) {
     } catch (error) {
         cerrarModalDejarDeporte();
         console.error('Error:', error);
-        mostrarNotificacion('Error de conexión', 'error');
+        mostrarNotificacion('Error de conexiÃ³n', 'error');
     }
 }
 
 /**
- * Ejecutar la acción de pausar/reactivar después de confirmar en modal
+ * Ejecutar la acciÃ³n de pausar/reactivar despuÃ©s de confirmar en modal
  */
 async function ejecutarToggleDeporte(inscripcionId, accion) {
     const dni = datosUsuario.alumno.dni;
 
-    // Cambiar botón a loading
+    // Cambiar botÃ³n a loading
     const btnConfirmar = document.querySelector('#modalToggleDeporte button:last-child');
     if (btnConfirmar) {
         btnConfirmar.disabled = true;
@@ -822,12 +822,12 @@ async function ejecutarToggleDeporte(inscripcionId, accion) {
     } catch (error) {
         cerrarModalToggleDeporte();
         console.error('Error toggle deporte:', error);
-        mostrarNotificacion(error.message || 'Error de conexión', 'error');
+        mostrarNotificacion(error.message || 'Error de conexiÃ³n', 'error');
     }
 }
 
 /**
- * Función llamada desde los botones (ahora muestra modal)
+ * FunciÃ³n llamada desde los botones (ahora muestra modal)
  */
 function toggleDeporte(inscripcionId, accion) {
     mostrarModalToggleDeporte(inscripcionId, accion);
@@ -835,18 +835,18 @@ function toggleDeporte(inscripcionId, accion) {
 
 function obtenerIconoDeporte(deporte) {
     const iconos = {
-        'Fútbol': 'sports_soccer',
-        'Fútbol Femenino': 'sports_soccer',
-        'Vóley': 'sports_volleyball',
-        'Básquet': 'sports_basketball',
+        'FÃºtbol': 'sports_soccer',
+        'FÃºtbol Femenino': 'sports_soccer',
+        'VÃ³ley': 'sports_volleyball',
+        'BÃ¡squet': 'sports_basketball',
         'Tenis': 'sports_tennis',
-        'Natación': 'pool',
+        'NataciÃ³n': 'pool',
         'Atletismo': 'sprint',
         'Entrenamiento Funcional Adultos': 'fitness_center',
         'Entrenamiento Funcional Menores': 'fitness_center',
         'Entrenamiento Funcional Mixto': 'fitness_center',
         'MAMAS FIT': 'fitness_center',
-        'Entrenamiento de Fuerza y Tonificación Muscular': 'exercise'
+        'Entrenamiento de Fuerza y TonificaciÃ³n Muscular': 'exercise'
     };
     return iconos[deporte] || 'sports';
 }
@@ -892,7 +892,7 @@ function cerrarSesion() {
     // Limpiar formulario
     document.getElementById('dniConsulta').value = '';
 
-    // Restaurar botón
+    // Restaurar botÃ³n
     const btnSubmit = document.querySelector('#formConsulta button[type="submit"]');
     btnSubmit.disabled = false;
     btnSubmit.innerHTML = `
@@ -915,7 +915,7 @@ function mostrarModalInactivo(dni) {
 
     // Actualizar link de WhatsApp con DNI
     const whatsappBtn = document.getElementById('btnWhatsAppInactivo');
-    const MensajeWhatsApp = `Hola, acabo de subir mi comprobante de pago para reactivar mi membresía. Mi DNI es: ${dni}`;
+    const MensajeWhatsApp = `Hola, acabo de subir mi comprobante de pago para reactivar mi membresÃ­a. Mi DNI es: ${dni}`;
     whatsappBtn.href = `https://wa.me/51973324460?text=${encodeURIComponent(MensajeWhatsApp)}`;
 
     // Resetear el formulario de subida si existe
@@ -943,7 +943,7 @@ function previsualizarComprobanteInactivo(event) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-        mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
+        mostrarNotificacion('Por favor selecciona una imagen vÃ¡lida', 'error');
         return;
     }
 
@@ -993,7 +993,7 @@ async function subirComprobanteInactivo() {
     try {
         // Usar base64 comprimido generado al previsualizar
         const base64 = window._base64Inactivo;
-        if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+        if (!base64) { throw new Error('No se encontrÃ³ la imagen. SelecciÃ³nala nuevamente.'); }
 
         // Obtener mes actual para el nombre y registro
         const hoy = new Date();
@@ -1002,11 +1002,11 @@ async function subirComprobanteInactivo() {
         // Usar el endpoint de pago Mensual (que es el que usa el modal de inactivo para regularizar)
         const resultado = await academiaAPI.subirPagoMensual({
             dni: dni,
-            alumno: `Usuario DNI ${dni}`, // No tenemos el nombre completo aquí
+            alumno: `Usuario DNI ${dni}`, // No tenemos el nombre completo aquÃ­
             imagen: base64,
             nombre_archivo: `REGULARIZACION_${mesAnio}_${dni}_${file.name}`,
             mes: mesAnio,
-            monto: 0, // El admin verificará el monto correcto
+            monto: 0, // El admin verificarÃ¡ el monto correcto
             esRegularizacion: true
         });
 
@@ -1017,7 +1017,7 @@ async function subirComprobanteInactivo() {
         }
 
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('âŒ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante. Intenta nuevamente.', 'error');
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined">send</span><span>Enviar Comprobante</span>';
@@ -1025,7 +1025,7 @@ async function subirComprobanteInactivo() {
 }
 
 /**
- * Modal de éxito después de subir comprobante desde inactivo
+ * Modal de Ã©xito despuÃ©s de subir comprobante desde inactivo
  */
 function mostrarModalExitoComprobanteInactivo() {
     // Cerrar modal de inactivo primero
@@ -1036,23 +1036,23 @@ function mostrarModalExitoComprobanteInactivo() {
     modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in';
     modal.innerHTML = `
         <div class="bg-white dark:bg-[#1a1a1a] rounded-3xl p-8 max-w-md w-full shadow-2xl animate-scale-in">
-            <!-- Icono de éxito -->
+            <!-- Icono de Ã©xito -->
             <div class="flex justify-center mb-6">
                 <div class="size-24 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                     <span class="material-symbols-outlined text-green-600 dark:text-green-400" style="font-size: 64px;">check_circle</span>
                 </div>
             </div>
             
-            <!-- Título -->
+            <!-- TÃ­tulo -->
             <h2 class="text-3xl font-black text-center text-text-main dark:text-white mb-4">
-                ¡Comprobante Recibido!
+                Â¡Comprobante Recibido!
             </h2>
             
             <!-- Mensaje -->
             <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
                 <p class="text-sm text-green-900 dark:text-green-100 text-center leading-relaxed">
                     Tu comprobante ha sido enviado correctamente. 
-                    <strong class="block mt-2">El administrador verificará tu pago y reactivará tu cuenta en breve.</strong>
+                    <strong class="block mt-2">El administrador verificarÃ¡ tu pago y reactivarÃ¡ tu cuenta en breve.</strong>
                 </p>
             </div>
             
@@ -1061,15 +1061,15 @@ function mostrarModalExitoComprobanteInactivo() {
                 <div class="flex items-start gap-3">
                     <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 flex-shrink-0">schedule</span>
                     <div>
-                        <p class="text-xs font-bold text-blue-900 dark:text-blue-100 mb-1">Tiempo de verificación</p>
+                        <p class="text-xs font-bold text-blue-900 dark:text-blue-100 mb-1">Tiempo de verificaciÃ³n</p>
                         <p class="text-xs text-blue-800 dark:text-blue-200">
-                            La verificación suele tomar entre 2 a 24 horas. Te notificaremos una vez que tu cuenta esté activa.
+                            La verificaciÃ³n suele tomar entre 2 a 24 horas. Te notificaremos una vez que tu cuenta estÃ© activa.
                         </p>
                     </div>
                 </div>
             </div>
             
-            <!-- Botón Cerrar -->
+            <!-- BotÃ³n Cerrar -->
             <button onclick="cerrarModalExitoComprobanteInactivo()" class="w-full py-4 bg-primary hover:bg-primary-dark text-black rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl">
                 Entendido
             </button>
@@ -1086,7 +1086,7 @@ function cerrarModalExitoComprobanteInactivo() {
         modal.remove();
         document.body.style.overflow = '';
 
-        // Redirigir al inicio después de cerrar
+        // Redirigir al inicio despuÃ©s de cerrar
         setTimeout(() => {
             window.location.href = 'index.html';
         }, 500);
@@ -1105,7 +1105,7 @@ function cerrarModalInactivo() {
     document.body.style.overflow = '';
 }
 
-// Cerrar modal al hacer clic fuera de él
+// Cerrar modal al hacer clic fuera de Ã©l
 document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('modalInactivo');
     if (modal) {
@@ -1123,7 +1123,7 @@ function mostrarNotificacion(Mensaje, tipo = 'info') {
 }
 
 /**
- * Modal para subir comprobante de forma tardía
+ * Modal para subir comprobante de forma tardÃ­a
  */
 function abrirModalSubirComprobante() {
     const dni = window.dniUsuarioActual;
@@ -1146,7 +1146,7 @@ function abrirModalSubirComprobante() {
             </h3>
             
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                Sube tu comprobante de pago (Plin o transferencia bancaria) si cambiaste de opinión sobre el pago en efectivo.
+                Sube tu comprobante de pago (Plin o transferencia bancaria) si cambiaste de opiniÃ³n sobre el pago en efectivo.
             </p>
             
             <div class="space-y-4">
@@ -1169,10 +1169,10 @@ function abrirModalSubirComprobante() {
                     <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
                         <span class="flex items-center gap-1">
                             <span class="material-symbols-outlined text-base">pin</span>
-                            Número de operación <span class="text-red-500">*</span>
+                            NÃºmero de operaciÃ³n <span class="text-red-500">*</span>
                         </span>
                     </label>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Es el código que aparece en tu voucher de Yape, Plin, transferencia bancaria o recibo de efectivo.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Es el cÃ³digo que aparece en tu voucher de Yape, Plin, transferencia bancaria o recibo de efectivo.</p>
                     <input type="text"
                            id="inputNumOpTardio"
                            placeholder="Ej: 00012345678"
@@ -1207,7 +1207,7 @@ function previsualizarComprobante(event) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-        mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
+        mostrarNotificacion('Por favor selecciona una imagen vÃ¡lida', 'error');
         return;
     }
 
@@ -1246,7 +1246,7 @@ async function subirComprobanteTardio() {
             inputNumOp.focus();
             setTimeout(() => { inputNumOp.style.borderColor = ''; }, 3000);
         }
-        mostrarNotificacion('Debes ingresar el número de operación de tu comprobante', 'error');
+        mostrarNotificacion('Debes ingresar el nÃºmero de operaciÃ³n de tu comprobante', 'error');
         return;
     }
 
@@ -1258,7 +1258,7 @@ async function subirComprobanteTardio() {
     try {
         // Usar base64 comprimido generado al previsualizar
         const base64 = window._base64Tardio;
-        if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+        if (!base64) { throw new Error('No se encontrÃ³ la imagen. SelecciÃ³nala nuevamente.'); }
 
         // Usar la API igual que en exito.js
         const resultado = await academiaAPI.subirComprobanteTardio(dni, {
@@ -1269,10 +1269,10 @@ async function subirComprobanteTardio() {
         });
 
         if (resultado.success) {
-            mostrarNotificacion('Comprobante subido exitosamente. El administrador lo revisará pronto.', 'success');
+            mostrarNotificacion('Comprobante subido exitosamente. El administrador lo revisarÃ¡ pronto.', 'success');
             cerrarModalSubirComprobante();
 
-            // Recargar después de 2 segundos
+            // Recargar despuÃ©s de 2 segundos
             setTimeout(() => {
                 location.reload();
             }, 2000);
@@ -1281,7 +1281,7 @@ async function subirComprobanteTardio() {
         }
 
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('âŒ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante', 'error');
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined">cloud_upload</span><span>Enviar Comprobante</span>';
@@ -1291,14 +1291,14 @@ async function subirComprobanteTardio() {
 // ==================== PAGO Mensual ====================
 
 /**
- * Renderizar sección de pago Mensual
+ * Renderizar secciÃ³n de pago Mensual
  */
 function renderizarSeccionPagoMensual() {
     // Obtener el contenedor
     const container = document.getElementById('seccionPagoMensual');
 
     if (!container) {
-        console.error('❌ No se encontró el contenedor seccionPagoMensual');
+        console.error('âŒ No se encontrÃ³ el contenedor seccionPagoMensual');
         return;
     }
 
@@ -1335,15 +1335,15 @@ function renderizarSeccionPagoMensual() {
                 <div class="flex-1">
                     <h4 class="text-amber-900 dark:text-amber-200 font-black text-lg uppercase mb-2">RECORDATORIO DE PAGO</h4>
                     <p class="text-amber-800 dark:text-amber-300 text-sm leading-relaxed">
-                        El pago de tu Mensualidad debe realizarse <strong>antes del día 5</strong> de cada mes. 
-                        Si no se registra el pago correspondiente, <strong class="text-red-600 dark:text-red-400">tu acceso a las clases será suspendido</strong> 
-                        hasta que regularices tu situación.
+                        El pago de tu Mensualidad debe realizarse <strong>antes del dÃ­a 5</strong> de cada mes. 
+                        Si no se registra el pago correspondiente, <strong class="text-red-600 dark:text-red-400">tu acceso a las clases serÃ¡ suspendido</strong> 
+                        hasta que regularices tu situaciÃ³n.
                     </p>
                 </div>
             </div>
         </div>
         
-        <!-- Sección subir comprobante Mensual -->
+        <!-- SecciÃ³n subir comprobante Mensual -->
         <div class="flex items-center gap-4 mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
             <div class="size-12 rounded-full bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center">
                 <span class="material-symbols-outlined text-2xl">payments</span>
@@ -1363,9 +1363,9 @@ function renderizarSeccionPagoMensual() {
                 </div>
                 
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase mb-1">Monto según tu plan</p>
+                    <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase mb-1">Monto segÃºn tu plan</p>
                     <p class="text-lg font-black text-primary">S/ ${datosUsuario.pago.monto?.toFixed(2) || '---'}</p>
-                    <p class="text-xs text-text-muted dark:text-gray-400 mt-1">Basado en tu inscripción actual</p>
+                    <p class="text-xs text-text-muted dark:text-gray-400 mt-1">Basado en tu inscripciÃ³n actual</p>
                     ${notaDeportesPausados}
                 </div>
                 
@@ -1374,12 +1374,12 @@ function renderizarSeccionPagoMensual() {
                         <span class="material-symbols-outlined text-blue-600 text-lg flex-shrink-0">info</span>
                         <p class="text-xs text-blue-800 dark:text-blue-200">
                             Puedes pagar por <strong>Plin, Yape, transferencia BCP o BBVA</strong>. 
-                            Sube la captura de tu pago aquí.
+                            Sube la captura de tu pago aquÃ­.
                         </p>
                     </div>
                 </div>
 
-                <!-- Información de Plin -->
+                <!-- InformaciÃ³n de Plin -->
                 <div class="bg-green-50 dark:bg-green-900/10 rounded-lg p-4 border border-green-200 dark:border-green-800">
                     <div class="flex items-start gap-3">
                         <div class="flex-shrink-0">
@@ -1391,7 +1391,7 @@ function renderizarSeccionPagoMensual() {
                             <p class="text-xs text-green-700 dark:text-green-300 mb-2">A nombre de: ${configPagosConsulta.plin?.destinatario || 'Oscar Orosco'}</p>
                             ${configPagosConsulta.plin?.qr_url ? `
                                 <button onclick="mostrarQRConsulta(configPagosConsulta.plin.qr_url)" class="text-xs bg-green-600 hover:bg-green-700 text-white font-bold px-3 py-1 rounded transition-colors">
-                                    Ver código QR
+                                    Ver cÃ³digo QR
                                 </button>
                             ` : ''}
                         </div>
@@ -1408,7 +1408,7 @@ function renderizarSeccionPagoMensual() {
                     <div id="iconoSubidaMensual">
                         <span class="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500 mb-3">cloud_upload</span>
                         <p class="text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">Haz clic para seleccionar</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500">o arrastra tu comprobante aquí</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">o arrastra tu comprobante aquÃ­</p>
                     </div>
                     
                     <div id="previewPagoMensual" class="hidden w-full">
@@ -1437,7 +1437,7 @@ function previsualizarPagoMensual(event) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-        mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
+        mostrarNotificacion('Por favor selecciona una imagen vÃ¡lida', 'error');
         return;
     }
 
@@ -1466,7 +1466,7 @@ function previsualizarPagoMensual(event) {
  */
 let _subiendoPagoMensual = false;
 async function subirPagoMensual() {
-    // Evitar envíos duplicados por doble-click
+    // Evitar envÃ­os duplicados por doble-click
     if (_subiendoPagoMensual) return;
 
     const input = document.getElementById('inputPagoMensual');
@@ -1487,7 +1487,7 @@ async function subirPagoMensual() {
     try {
         // Usar base64 comprimido generado al previsualizar
         const base64 = window._base64Mensual;
-        if (!base64) { throw new Error('No se encontró la imagen. Selecciónala nuevamente.'); }
+        if (!base64) { throw new Error('No se encontrÃ³ la imagen. SelecciÃ³nala nuevamente.'); }
 
         // Obtener mes actual para el nombre
         const hoy = new Date();
@@ -1516,7 +1516,7 @@ async function subirPagoMensual() {
         }
 
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('âŒ Error:', error);
         mostrarNotificacion(error.message || 'Error al subir comprobante', 'error');
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined text-2xl">cloud_upload</span><span>Enviar Comprobante del Mes</span>';
@@ -1526,7 +1526,7 @@ async function subirPagoMensual() {
 }
 
 /**
- * Modal de éxito después de subir pago Mensual
+ * Modal de Ã©xito despuÃ©s de subir pago Mensual
  */
 function mostrarModalExitoPagoMensual(driveUrl) {
     const modal = document.createElement('div');
@@ -1534,23 +1534,23 @@ function mostrarModalExitoPagoMensual(driveUrl) {
     modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in';
     modal.innerHTML = `
         <div class="bg-white dark:bg-[#1a1a1a] rounded-3xl p-8 max-w-md w-full shadow-2xl animate-scale-in">
-            <!-- Icono de éxito -->
+            <!-- Icono de Ã©xito -->
             <div class="flex justify-center mb-6">
                 <div class="size-24 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                     <span class="material-symbols-outlined text-green-600 dark:text-green-400" style="font-size: 64px;">check_circle</span>
                 </div>
             </div>
             
-            <!-- Título -->
+            <!-- TÃ­tulo -->
             <h2 class="text-3xl font-black text-center text-text-main dark:text-white mb-4">
-                ¡Pago Registrado!
+                Â¡Pago Registrado!
             </h2>
             
             <!-- Mensaje -->
             <div class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
                 <p class="text-sm text-green-900 dark:text-green-100 text-center leading-relaxed">
                     Tu comprobante de pago Mensual ha sido enviado correctamente. 
-                    <strong class="block mt-2">El administrador verificará tu pago en las próximas horas.</strong>
+                    <strong class="block mt-2">El administrador verificarÃ¡ tu pago en las prÃ³ximas horas.</strong>
                 </p>
             </div>
             
@@ -1567,7 +1567,7 @@ function mostrarModalExitoPagoMensual(driveUrl) {
                 </div>
             </div>
             
-            <!-- Botón Cerrar -->
+            <!-- BotÃ³n Cerrar -->
             <button onclick="cerrarModalExitoPagoMensual()" class="w-full py-4 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl">
                 Entendido
             </button>
@@ -1595,7 +1595,7 @@ function cerrarModalExitoPagoMensual() {
 }
 
 // ============================================================
-// ELIMINAR DÍA DE INSCRIPCIÓN EXISTENTE
+// ELIMINAR DÃA DE INSCRIPCIÃ“N EXISTENTE
 // ============================================================
 
 function confirmarEliminarHorario(inscripcionId, horarioId, dia) {
@@ -1613,16 +1613,16 @@ function confirmarEliminarHorario(inscripcionId, horarioId, dia) {
                         <span class="material-symbols-outlined text-3xl text-red-600 dark:text-red-400">delete</span>
                     </div>
                     <div>
-                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Eliminar día</h3>
+                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Eliminar dÃ­a</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">${dia}</p>
                     </div>
                 </div>
             </div>
             <div class="p-6">
-                <p class="text-gray-700 dark:text-gray-300 mb-3">¿Estás seguro de eliminar el día <strong>${dia}</strong> de tu inscripción?</p>
+                <p class="text-gray-700 dark:text-gray-300 mb-3">Â¿EstÃ¡s seguro de eliminar el dÃ­a <strong>${dia}</strong> de tu inscripciÃ³n?</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                     <span class="material-symbols-outlined text-sm align-middle mr-1">info</span>
-                    La mensualidad se ajustará al nuevo número de días.
+                    La mensualidad se ajustarÃ¡ al nuevo nÃºmero de dÃ­as.
                 </p>
             </div>
             <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
@@ -1663,24 +1663,24 @@ async function ejecutarEliminarHorario(inscripcionId, horarioId) {
 
         if (data.success) {
             const msgPrecio = data.nuevo_precio ? ` Mensualidad actualizada a S/.${data.nuevo_precio}.` : '';
-            mostrarNotificacion('Día eliminado correctamente.' + msgPrecio, 'success');
+            mostrarNotificacion('DÃ­a eliminado correctamente.' + msgPrecio, 'success');
             setTimeout(() => consultarPorDNI(dni), 800);
         } else {
-            mostrarNotificacion(data.error || 'Error al eliminar el día', 'error');
+            mostrarNotificacion(data.error || 'Error al eliminar el dÃ­a', 'error');
         }
     } catch (error) {
-        mostrarNotificacion('Error de conexión. Intente nuevamente.', 'error');
+        mostrarNotificacion('Error de conexiÃ³n. Intente nuevamente.', 'error');
         const modal = document.getElementById('modalEliminarHorario');
         if (modal) { modal.remove(); document.body.style.overflow = ''; }
     }
 }
 
 // ============================================================
-// AGREGAR DÍA A INSCRIPCIÓN EXISTENTE
+// AGREGAR DÃA A INSCRIPCIÃ“N EXISTENTE
 // ============================================================
 
 async function abrirModalAgregarHorario(inscripcionId) {
-    // Obtener nombre del deporte, categoría y plan desde los datos ya cargados
+    // Obtener nombre del deporte, categorÃ­a y plan desde los datos ya cargados
     const horarioRef = datosUsuario?.horarios?.find(h => h.inscripcion_id === inscripcionId);
     const deporteNombre = horarioRef?.deporte || 'el deporte';
     const categoria = horarioRef?.categoria || null;
@@ -1701,7 +1701,7 @@ async function abrirModalAgregarHorario(inscripcionId) {
                         <span class="material-symbols-outlined text-3xl text-blue-600 dark:text-blue-400">add_circle</span>
                     </div>
                     <div>
-                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Agregar día</h3>
+                        <h3 class="text-xl font-black text-black dark:text-white uppercase">Agregar dÃ­a</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">${deporteNombre}</p>
                     </div>
                 </div>
@@ -1751,8 +1751,8 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
     const contenido = document.getElementById('contenidoModalAgregarHorario');
 
     try {
-        // No filtrar por año de nacimiento: el alumno ya está inscrito en una categoría,
-        // mostrar todos los horarios y filtrar por deporte+categoría+plan en JS
+        // No filtrar por aÃ±o de nacimiento: el alumno ya estÃ¡ inscrito en una categorÃ­a,
+        // mostrar todos los horarios y filtrar por deporte+categorÃ­a+plan en JS
         const url = `${API_BASE}/api/horarios`;
 
         const res = await fetch(url);
@@ -1763,7 +1763,7 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
             return;
         }
 
-        // Filtrar por deporte + categoría + plan (misma lógica de la inscripción original)
+        // Filtrar por deporte + categorÃ­a + plan (misma lÃ³gica de la inscripciÃ³n original)
         const horariosDeporte = data.horarios.filter(h => {
             if (h.deporte.toLowerCase() !== deporteNombre.toLowerCase()) return false;
             if (categoria && h.categoria && h.categoria !== categoria) return false;
@@ -1776,7 +1776,7 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
             return;
         }
 
-        // Obtener los horarios ya inscritos en esta inscripción para excluirlos
+        // Obtener los horarios ya inscritos en esta inscripciÃ³n para excluirlos
         const horariosInscritos = datosUsuario.horarios.filter(h => h.inscripcion_id === inscripcionId);
         const clavesInscritas = new Set(horariosInscritos.map(h => `${h.dia}-${h.hora_inicio}`));
 
@@ -1805,7 +1805,7 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
             contenido.innerHTML = `
                 <div class="text-center py-8">
                     <span class="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600 mb-3 block">event_busy</span>
-                    <p class="text-gray-500">Ya estás inscrito en todos los horarios disponibles para ${deporteNombre}.</p>
+                    <p class="text-gray-500">Ya estÃ¡s inscrito en todos los horarios disponibles para ${deporteNombre}.</p>
                 </div>
             `;
             return;
@@ -1813,7 +1813,7 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
 
         contenido.innerHTML = `
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Selecciona el día que deseas agregar a tu inscripción de <strong>${deporteNombre}</strong>${categoria ? ` <span class="text-primary font-semibold">(${categoria})</span>` : ''}:
+                Selecciona el dÃ­a que deseas agregar a tu inscripciÃ³n de <strong>${deporteNombre}</strong>${categoria ? ` <span class="text-primary font-semibold">(${categoria})</span>` : ''}:
             </p>
             <div class="space-y-2">
                 ${horariosDisponibles.map(h => `
@@ -1870,11 +1870,11 @@ async function confirmarAgregarHorario(inscripcionId) {
         if (data.success) {
             cerrarModalAgregarHorario();
             const msgPrecio = data.nuevo_precio ? ` Mensualidad actualizada a S/.${data.nuevo_precio}.` : '';
-            mostrarNotificacion((data.message || 'Día agregado correctamente') + msgPrecio, 'success');
+            mostrarNotificacion((data.message || 'DÃ­a agregado correctamente') + msgPrecio, 'success');
             // Recargar datos del alumno
             setTimeout(() => consultarPorDNI(dni), 800);
         } else {
-            mostrarNotificacion(data.error || 'Error al agregar el día', 'error');
+            mostrarNotificacion(data.error || 'Error al agregar el dÃ­a', 'error');
             if (btnConfirmar) {
                 btnConfirmar.disabled = false;
                 btnConfirmar.innerHTML = `<span class="material-symbols-outlined text-lg">add_circle</span>Agregar`;
@@ -1882,7 +1882,7 @@ async function confirmarAgregarHorario(inscripcionId) {
         }
     } catch (error) {
         console.error('Error:', error);
-        mostrarNotificacion('Error de conexión. Intente nuevamente.', 'error');
+        mostrarNotificacion('Error de conexiÃ³n. Intente nuevamente.', 'error');
         if (btnConfirmar) {
             btnConfirmar.disabled = false;
             btnConfirmar.innerHTML = `<span class="material-symbols-outlined text-lg">add_circle</span>Agregar`;
@@ -1891,7 +1891,7 @@ async function confirmarAgregarHorario(inscripcionId) {
 }
 
 /**
- * Mostrar modal con código QR de Plin
+ * Mostrar modal con cÃ³digo QR de Plin
  */
 function mostrarQRConsulta(qrUrl) {
     const existente = document.getElementById('modalQRConsulta');
@@ -1913,13 +1913,13 @@ function mostrarQRConsulta(qrUrl) {
                     <span class="material-symbols-outlined text-6xl text-green-600 dark:text-green-400">qr_code_scanner</span>
                 </div>
                 
-                <h3 class="text-2xl font-black text-black dark:text-white mb-2 uppercase">Código QR - Plin</h3>
+                <h3 class="text-2xl font-black text-black dark:text-white mb-2 uppercase">CÃ³digo QR - Plin</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                    Escanea este código con tu celular para realizar el pago
+                    Escanea este cÃ³digo con tu celular para realizar el pago
                 </p>
 
                 <div class="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 mb-6 flex items-center justify-center">
-                    <img src="${qrUrlActual}" alt="Código QR Plin" class="w-full max-w-xs h-auto rounded-lg" onerror="this.src='assets/plinqr.jpeg'">
+                    <img src="${qrUrlActual}" alt="CÃ³digo QR Plin" class="w-full max-w-xs h-auto rounded-lg" onerror="this.src='assets/plinqr.jpeg'">
                 </div>
 
                 <div class="space-y-3">
