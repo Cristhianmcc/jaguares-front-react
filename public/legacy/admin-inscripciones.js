@@ -481,7 +481,10 @@ function mostrarModalDetalleInscripcion(data) {
                 }
                 
                 const horariosHTML = dep.horarios.map(h => 
-                  `<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  
+  `<
+
+ div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
                     <span>${h.dia} ${h.hora_inicio || ''} ${h.hora_fin ? '- ' + h.hora_fin : ''}</span>
                   </div>`
@@ -526,6 +529,25 @@ function mostrarModalDetalleInscripcion(data) {
         </div>
       </div>
       
+
+      <div style="padding: 0 24px 16px 24px;">
+        <div id="seccionOverrideAdmin" style="padding:16px;background:#fffbeb;border:2px solid #f59e0b;border-radius:12px;">
+          <h4 style="margin:0 0 8px 0;color:#92400e;font-size:14px;font-weight:700;">⚡ Acceso Especial (Solo Admin)</h4>
+          <p style="margin:0 0 12px 0;font-size:12px;color:#78350f;">Agrega horarios sin restricciones de plan ni categoría. El precio NO se recalcula automáticamente.</p>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:12px;font-weight:600;color:#78350f;display:block;margin-bottom:4px;">1. Inscripción del alumno:</label>
+            <select id="overrideInscripcionSelect" style="width:100%;padding:8px;border:1px solid #f59e0b;border-radius:6px;font-size:13px;background:white;" onchange="cargarHorariosOverride()">
+              <option value="">-- Seleccionar inscripción --</option>
+            </select>
+          </div>
+          <div id="overrideHorariosContainer" style="display:none;margin-bottom:10px;">
+            <label style="font-size:12px;font-weight:600;color:#78350f;display:block;margin-bottom:4px;">2. Horario a agregar:</label>
+            <div id="overrideHorariosList" style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto;"></div>
+          </div>
+          <button id="btnAgregarOverride" onclick="ejecutarOverrideHorario()" style="display:none;width:100%;padding:10px;background:#f59e0b;color:white;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">+ Agregar Horario Especial</button>
+          <div id="overrideMensaje" style="margin-top:8px;font-size:12px;"></div>
+        </div>
+      </div>
       <div class="sticky bottom-0 bg-gray-50 dark:bg-gray-900 px-6 py-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
         <button onclick="cerrarModalDetalle()" class="px-6 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold transition-colors">
           Cerrar
@@ -535,6 +557,20 @@ function mostrarModalDetalleInscripcion(data) {
   `;
   
   document.body.appendChild(modal);
+
+  // Poblar el select de inscripciones del alumno para Acceso Especial
+  modal.dataset.dni = data.dni || '';
+  const overrideSelectEl = document.getElementById('overrideInscripcionSelect');
+  if (overrideSelectEl && data.inscripciones) {
+    overrideSelectEl.innerHTML = '<option value="">-- Seleccionar inscripci\u00f3n --</option>';
+    data.inscripciones.forEach(function(insc) {
+      const opt = document.createElement('option');
+      opt.value = insc.inscripcion_id;
+      opt.dataset.deporteId = insc.deporte_id || '';
+      opt.textContent = (insc.deporte || 'Deporte') + ' - ' + (insc.plan || '') + ' (' + (insc.estado || '') + ')';
+      overrideSelectEl.appendChild(opt);
+    });
+  }
 }
 
 function cerrarModalDetalle() {
@@ -1676,3 +1712,162 @@ function mostrarNotificacion(Mensaje, tipo = 'info') {
 
 
 
+
+
+// ==================== ACCESO ESPECIAL (OVERRIDE DE HORARIOS) ====================
+
+async function cargarHorariosOverride() {
+  const select = document.getElementById('overrideInscripcionSelect');
+  const inscripcionId = select?.value;
+  const container = document.getElementById('overrideHorariosContainer');
+  const lista = document.getElementById('overrideHorariosList');
+  const btnAgregar = document.getElementById('btnAgregarOverride');
+  
+  if (!inscripcionId || !container || !lista) return;
+  
+  container.style.display = 'none';
+  lista.innerHTML = '<span style="font-size:12px;color:#78350f;">Cargando horarios...</span>';
+  
+  try {
+    // Obtener el deporte_id de la inscripcion seleccionada
+    const optionEl = select.options[select.selectedIndex];
+    const deporteId = optionEl?.dataset?.deporteId;
+    
+    if (!deporteId) {
+      lista.innerHTML = '<span style="color:red;font-size:12px;">No se pudo obtener el deporte</span>';
+      container.style.display = 'block';
+      return;
+    }
+    
+    // Obtener horarios ya asignados al alumno en esta inscripcion
+    const modal = document.getElementById('modalDetalleInscripcion');
+    const dni = modal?.dataset?.dni;
+    let horariosAsignados = [];
+    
+    if (dni) {
+      try {
+        const resp = await fetch(`/api/admin/inscripciones/${encodeURIComponent(dni)}`, {
+          headers: { 'Authorization': `Bearer ${getAdminToken()}` }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          // Recolectar todos los horario_id ya asignados
+          (data.inscripciones || []).forEach(insc => {
+            (insc.horarios || []).forEach(h => horariosAsignados.push(h.horario_id));
+          });
+        }
+      } catch (e) { /* sin cache, igual mostramos todos */ }
+    }
+    
+    // Cargar todos los horarios del deporte (sin filtrar por plan/categoria)
+    const res = await fetch(`/api/horarios?deporte_id=${deporteId}&refresh=true`, {
+      headers: { 'Authorization': `Bearer ${getAdminToken()}` }
+    });
+    const data = await res.json();
+    const horarios = data.horarios || data || [];
+    
+    lista.innerHTML = '';
+    if (!Array.isArray(horarios) || horarios.length === 0) {
+      lista.innerHTML = '<span style="font-size:12px;color:#78350f;">No hay horarios disponibles para este deporte</span>';
+      container.style.display = 'block';
+      return;
+    }
+    
+    horarios.forEach(h => {
+      const yaAsignado = horariosAsignados.includes(h.horario_id);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.horarioId = h.horario_id;
+      btn.style.cssText = `
+        padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: ${yaAsignado ? 'not-allowed' : 'pointer'};
+        border: 2px solid ${yaAsignado ? '#d1d5db' : '#f59e0b'};
+        background: ${yaAsignado ? '#f3f4f6' : 'white'};
+        color: ${yaAsignado ? '#9ca3af' : '#92400e'};
+        opacity: ${yaAsignado ? '0.6' : '1'};
+      `;
+      btn.textContent = `${h.dia} ${h.hora_inicio} (${h.plan || '?'}) ${yaAsignado ? '✓' : ''}`;
+      if (!yaAsignado) {
+        btn.onclick = () => seleccionarHorarioOverride(btn, h);
+      }
+      lista.appendChild(btn);
+    });
+    
+    container.style.display = 'block';
+    if (btnAgregar) btnAgregar.style.display = 'none';
+    
+  } catch (err) {
+    lista.innerHTML = `<span style="color:red;font-size:12px;">Error: ${err.message}</span>`;
+    container.style.display = 'block';
+  }
+}
+
+function seleccionarHorarioOverride(btn, horario) {
+  // Quitar seleccion previa
+  document.querySelectorAll('#overrideHorariosList button').forEach(b => {
+    b.style.background = 'white';
+    b.style.borderColor = '#f59e0b';
+    b.style.color = '#92400e';
+  });
+  // Marcar el seleccionado
+  btn.style.background = '#f59e0b';
+  btn.style.borderColor = '#d97706';
+  btn.style.color = 'white';
+  
+  const btnAgregar = document.getElementById('btnAgregarOverride');
+  if (btnAgregar) {
+    btnAgregar.style.display = 'block';
+    btnAgregar.dataset.horarioId = horario.horario_id;
+    btnAgregar.textContent = `+ Agregar: ${horario.dia} ${horario.hora_inicio} (${horario.plan || ''})`;
+  }
+}
+
+async function ejecutarOverrideHorario() {
+  const btnAgregar = document.getElementById('btnAgregarOverride');
+  const overrideMensaje = document.getElementById('overrideMensaje');
+  const select = document.getElementById('overrideInscripcionSelect');
+  
+  const inscripcionId = select?.value;
+  const horarioId = btnAgregar?.dataset?.horarioId;
+  
+  if (!inscripcionId || !horarioId) {
+    if (overrideMensaje) overrideMensaje.innerHTML = '<span style="color:red;">Selecciona inscripcion y horario</span>';
+    return;
+  }
+  
+  btnAgregar.disabled = true;
+  btnAgregar.textContent = 'Guardando...';
+  
+  try {
+    const res = await fetch(`/api/admin/inscripciones/${inscripcionId}/override-horario`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAdminToken()}`
+      },
+      body: JSON.stringify({ horario_id: parseInt(horarioId) })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      if (overrideMensaje) {
+        overrideMensaje.innerHTML = `<span style="color:#059669;font-weight:700;">✅ ${data.mensaje}</span><br><span style="color:#78350f;font-size:11px;">${data.aviso || ''}</span>`;
+      }
+      btnAgregar.style.display = 'none';
+      // Recargar el modal en 1.5s para mostrar el nuevo horario
+      setTimeout(() => {
+        const modal = document.getElementById('modalDetalleInscripcion');
+        const dni = modal?.dataset?.dni;
+        if (dni) cargarDetalleAlumno(dni);
+      }, 1500);
+    } else {
+      if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:red;">❌ ${data.error}</span>`;
+      btnAgregar.disabled = false;
+      btnAgregar.textContent = '+ Agregar Horario Especial';
+    }
+  } catch (err) {
+    if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:red;">❌ Error: ${err.message}</span>`;
+    btnAgregar.disabled = false;
+    btnAgregar.textContent = '+ Agregar Horario Especial';
+  }
+}

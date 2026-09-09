@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { LandingEditorContext } from '../context/LandingEditorContext.jsx';
 import SectionOrderPanel from '../components/SectionOrderPanel.jsx';
 import Home from './Home.jsx';
+import { isVideoUrl } from '../components/glow/MediaRenderer.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
@@ -148,7 +149,7 @@ function FieldImage({ label, value, onChange }) {
         onChange={e => onChange(e.target.value)}
       />
       {/* Botón subir */}
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+      <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={handleFile} />
       <div style={{ display: 'flex', gap: 6 }}>
       <button
         type="button" onClick={() => fileRef.current?.click()}

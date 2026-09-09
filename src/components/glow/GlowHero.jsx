@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditableText from '../EditableText.jsx';
+import MediaRenderer, { isVideoUrl } from './MediaRenderer.jsx';
 
 const GlowHero = ({ slidesData, heroConfig = {}, onUpdateSlide }) => {
   const [current, setCurrent] = useState(0);
@@ -21,10 +22,16 @@ const GlowHero = ({ slidesData, heroConfig = {}, onUpdateSlide }) => {
   const next = useCallback(() => setCurrent((p) => (p + 1) % slides.length), [slides.length]);
   const prev = useCallback(() => setCurrent((p) => (p - 1 + slides.length) % slides.length), [slides.length]);
 
+  const currentSlide = slides && slides.length > 0 ? slides[current] : null;
+  const isCurrentVideo = Boolean(currentSlide && isVideoUrl(currentSlide.video || currentSlide.image));
+
   useEffect(() => {
-    const timer = setInterval(next, 5000);
-    return () => clearInterval(timer);
-  }, [next]);
+    // Si el slide actual es un video, dejamos que el evento onEnded avance el carrusel cuando termine
+    if (isCurrentVideo) return;
+
+    const timer = setTimeout(next, 5000);
+    return () => clearTimeout(timer);
+  }, [current, isCurrentVideo, next]);
 
   useEffect(() => {
     if (current >= slides.length) setCurrent(0);
@@ -33,7 +40,6 @@ const GlowHero = ({ slidesData, heroConfig = {}, onUpdateSlide }) => {
   // Si no hay slide seguro, retornamos nulo o manejamos error
   if (!slides || slides.length === 0) return null;
 
-  const currentSlide = slides[current];
   const eyebrow = heroConfig.antetitulo || 'Escuela Deportiva Jaguares';
   const primaryText = heroConfig.botonPrimarioTexto || 'Ver disciplinas';
   const primaryHref = heroConfig.botonPrimarioEnlace || '#disciplinas';
@@ -52,10 +58,16 @@ const GlowHero = ({ slidesData, heroConfig = {}, onUpdateSlide }) => {
           transition={{ duration: 0.8 }}
           className="absolute inset-0"
         >
-          <img
-            src={currentSlide.image}
-            alt={currentSlide.title || "Slide"}
+          <MediaRenderer
+            src={currentSlide.video || currentSlide.image}
+            poster={currentSlide.video ? currentSlide.image : ''}
+            alt={currentSlide.title || 'Slide'}
             className="h-full w-full object-cover"
+            autoPlay
+            loop={false}
+            muted
+            playsInline
+            onEnded={next}
           />
           <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
         </motion.div>

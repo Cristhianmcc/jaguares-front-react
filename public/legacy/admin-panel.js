@@ -1825,53 +1825,99 @@ function mostrarDetalleUsuario(data) {
 
             // Horarios del deporte
 
+            // Helper para corregir tildes si vienen mal codificadas
+            const limpiarTexto = (t) => {
+                if (!t) return '';
+                return String(t)
+                    .replace(/FÃºtbol|FÃ°tbol|F�tbol/gi, 'Fútbol')
+                    .replace(/EconÃ³mico|EconÃ³m|Econ�mico/gi, 'Económico')
+                    .replace(/EstÃ¡ndar|Est�ndar/gi, 'Estándar')
+                    .replace(/CategorÃ­a|Categor�/gi, 'Categoría')
+                    .replace(/BÃ¡squet|B�squet/gi, 'Básquet')
+                    .replace(/VÃ³ley|V�ley/gi, 'Vóley');
+            };
+
+            const deporteNombreLimpio = limpiarTexto(deporte.deporte);
+            const categoriaLimpia = limpiarTexto(deporte.categoria);
+            const planLimpio = limpiarTexto(deporte.plan);
+
+            // Horarios del deporte con opción de quitar si es admin y hay más de 1 horario
+            const tieneMultiplesHorarios = deporte.horarios.length > 1;
             const horariosHTML = deporte.horarios.map(h => `
-
-                <div class="flex items-center gap-2 text-sm ${esInactiva ? 'text-gray-400 line-through' : 'text-gray-700 dark:text-gray-300'}">
-
-                    <span class="material-symbols-outlined text-xs ${esInactiva ? 'text-gray-400' : 'text-primary'}">calendar_today</span>
-
-                    <span class="font-medium">${h.dia || '-'}</span>
-
-                    <span>${h.hora_inicio || '-'} - ${h.hora_fin || '-'}</span>
-
+                <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50/90 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200/60 dark:border-gray-700/60 ${esInactiva ? 'opacity-60' : ''}">
+                    <div class="flex items-center gap-2.5 text-sm ${esInactiva ? 'text-gray-400 line-through' : 'text-gray-800 dark:text-gray-200'}">
+                        <span class="material-symbols-outlined text-sm ${esInactiva ? 'text-gray-400' : 'text-amber-500'}" style="font-size:16px;">calendar_today</span>
+                        <span class="font-bold tracking-wide">${h.dia || '-'}</span>
+                        <span class="text-xs font-mono bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300 font-semibold">${h.hora_inicio || '-'} - ${h.hora_fin || '-'}</span>
+                    </div>
+                    ${!esInactiva && h.horario_id && tieneMultiplesHorarios ? `
+                    <button type="button"
+                            onclick="quitarHorarioEspecial(${deporte.inscripcion_id}, ${h.horario_id}, '${data.alumno.dni}', '${h.dia} ${h.hora_inicio}')"
+                            style="padding:4px 8px; border-radius:6px; border:1px solid #fecaca; background:#fff5f5; color:#dc2626; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s;"
+                            onmouseover="this.style.background='#fee2e2'"
+                            onmouseout="this.style.background='#fff5f5'"
+                            title="Quitar este horario">
+                        <span style="font-size:12px; line-height:1;">✕</span> Quitar
+                    </button>
+                    ` : ''}
                 </div>
-
             `).join('');
 
-            
+            // Botón llamativo y nítido para agregar horario especial
+            const botonAccesoEspecial = !esInactiva ? `
+                <button type="button"
+                        onclick="togglePanelAccesoEspecial(${deporte.inscripcion_id}, '${(deporte.deporte || '').replace(/'/g, "\\'")}', '${data.alumno.dni}')"
+                        style="background:#f59e0b; color:#ffffff; font-weight:700; font-size:12px; padding:7px 14px; border-radius:8px; border:1px solid #d97706; display:inline-flex; align-items:center; gap:6px; cursor:pointer; box-shadow: 0 2px 4px rgba(245,158,11,0.25); transition:all 0.2s;"
+                        onmouseover="this.style.background='#d97706'; this.style.transform='scale(1.02)';"
+                        onmouseout="this.style.background='#f59e0b'; this.style.transform='scale(1)';"
+                        title="Agregar horario extra sin restricciones de plan">
+                    <span style="font-size:13px; line-height:1;">⚡</span>
+                    <span>+ Horario Especial</span>
+                </button>
+            ` : '';
 
             deporteCard.innerHTML = `
-
-                <div class="flex items-center justify-between mb-3">
-
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-gray-100 dark:border-gray-800">
                     <div class="flex items-center gap-3">
-
-                        <span class="material-symbols-outlined ${esInactiva ? 'text-gray-400' : 'text-primary'} text-2xl">sports</span>
-
+                        <span class="material-symbols-outlined ${esInactiva ? 'text-gray-400' : 'text-primary'} text-2xl" style="font-size:24px;">sports</span>
                         <div>
-
-                            <h4 class="font-bold text-base ${esInactiva ? 'text-gray-400 line-through' : 'text-black dark:text-white'}">${deporte.deporte}${deporte.categoria ? ` - ${deporte.categoria}` : ''}</h4>
-
-                            <p class="text-xs text-gray-500">${deporte.plan} | S/ ${parseFloat(deporte.precio || 0).toFixed(2)}</p>
-
+                            <h4 class="font-bold text-base ${esInactiva ? 'text-gray-400 line-through' : 'text-black dark:text-white'}">${deporteNombreLimpio}${categoriaLimpia ? ` - ${categoriaLimpia}` : ''}</h4>
+                            <p class="text-xs text-gray-500 font-medium">${planLimpio} • S/ ${parseFloat(deporte.precio || 0).toFixed(2)} / mes</p>
                         </div>
-
                     </div>
-
-                    ${estadoBadge}
-
+                    <div class="flex items-center gap-2">
+                        ${estadoBadge}
+                        ${botonAccesoEspecial}
+                    </div>
                 </div>
 
-                <div class="space-y-1.5 ml-9">
-
+                <div class="space-y-1.5 mb-2">
                     ${horariosHTML}
-
                 </div>
 
+                <!-- Panel Desplegable de Horarios Especiales -->
+                <div id="panelAccesoEspecial_${deporte.inscripcion_id}" class="hidden mt-3 p-4 rounded-xl" style="background:#fffbeb; border:2px solid #f59e0b; box-shadow:0 2px 8px rgba(245,158,11,0.12);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; border-bottom:1px solid #fde68a; padding-bottom:6px;">
+                        <div style="display:flex; align-items:center; gap:6px; color:#92400e; font-weight:700; font-size:13px;">
+                            <span style="font-size:14px; line-height:1;">⚡</span>
+                            <span>Horarios Disponibles para ${deporteNombreLimpio}</span>
+                        </div>
+                        <button type="button" onclick="cerrarPanelAccesoEspecial(${deporte.inscripcion_id})"
+                                style="background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:11px; font-weight:700; cursor:pointer; padding:3px 9px; border-radius:6px; transition:background 0.15s;"
+                                onmouseover="this.style.background='#fde68a'"
+                                onmouseout="this.style.background='#fef3c7'">
+                            ✕ Cerrar
+                        </button>
+                    </div>
+                    <p style="margin:0 0 10px 0; font-size:11px; color:#78350f; line-height:1.4;">
+                        Selecciona el día y hora que deseas agregar. El horario se sumará al alumno y el precio mensual no se alterará automáticamente.
+                    </p>
+                    <div id="listaHorariosEspeciales_${deporte.inscripcion_id}" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <span style="font-size:12px; color:#78350f;">Cargando horarios disponibles...</span>
+                    </div>
+                    <div id="msgEspecial_${deporte.inscripcion_id}" style="margin-top:8px; font-size:12px; font-weight:600;"></div>
+                </div>
             `;
-
-            
 
             horariosContainer.appendChild(deporteCard);
 
@@ -2415,3 +2461,186 @@ function copiarYBuscarNumOp() {
 
 
 
+
+
+
+
+// ==================== ACCESO ESPECIAL ADMIN (OVERRIDE HORARIOS) ====================
+
+function togglePanelAccesoEspecial(inscripcionId, deporteNombre, dni) {
+    const panel = document.getElementById('panelAccesoEspecial_' + inscripcionId);
+    if (!panel) return;
+
+    if (!panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+    } else {
+        panel.classList.remove('hidden');
+        cargarHorariosParaPanel(inscripcionId, deporteNombre, dni);
+    }
+}
+
+function cerrarPanelAccesoEspecial(inscripcionId) {
+    const panel = document.getElementById('panelAccesoEspecial_' + inscripcionId);
+    if (panel) panel.classList.add('hidden');
+}
+
+async function cargarHorariosParaPanel(inscripcionId, deporteNombre, dni) {
+    const lista = document.getElementById('listaHorariosEspeciales_' + inscripcionId);
+    const msg = document.getElementById('msgEspecial_' + inscripcionId);
+    if (!lista) return;
+
+    lista.innerHTML = '<div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#92400e; padding:6px 0;"><span>⏳</span> Cargando horarios de ' + deporteNombre + '...</div>';
+    if (msg) msg.innerHTML = '';
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const token = session ? JSON.parse(session).token : '';
+
+        const res = await fetch('/api/horarios?refresh=true', {
+            headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+        });
+        const data = await res.json();
+        const todosHorarios = data.horarios || [];
+
+        // Normalizador robusto contra problemas de codificación UTF-8
+        const normalizarDeporte = (str) => {
+            if (!str) return '';
+            return String(str)
+                .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'futbol')
+                .replace(/BÃ¡squet|B\uFFFDsquet/gi, 'basquet')
+                .replace(/VÃ³ley|V\uFFFDley/gi, 'voley')
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .trim().toLowerCase();
+        };
+
+        const depNormal = normalizarDeporte(deporteNombre);
+        const filtrados = todosHorarios.filter(h => {
+            return normalizarDeporte(h.deporte) === depNormal;
+        });
+
+        if (filtrados.length === 0) {
+            lista.innerHTML = '<span style="font-size:12px; color:#78350f;">No se encontraron horarios para este deporte.</span>';
+            return;
+        }
+
+        // Obtener horarios ya asignados
+        let asignadosIds = [];
+        try {
+            const resDetalle = await fetch('/api/consultar/' + dni + '?incluir_inactivos=1&t=' + Date.now());
+            const dataDetalle = await resDetalle.json();
+            if (dataDetalle.horarios) {
+                asignadosIds = dataDetalle.horarios
+                    .filter(h => h.inscripcion_id === inscripcionId)
+                    .map(h => parseInt(h.horario_id));
+            }
+        } catch (e) {
+            console.warn('Pre-check asignados:', e);
+        }
+
+        const limpiarTildes = (t) => {
+            if (!t) return '';
+            return String(t)
+                .replace(/EconÃ³mico|EconÃ³m|Econ\uFFFDmico/gi, 'Económico')
+                .replace(/EstÃ¡ndar|Est\uFFFDndar/gi, 'Estándar')
+                .replace(/CategorÃ­a|Categor\uFFFD/gi, 'Categoría');
+        };
+
+        lista.innerHTML = '';
+        filtrados.forEach(h => {
+            const yaAsignado = asignadosIds.includes(parseInt(h.horario_id));
+            const btn = document.createElement('button');
+            btn.type = 'button';
+
+            const planLimpio = limpiarTildes(h.plan || 'Plan');
+            const catLimpia = limpiarTildes(h.categoria || '');
+
+            if (yaAsignado) {
+                btn.style.cssText = 'padding:7px 12px; border-radius:8px; background:#f3f4f6; border:1px solid #d1d5db; color:#9ca3af; font-size:12px; font-weight:500; cursor:not-allowed; display:inline-flex; align-items:center; gap:6px; opacity:0.75;';
+                btn.innerHTML = '<span>✓</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:10px; background:#e5e7eb; padding:2px 6px; border-radius:4px; color:#6b7280;">(Ya asignado)</span>';
+            } else {
+                btn.style.cssText = 'padding:7px 12px; border-radius:8px; background:#ffffff; border:1.5px solid #f59e0b; color:#92400e; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:all 0.15s;';
+                btn.onmouseover = () => { btn.style.background = '#fef3c7'; btn.style.borderColor = '#d97706'; };
+                btn.onmouseout = () => { btn.style.background = '#ffffff'; btn.style.borderColor = '#f59e0b'; };
+                btn.innerHTML = '<span style="color:#d97706; font-size:14px; font-weight:900;">+</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:10px; background:#fef3c7; border:1px solid #fde68a; padding:2px 6px; border-radius:4px; color:#b45309; font-weight:600;">' + planLimpio + (catLimpia ? ' • ' + catLimpia : '') + '</span>';
+                btn.onclick = () => ejecutarAgregarHorarioEspecial(inscripcionId, h.horario_id, dni, h.dia + ' ' + h.hora_inicio, btn);
+            }
+
+            lista.appendChild(btn);
+        });
+
+    } catch (err) {
+        lista.innerHTML = '<span style="font-size:12px; color:#dc2626; font-weight:600;">Error al cargar horarios: ' + err.message + '</span>';
+    }
+}
+
+async function ejecutarAgregarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario, btnEl) {
+    const msg = document.getElementById('msgEspecial_' + inscripcionId);
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.style.opacity = '0.6';
+    }
+    if (msg) msg.innerHTML = '<span style="color:#2563eb; font-weight:600;">⏳ Guardando ' + labelHorario + '...</span>';
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const token = session ? JSON.parse(session).token : '';
+
+        const res = await fetch('/api/admin/inscripciones/' + inscripcionId + '/override-horario', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ horario_id: parseInt(horarioId) })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            if (msg) msg.innerHTML = '<span style="color:#15803d; font-weight:700;">✅ ' + data.mensaje + '</span>';
+            setTimeout(() => {
+                buscarPorDNI(dni);
+            }, 600);
+        } else {
+            if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">❌ ' + (data.error || 'Error al asignar') + '</span>';
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.style.opacity = '1';
+            }
+        }
+    } catch (err) {
+        if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">❌ Error: ' + err.message + '</span>';
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.style.opacity = '1';
+        }
+    }
+}
+
+async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario) {
+    if (!confirm('¿Estás seguro de quitar el horario (' + labelHorario + ') de este alumno?')) {
+        return;
+    }
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const token = session ? JSON.parse(session).token : '';
+
+        const res = await fetch('/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            buscarPorDNI(dni);
+        } else {
+            alert('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'));
+        }
+    } catch (err) {
+        alert('Error al quitar horario: ' + err.message);
+    }
+}
