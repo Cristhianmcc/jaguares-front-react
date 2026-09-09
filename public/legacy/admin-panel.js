@@ -2467,6 +2467,16 @@ function copiarYBuscarNumOp() {
 
 // ==================== ACCESO ESPECIAL ADMIN (OVERRIDE HORARIOS) ====================
 
+function getOverrideApiBase() {
+    if (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%')) {
+        return window.API_BASE_OVERRIDE;
+    }
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3003';
+    }
+    return 'https://api.jaguarescar.com';
+}
+
 function togglePanelAccesoEspecial(inscripcionId, deporteNombre, dni) {
     const panel = document.getElementById('panelAccesoEspecial_' + inscripcionId);
     if (!panel) return;
@@ -2495,8 +2505,9 @@ async function cargarHorariosParaPanel(inscripcionId, deporteNombre, dni) {
     try {
         const session = localStorage.getItem('adminSession');
         const token = session ? JSON.parse(session).token : '';
+        const apiBase = getOverrideApiBase();
 
-        const res = await fetch('/api/horarios?refresh=true', {
+        const res = await fetch(apiBase + '/api/horarios?refresh=true', {
             headers: token ? { 'Authorization': 'Bearer ' + token } : {}
         });
         const data = await res.json();
@@ -2526,7 +2537,7 @@ async function cargarHorariosParaPanel(inscripcionId, deporteNombre, dni) {
         // Obtener horarios ya asignados
         let asignadosIds = [];
         try {
-            const resDetalle = await fetch('/api/consultar/' + dni + '?incluir_inactivos=1&t=' + Date.now());
+            const resDetalle = await fetch(apiBase + '/api/consultar/' + dni + '?incluir_inactivos=1&t=' + Date.now());
             const dataDetalle = await resDetalle.json();
             if (dataDetalle.horarios) {
                 asignadosIds = dataDetalle.horarios
@@ -2584,8 +2595,9 @@ async function ejecutarAgregarHorarioEspecial(inscripcionId, horarioId, dni, lab
     try {
         const session = localStorage.getItem('adminSession');
         const token = session ? JSON.parse(session).token : '';
+        const apiBase = getOverrideApiBase();
 
-        const res = await fetch('/api/admin/inscripciones/' + inscripcionId + '/override-horario', {
+        const res = await fetch(apiBase + '/api/admin/inscripciones/' + inscripcionId + '/override-horario', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2625,8 +2637,9 @@ async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario
     try {
         const session = localStorage.getItem('adminSession');
         const token = session ? JSON.parse(session).token : '';
+        const apiBase = getOverrideApiBase();
 
-        const res = await fetch('/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
+        const res = await fetch(apiBase + '/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer ' + token
