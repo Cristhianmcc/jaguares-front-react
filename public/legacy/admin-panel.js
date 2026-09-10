@@ -1871,7 +1871,7 @@ function mostrarDetalleUsuario(data) {
                         onmouseover="this.style.background='#d97706'; this.style.transform='scale(1.02)';"
                         onmouseout="this.style.background='#f59e0b'; this.style.transform='scale(1)';"
                         title="Agregar horario extra sin restricciones de plan">
-                    <span style="font-size:13px; line-height:1;">⚡</span>
+                    <span style="font-size:11px; line-height:1; display:inline-flex; align-items:center; opacity:0.9;">⚡</span>
                     <span>+ Horario Especial</span>
                 </button>
             ` : '';
@@ -1899,7 +1899,7 @@ function mostrarDetalleUsuario(data) {
                 <div id="panelAccesoEspecial_${deporte.inscripcion_id}" class="hidden mt-3 p-4 rounded-xl" style="background:#fffbeb; border:2px solid #f59e0b; box-shadow:0 2px 8px rgba(245,158,11,0.12);">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; border-bottom:1px solid #fde68a; padding-bottom:6px;">
                         <div style="display:flex; align-items:center; gap:6px; color:#92400e; font-weight:700; font-size:13px;">
-                            <span style="font-size:14px; line-height:1;">⚡</span>
+                            <span style="font-size:11px; line-height:1; display:inline-flex; align-items:center; opacity:0.9;">⚡</span>
                             <span>Horarios Disponibles para ${deporteNombreLimpio}</span>
                         </div>
                         <button type="button" onclick="cerrarPanelAccesoEspecial(${deporte.inscripcion_id})"
@@ -2630,11 +2630,11 @@ async function ejecutarAgregarHorarioEspecial(inscripcionId, horarioId, dni, lab
 }
 
 async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario) {
-    if (!confirm('¿Estás seguro de quitar el horario (' + labelHorario + ') de este alumno?')) {
-        return;
-    }
-
-    try {
+    mostrarConfirmacionModal(
+        '¿Quitar este horario?',
+        '¿Estás seguro de quitar el horario <b>' + labelHorario + '</b> de este alumno? El cambio se guardará de inmediato.',
+        async () => {
+            try {
         const session = localStorage.getItem('adminSession');
         const token = session ? JSON.parse(session).token : '';
         const apiBase = getOverrideApiBase();
@@ -2656,4 +2656,55 @@ async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario
     } catch (err) {
         alert('Error al quitar horario: ' + err.message);
     }
+        }
+    );
+}
+
+
+function mostrarConfirmacionModal(titulo, mensaje, onConfirm) {
+  const modalId = 'modalConfirmacionAccion';
+  const existente = document.getElementById(modalId);
+  if (existente) existente.remove();
+
+  const modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(3px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .15s ease;';
+  modal.innerHTML = `
+    <div style="background:white; border-radius:16px; max-width:420px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1); overflow:hidden; border:1px solid #fee2e2;">
+      <div style="padding:20px 24px 16px 24px; display:flex; align-items:flex-start; gap:14px;">
+        <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <span style="font-size:20px; color:#dc2626; line-height:1;">⚠️</span>
+        </div>
+        <div style="flex:1;">
+          <h3 style="margin:0 0 6px 0; font-size:16px; font-weight:700; color:#111827;">${titulo}</h3>
+          <p style="margin:0; font-size:13px; color:#4b5563; line-height:1.45;">${mensaje}</p>
+        </div>
+      </div>
+      <div style="background:#f9fafb; padding:12px 20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #f3f4f6;">
+        <button type="button" id="btnConfirmarCancelar"
+                style="padding:8px 16px; font-size:13px; font-weight:600; color:#374151; background:white; border:1px solid #d1d5db; border-radius:8px; cursor:pointer; transition:background 0.15s;">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmarAceptar"
+                style="padding:8px 18px; font-size:13px; font-weight:600; color:white; background:#dc2626; border:none; border-radius:8px; cursor:pointer; transition:background 0.15s; box-shadow:0 1px 2px rgba(220,38,38,0.2);">
+          Quitar Horario
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const btnCancelar = modal.querySelector('#btnConfirmarCancelar');
+  const btnAceptar = modal.querySelector('#btnConfirmarAceptar');
+
+  const cerrar = () => modal.remove();
+
+  btnCancelar.onclick = cerrar;
+  modal.onclick = (e) => { if (e.target === modal) cerrar(); };
+
+  btnAceptar.onclick = () => {
+    cerrar();
+    if (typeof onConfirm === 'function') onConfirm();
+  };
 }
