@@ -281,12 +281,39 @@ function buscarInscripcion() {
  */
 async function verDetalleInscripcion(dni) {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/inscripciones/${dni}`, {
-      headers: getAuthHeadersInscripciones()
-    });
+    const [response, respConsultar] = await Promise.all([
+      fetch(`${API_BASE}/api/admin/inscripciones/${dni}`, {
+        headers: getAuthHeadersInscripciones()
+      }),
+      fetch(`${API_BASE}/api/consultar/${dni}?incluir_inactivos=1&t=` + Date.now()).catch(() => null)
+    ]);
+
     const data = await response.json();
-    
+
     if (data.success) {
+      // Cruzar horario_id para cada horario de inscripción
+      try {
+        if (respConsultar && respConsultar.ok) {
+          const consultData = await respConsultar.json();
+          if (consultData && Array.isArray(consultData.horarios)) {
+            const mapaHorarios = {};
+            consultData.horarios.forEach(h => {
+              const k = h.inscripcion_id + '_' + (h.dia || '').trim().toUpperCase() + '_' + (h.hora_inicio || '').trim();
+              mapaHorarios[k] = h.horario_id;
+            });
+
+            (data.inscripciones || []).forEach(ins => {
+              const k = ins.inscripcion_id + '_' + (ins.dia || '').trim().toUpperCase() + '_' + (ins.hora_inicio || '').trim();
+              if (mapaHorarios[k]) {
+                ins.horario_id = mapaHorarios[k];
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('No se pudo cruzar horario_id:', e);
+      }
+
       mostrarModalDetalleInscripcion(data);
     } else {
       mostrarNotificacion('Error al cargar detalle: ' + data.error, 'error');
@@ -457,10 +484,26 @@ function mostrarModalDetalleInscripcion(data) {
                   };
                 }
                 if (ins.dia) {
-                  deportesMap[key].horarios.push({ dia: ins.dia, hora_inicio: ins.hora_inicio, hora_fin: ins.hora_fin });
+                  deportesMap[key].horarios.push({
+                    horario_id: ins.horario_id,
+                    dia: ins.dia,
+                    hora_inicio: ins.hora_inicio,
+                    hora_fin: ins.hora_fin
+                  });
                 }
               });
               
+              
+              const limpiarTextoModal = (t) => {
+                if (!t) return '';
+                return String(t)
+                  .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol')
+                  .replace(/EconÃ³mico|EconÃ³m|Econ\uFFFDmico/gi, 'Económico')
+                  .replace(/EstÃ¡ndar|Est\uFFFDndar/gi, 'Estándar')
+                  .replace(/CategorÃ­a|Categor\uFFFD/gi, 'Categoría')
+                  .replace(/BÃ¡squet|B\uFFFDsquet/gi, 'Básquet')
+                  .replace(/VÃ³ley|V\uFFFDley/gi, 'Vóley');
+              };
               return Object.values(deportesMap).map(dep => {
                 const esSuspendido = dep.estado_inscripcion === 'suspendida';
                 const esPendiente = dep.estado_inscripcion === 'pendiente';
@@ -480,14 +523,37 @@ function mostrarModalDetalleInscripcion(data) {
                   estadoBadge = '<span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Pago Confirmado</span>';
                 }
                 
+                const tieneMultiples = dep.horarios.length > 1;
                 const horariosHTML = dep.horarios.map(h => 
-                  
-  `<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
-                    <span>${h.dia} ${h.hora_inicio || ''} ${h.hora_fin ? '- ' + h.hora_fin : ''}</span>
+                  `<div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 text-sm ${esSuspendido ? 'opacity-60 line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}">
+                    <div class="flex items-center gap-2">
+                      <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
+                      <span class="font-semibold">${h.dia}</span>
+                      <span class="text-xs font-mono bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 font-semibold">${h.hora_inicio || ''} ${h.hora_fin ? '- ' + h.hora_fin : ''}</span>
+                    </div>
+                    ${!esSuspendido && h.horario_id && tieneMultiples ? `
+                    <button type="button"
+                            onclick="quitarHorarioEspecialModal(${dep.inscripcion_id}, ${h.horario_id}, '${usuario.dni}', '${h.dia} ${h.hora_inicio || ''}')"
+                            style="padding:3px 8px; border-radius:5px; border:1px solid #fecaca; background:#fff5f5; color:#dc2626; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px;"
+                            title="Quitar este horario">
+                      <span style="font-size:11px; line-height:1;">✕</span> Quitar
+                    </button>
+                    ` : ''}
                   </div>`
                 ).join('');
-                
+
+                const botonAccesoEspecial = !esSuspendido ? `
+                  <button type="button"
+                          onclick="togglePanelAccesoEspecialModal(${dep.inscripcion_id}, '${(dep.deporte || '').replace(/'/g, "\\'")}', '${usuario.dni}')"
+                          style="background:#f59e0b; color:#ffffff; font-weight:700; font-size:11px; padding:6px 12px; border-radius:7px; border:1px solid #d97706; display:inline-flex; align-items:center; gap:5px; cursor:pointer; box-shadow:0 1px 3px rgba(245,158,11,0.25); transition:all 0.15s;"
+                          onmouseover="this.style.background='#d97706';"
+                          onmouseout="this.style.background='#f59e0b';"
+                          title="Agregar horario extra sin restricciones de plan">
+                    <span style="font-size:11px; line-height:1; display:inline-flex; align-items:center;">⚡</span>
+                    <span>+ Horario Especial</span>
+                  </button>
+                ` : '';
+
                 const botonActivar = esPendiente 
                   ? `<button onclick="activarInscripcion(${dep.inscripcion_id}, '${usuario.dni}')" 
                       class="mt-3 w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold uppercase transition-colors flex items-center justify-center gap-2">
@@ -506,17 +572,43 @@ function mostrarModalDetalleInscripcion(data) {
                 
                 return `
                   <div class="${borderClass} rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-gray-200/60 dark:border-gray-700/60">
                       <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-2xl ${esSuspendido ? 'text-gray-400' : 'text-primary'}">${dep.icono}</span>
                         <div>
-                          <p class="font-bold text-black dark:text-white">${dep.deporte} - ${dep.categoria}</p>
-                          <p class="text-xs text-gray-500">${dep.plan} | S/ ${parseFloat(dep.precio || 0).toFixed(2)}</p>
+                          <p class="font-bold text-black dark:text-white">${limpiarTextoModal(dep.deporte)} - ${limpiarTextoModal(dep.categoria)}</p>
+                          <p class="text-xs text-gray-500 font-medium">${limpiarTextoModal(dep.plan)} | S/ ${parseFloat(dep.precio || 0).toFixed(2)}</p>
                         </div>
                       </div>
-                      ${estadoBadge}
+                      <div class="flex items-center gap-2">
+                        ${estadoBadge}
+                        ${botonAccesoEspecial}
+                      </div>
                     </div>
-                    <div class="space-y-1 ml-9">${horariosHTML}</div>
+
+                    <div class="space-y-1.5 mb-2">${horariosHTML}</div>
+
+                    <!-- Panel Desplegable de Horarios Especiales -->
+                    <div id="panelAccesoEspecialModal_${dep.inscripcion_id}" class="hidden mt-3 p-3.5 rounded-xl" style="background:#fffbeb; border:1.5px solid #f59e0b; box-shadow:0 2px 8px rgba(245,158,11,0.12);">
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; border-bottom:1px solid #fde68a; padding-bottom:5px;">
+                        <div style="display:flex; align-items:center; gap:5px; color:#92400e; font-weight:700; font-size:12px;">
+                          <span style="font-size:11px; line-height:1;">⚡</span>
+                          <span>Horarios Disponibles para ${limpiarTextoModal(dep.deporte)}</span>
+                        </div>
+                        <button type="button" onclick="cerrarPanelAccesoEspecialModal(${dep.inscripcion_id})"
+                                style="background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:11px; font-weight:700; cursor:pointer; padding:2px 8px; border-radius:5px;">
+                          ✕ Cerrar
+                        </button>
+                      </div>
+                      <p style="margin:0 0 8px 0; font-size:11px; color:#78350f; line-height:1.3;">
+                        Selecciona el día y hora que deseas agregar. No altera el precio mensual.
+                      </p>
+                      <div id="listaHorariosEspecialesModal_${dep.inscripcion_id}" style="display:flex; flex-wrap:wrap; gap:6px;">
+                        <span style="font-size:11px; color:#78350f;">Cargando horarios disponibles...</span>
+                      </div>
+                      <div id="msgEspecialModal_${dep.inscripcion_id}" style="margin-top:6px; font-size:11px; font-weight:600;"></div>
+                    </div>
+
                     ${botonActivar}
                     ${botonPendiente}
                   </div>
@@ -528,24 +620,7 @@ function mostrarModalDetalleInscripcion(data) {
       </div>
       
 
-      <div style="padding: 0 24px 16px 24px;">
-        <div id="seccionOverrideAdmin" style="padding:16px;background:#fffbeb;border:2px solid #f59e0b;border-radius:12px;">
-          <h4 style="margin:0 0 8px 0;color:#92400e;font-size:14px;font-weight:700;">⚡ Acceso Especial (Solo Admin)</h4>
-          <p style="margin:0 0 12px 0;font-size:12px;color:#78350f;">Agrega horarios sin restricciones de plan ni categoría. El precio NO se recalcula automáticamente.</p>
-          <div style="margin-bottom:10px;">
-            <label style="font-size:12px;font-weight:600;color:#78350f;display:block;margin-bottom:4px;">1. Inscripción del alumno:</label>
-            <select id="overrideInscripcionSelect" style="width:100%;padding:8px;border:1px solid #f59e0b;border-radius:6px;font-size:13px;background:white;" onchange="cargarHorariosOverride()">
-              <option value="">-- Seleccionar inscripción --</option>
-            </select>
-          </div>
-          <div id="overrideHorariosContainer" style="display:none;margin-bottom:10px;">
-            <label style="font-size:12px;font-weight:600;color:#78350f;display:block;margin-bottom:4px;">2. Horario a agregar:</label>
-            <div id="overrideHorariosList" style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto;"></div>
-          </div>
-          <button id="btnAgregarOverride" onclick="ejecutarOverrideHorario()" style="display:none;width:100%;padding:10px;background:#f59e0b;color:white;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">+ Agregar Horario Especial</button>
-          <div id="overrideMensaje" style="margin-top:8px;font-size:12px;"></div>
-        </div>
-      </div>
+
       <div class="sticky bottom-0 bg-gray-50 dark:bg-gray-900 px-6 py-4 flex justify-end gap-3 border-t border-gray-200 dark:border-gray-700">
         <button onclick="cerrarModalDetalle()" class="px-6 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold transition-colors">
           Cerrar
@@ -556,19 +631,7 @@ function mostrarModalDetalleInscripcion(data) {
   
   document.body.appendChild(modal);
 
-  // Poblar el select de inscripciones del alumno para Acceso Especial
-  modal.dataset.dni = data.dni || '';
-  const overrideSelectEl = document.getElementById('overrideInscripcionSelect');
-  if (overrideSelectEl && data.inscripciones) {
-    overrideSelectEl.innerHTML = '<option value="">-- Seleccionar inscripci\u00f3n --</option>';
-    data.inscripciones.forEach(function(insc) {
-      const opt = document.createElement('option');
-      opt.value = insc.inscripcion_id;
-      opt.dataset.deporteId = insc.deporte_id || '';
-      opt.textContent = (insc.deporte || 'Deporte') + ' - ' + (insc.plan || '') + ' (' + (insc.estado || '') + ')';
-      overrideSelectEl.appendChild(opt);
-    });
-  }
+  modal.dataset.dni = (data.alumno && data.alumno.dni) || data.dni || '';
 }
 
 function cerrarModalDetalle() {
@@ -1712,8 +1775,200 @@ function mostrarNotificacion(Mensaje, tipo = 'info') {
 
 
 
-// ==================== ACCESO ESPECIAL (OVERRIDE DE HORARIOS) ====================
+// ==================== ACCESO ESPECIAL (OVERRIDE DE HORARIOS EN MODAL) ====================
 
+function togglePanelAccesoEspecialModal(inscripcionId, deporteNombre, dni) {
+  const panel = document.getElementById('panelAccesoEspecialModal_' + inscripcionId);
+  if (!panel) return;
+
+  if (!panel.classList.contains('hidden')) {
+    panel.classList.add('hidden');
+  } else {
+    panel.classList.remove('hidden');
+    cargarHorariosParaPanelModal(inscripcionId, deporteNombre, dni);
+  }
+}
+
+function cerrarPanelAccesoEspecialModal(inscripcionId) {
+  const panel = document.getElementById('panelAccesoEspecialModal_' + inscripcionId);
+  if (panel) panel.classList.add('hidden');
+}
+
+async function cargarHorariosParaPanelModal(inscripcionId, deporteNombre, dni) {
+  const lista = document.getElementById('listaHorariosEspecialesModal_' + inscripcionId);
+  const msg = document.getElementById('msgEspecialModal_' + inscripcionId);
+  if (!lista) return;
+
+  lista.innerHTML = '<div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#92400e; padding:4px 0;"><span>⏳</span> Cargando horarios de ' + deporteNombre + '...</div>';
+  if (msg) msg.innerHTML = '';
+
+  try {
+    const session = localStorage.getItem('adminSession');
+    const token = session ? JSON.parse(session).token : '';
+    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+
+    const res = await fetch((apiBase || '') + '/api/horarios?refresh=true', {
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+    });
+    const data = await res.json();
+    const todosHorarios = data.horarios || [];
+
+    // Normalizador robusto contra problemas de codificación UTF-8
+    const normalizarDeporte = (str) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'futbol')
+        .replace(/BÃ¡squet|B\uFFFDsquet/gi, 'basquet')
+        .replace(/VÃ³ley|V\uFFFDley/gi, 'voley')
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .trim().toLowerCase();
+    };
+
+    const depNormal = normalizarDeporte(deporteNombre);
+    const filtrados = todosHorarios.filter(h => {
+      return normalizarDeporte(h.deporte) === depNormal;
+    });
+
+    if (filtrados.length === 0) {
+      lista.innerHTML = '<span style="font-size:11px; color:#78350f;">No se encontraron horarios para este deporte.</span>';
+      return;
+    }
+
+    // Obtener horarios ya asignados desde el modal abierto
+    let asignadosIds = [];
+    try {
+      const respDetalle = await fetch((apiBase || '') + '/api/admin/inscripciones/' + encodeURIComponent(dni), {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
+      const dataDetalle = await respDetalle.json();
+      if (dataDetalle.inscripciones) {
+        dataDetalle.inscripciones.forEach(ins => {
+          if (ins.inscripcion_id === inscripcionId && ins.horario_id) {
+            asignadosIds.push(parseInt(ins.horario_id));
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Pre-check asignados modal:', e);
+    }
+
+    const limpiarTildes = (t) => {
+      if (!t) return '';
+      return String(t)
+        .replace(/EconÃ³mico|EconÃ³m|Econ\uFFFDmico/gi, 'Económico')
+        .replace(/EstÃ¡ndar|Est\uFFFDndar/gi, 'Estándar')
+        .replace(/CategorÃ­a|Categor\uFFFD/gi, 'Categoría');
+    };
+
+    lista.innerHTML = '';
+    filtrados.forEach(h => {
+      const yaAsignado = asignadosIds.includes(parseInt(h.horario_id));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+
+      const planLimpio = limpiarTildes(h.plan || 'Plan');
+      const catLimpia = limpiarTildes(h.categoria || '');
+
+      if (yaAsignado) {
+        btn.style.cssText = 'padding:5px 10px; border-radius:6px; background:#f3f4f6; border:1px solid #d1d5db; color:#9ca3af; font-size:11px; font-weight:500; cursor:not-allowed; display:inline-flex; align-items:center; gap:4px; opacity:0.75;';
+        btn.innerHTML = '<span>✓</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:10px; background:#e5e7eb; padding:1px 5px; border-radius:3px; color:#6b7280;">(Ya asignado)</span>';
+      } else {
+        btn.style.cssText = 'padding:5px 10px; border-radius:6px; background:#ffffff; border:1.5px solid #f59e0b; color:#92400e; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:all 0.15s;';
+        btn.onmouseover = () => { btn.style.background = '#fef3c7'; btn.style.borderColor = '#d97706'; };
+        btn.onmouseout = () => { btn.style.background = '#ffffff'; btn.style.borderColor = '#f59e0b'; };
+        btn.innerHTML = '<span style="color:#d97706; font-size:13px; font-weight:900;">+</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:9px; background:#fef3c7; border:1px solid #fde68a; padding:1px 4px; border-radius:3px; color:#b45309; font-weight:600;">' + planLimpio + (catLimpia ? ' • ' + catLimpia : '') + '</span>';
+        btn.onclick = () => ejecutarAgregarHorarioEspecialModal(inscripcionId, h.horario_id, dni, h.dia + ' ' + h.hora_inicio, btn);
+      }
+
+      lista.appendChild(btn);
+    });
+
+  } catch (err) {
+    lista.innerHTML = '<span style="font-size:11px; color:#dc2626; font-weight:600;">Error al cargar horarios: ' + err.message + '</span>';
+  }
+}
+
+async function ejecutarAgregarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario, btnEl) {
+  const msg = document.getElementById('msgEspecialModal_' + inscripcionId);
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.style.opacity = '0.6';
+  }
+  if (msg) msg.innerHTML = '<span style="color:#2563eb; font-weight:600;">⏳ Guardando ' + labelHorario + '...</span>';
+
+  try {
+    const session = localStorage.getItem('adminSession');
+    const token = session ? JSON.parse(session).token : '';
+    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+
+    const res = await fetch((apiBase || '') + '/api/admin/inscripciones/' + inscripcionId + '/override-horario', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ horario_id: parseInt(horarioId) })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      if (msg) msg.innerHTML = '<span style="color:#15803d; font-weight:700;">✅ ' + data.mensaje + '</span>';
+      setTimeout(() => {
+        const modal = document.getElementById('modalDetalleInscripcion');
+        if (modal) modal.remove();
+        verDetalleInscripcion(dni);
+      }, 700);
+    } else {
+      if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">⚠️ ' + (data.error || 'Error al asignar') + '</span>';
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.style.opacity = '1';
+      }
+    }
+  } catch (err) {
+    if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">⚠️ Error: ' + err.message + '</span>';
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.style.opacity = '1';
+    }
+  }
+}
+
+async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario) {
+  mostrarConfirmacionModal(
+    '¿Quitar este horario?',
+    '¿Estás seguro de quitar el horario <b>' + labelHorario + '</b> de este alumno? El cambio se guardará de inmediato.',
+    async () => {
+      try {
+    const session = localStorage.getItem('adminSession');
+    const token = session ? JSON.parse(session).token : '';
+    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+
+    const res = await fetch((apiBase || '') + '/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      const modal = document.getElementById('modalDetalleInscripcion');
+      if (modal) modal.remove();
+      verDetalleInscripcion(dni);
+    } else {
+      alert('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'));
+    }
+  } catch (err) {
+    alert('Error al quitar horario: ' + err.message);
+  }
+    }
+  );
+}
+
+// Compatibilidad hacia atrás
 async function cargarHorariosOverride() {
   const select = document.getElementById('overrideInscripcionSelect');
   const inscripcionId = select?.value;
@@ -1859,13 +2114,62 @@ async function ejecutarOverrideHorario() {
         if (dni) cargarDetalleAlumno(dni);
       }, 1500);
     } else {
-      if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:red;">❌ ${data.error}</span>`;
+      if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:#dc2626; font-size:12px; font-weight:600;">⚠️ ${data.error}</span>`;
       btnAgregar.disabled = false;
       btnAgregar.textContent = '+ Agregar Horario Especial';
     }
   } catch (err) {
-    if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:red;">❌ Error: ${err.message}</span>`;
+    if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:#dc2626; font-size:12px; font-weight:600;">⚠️ Error: ${err.message}</span>`;
     btnAgregar.disabled = false;
     btnAgregar.textContent = '+ Agregar Horario Especial';
   }
+}
+
+
+function mostrarConfirmacionModal(titulo, mensaje, onConfirm) {
+  const modalId = 'modalConfirmacionAccion';
+  const existente = document.getElementById(modalId);
+  if (existente) existente.remove();
+
+  const modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(3px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .15s ease;';
+  modal.innerHTML = `
+    <div style="background:white; border-radius:16px; max-width:420px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1); overflow:hidden; border:1px solid #fee2e2;">
+      <div style="padding:20px 24px 16px 24px; display:flex; align-items:flex-start; gap:14px;">
+        <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <span style="font-size:20px; color:#dc2626; line-height:1;">⚠️</span>
+        </div>
+        <div style="flex:1;">
+          <h3 style="margin:0 0 6px 0; font-size:16px; font-weight:700; color:#111827;">${titulo}</h3>
+          <p style="margin:0; font-size:13px; color:#4b5563; line-height:1.45;">${mensaje}</p>
+        </div>
+      </div>
+      <div style="background:#f9fafb; padding:12px 20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #f3f4f6;">
+        <button type="button" id="btnConfirmarCancelar"
+                style="padding:8px 16px; font-size:13px; font-weight:600; color:#374151; background:white; border:1px solid #d1d5db; border-radius:8px; cursor:pointer; transition:background 0.15s;">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmarAceptar"
+                style="padding:8px 18px; font-size:13px; font-weight:600; color:white; background:#dc2626; border:none; border-radius:8px; cursor:pointer; transition:background 0.15s; box-shadow:0 1px 2px rgba(220,38,38,0.2);">
+          Quitar Horario
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const btnCancelar = modal.querySelector('#btnConfirmarCancelar');
+  const btnAceptar = modal.querySelector('#btnConfirmarAceptar');
+
+  const cerrar = () => modal.remove();
+
+  btnCancelar.onclick = cerrar;
+  modal.onclick = (e) => { if (e.target === modal) cerrar(); };
+
+  btnAceptar.onclick = () => {
+    cerrar();
+    if (typeof onConfirm === 'function') onConfirm();
+  };
 }
