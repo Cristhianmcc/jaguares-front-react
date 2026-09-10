@@ -1745,7 +1745,7 @@ async function cargarHorariosOverride() {
     if (dni) {
       try {
         const resp = await fetch(`/api/admin/inscripciones/${encodeURIComponent(dni)}`, {
-          headers: { 'Authorization': `Bearer ${getAdminToken()}` }
+          headers: { 'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('adminSession') || '{}').token || '')}` }
         });
         if (resp.ok) {
           const data = await resp.json();
@@ -1759,7 +1759,7 @@ async function cargarHorariosOverride() {
     
     // Cargar todos los horarios del deporte (sin filtrar por plan/categoria)
     const res = await fetch(`/api/horarios?deporte_id=${deporteId}&refresh=true`, {
-      headers: { 'Authorization': `Bearer ${getAdminToken()}` }
+      headers: { 'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('adminSession') || '{}').token || '')}` }
     });
     const data = await res.json();
     const horarios = data.horarios || data || [];
@@ -1840,7 +1840,7 @@ async function ejecutarOverrideHorario() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAdminToken()}`
+        'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('adminSession') || '{}').token || '')}`
       },
       body: JSON.stringify({ horario_id: parseInt(horarioId) })
     });
