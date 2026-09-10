@@ -482,9 +482,7 @@ function mostrarModalDetalleInscripcion(data) {
                 
                 const horariosHTML = dep.horarios.map(h => 
                   
-  `<
-
- div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+  `<div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
                     <span>${h.dia} ${h.hora_inicio || ''} ${h.hora_fin ? '- ' + h.hora_fin : ''}</span>
                   </div>`
