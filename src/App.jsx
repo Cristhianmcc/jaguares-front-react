@@ -22,6 +22,8 @@ import ProfesorReportes from './pages/ProfesorReportes.jsx';
 import AdminLandingEditor from './pages/AdminLandingEditor.jsx';
 import AdminPaymentConfig from './pages/AdminPaymentConfig.jsx';
 import AdminPagosMensuales from './pages/AdminPagosMensuales.jsx';
+import AdminCarnets from './pages/AdminCarnets.jsx';
+import VerificarCarnet from './pages/VerificarCarnet.jsx';
 import DisciplineDetail from './pages/DisciplineDetail.jsx';
 import PoliticaPrivacidad from './pages/PoliticaPrivacidad.jsx';
 
@@ -62,6 +64,8 @@ export default function App() {
       ['/admin-landing-editor', 'admin-landing-editor'],
       ['/admin-payment-config', 'admin-payment-config'],
       ['/admin-pagos-mensuales', 'admin-pagos-mensuales'],
+      ['/admin-carnets', 'admin-carnets'],
+      ['/verificar-carnet', 'verificar-carnet'],
       ['/politica-privacidad', 'politica-privacidad']
     ]);
 
@@ -75,6 +79,7 @@ export default function App() {
   if (route.name === 'confirmacion') return <Confirmacion />;
   if (route.name === 'exito') return <Exito />;
   if (route.name === 'consulta') return <Consulta />;
+  if (route.name === 'verificar-carnet') return <VerificarCarnet />;
   if (route.name === 'admin-login') return <AdminLogin />;
   if (route.name === 'seleccion-horarios') return <SeleccionHorarios />;
   if (route.name === 'profesor-dashboard') return <ProfesorDashboard />;
@@ -97,6 +102,7 @@ export default function App() {
     'admin-dashboard': <AdminDashboard />,
     'admin-payment-config': <AdminPaymentConfig />,
     'admin-pagos-mensuales': <AdminPagosMensuales />,
+    'admin-carnets': <AdminCarnets />,
     'admin-legacy': <AdminLegacy />,
   }[route.name];
 

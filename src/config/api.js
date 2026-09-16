@@ -1,7 +1,9 @@
 // Configuración centralizada de la API
 const isDevelopment = import.meta.env.DEV;
 const isLocalhost = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || 
+     /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || 
+     /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname));
 
 // En desarrollo con proxy de Vite, usamos rutas relativas
 // En producción o sin proxy, usamos la URL completa
@@ -21,16 +23,24 @@ export function getFechaLocalPeru() {
 
 // Helper para hacer peticiones autenticadas
 export async function fetchWithAuth(endpoint, options = {}) {
-    const session = localStorage.getItem('adminSession');
     let token = '';
     
+    // 1. Intentar desde adminSession
+    const session = localStorage.getItem('adminSession');
     if (session) {
         try {
             const data = JSON.parse(session);
-            token = data.token;
+            token = data.token || data.admin_token || '';
         } catch (e) {
             console.error('Error parsing session:', e);
         }
+    }
+    
+    // 2. Intentar desde claves alternativas si no se encontró en adminSession
+    if (!token) {
+        token = localStorage.getItem('admin_token') || 
+                localStorage.getItem('adminToken') || 
+                sessionStorage.getItem('admin_token') || '';
     }
     
     const headers = {
