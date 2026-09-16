@@ -3,7 +3,7 @@
  */
 
 const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-    ? 'http://localhost:3003'
+    ? ''
     : 'https://api.jaguarescar.com';
 
 let datosUsuario = null;
@@ -385,7 +385,7 @@ function renderizarDatosAlumno() {
             
             <div>
                 <p class="text-primary text-xs font-black uppercase tracking-widest mb-1">Monto Total</p>
-                <p class="text-text-main dark:text-white text-base font-bold">S/ ${datosUsuario.pago.monto.toFixed(2)}</p>
+                <p class="text-text-main dark:text-white text-base font-bold">S/ ${(datosUsuario.pago?.monto != null ? parseFloat(datosUsuario.pago.monto).toFixed(2) : '0.00')}</p>
             </div>
             
             <div>

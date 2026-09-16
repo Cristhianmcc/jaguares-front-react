@@ -1,4 +1,4 @@
-/**
+﻿/**
  * admin-docentes.js
  * Gesti�n de docentes y asignaciones de categor�as/deportes
  */
@@ -7,7 +7,7 @@
 const API_BASE_URL = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-        ? 'http://localhost:3003'
+        ? ''
         : 'https://api.jaguarescar.com');
 
 // Helper para obtener fecha local de Per� (UTC-5)

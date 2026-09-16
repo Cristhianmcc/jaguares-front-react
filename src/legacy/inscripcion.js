@@ -190,6 +190,79 @@ function verificarEdad() {
   }
 }
 
+function autocompletarFormulario(alumno) {
+  if (!alumno) return;
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== null && val !== 'NULL') {
+      el.value = val;
+    }
+  };
+
+  setVal('nombres', alumno.nombres);
+  setVal('apellido_paterno', alumno.apellido_paterno);
+  setVal('apellido_materno', alumno.apellido_materno);
+
+  if (alumno.fecha_nacimiento) {
+    const rawFecha = String(alumno.fecha_nacimiento).split('T')[0];
+    setVal('fecha_nacimiento', rawFecha);
+    const partes = rawFecha.split('-');
+    if (partes.length === 3) {
+      setVal('dia_nac', partes[2]);
+      setVal('mes_nac', partes[1]);
+      setVal('anio_nac', partes[0]);
+    }
+  }
+
+  setVal('telefono', alumno.telefono);
+  setVal('direccion', alumno.direccion);
+  setVal('email', alumno.email);
+  setVal('seguro_tipo', alumno.seguro_tipo);
+  setVal('condicion_medica', alumno.condicion_medica);
+
+  if (alumno.sexo) {
+    const radio = document.querySelector(`input[name="sexo"][value="${alumno.sexo}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  if (alumno.apoderado) {
+    setVal('apoderado', alumno.apoderado);
+    setVal('telefono_apoderado', alumno.telefono_apoderado);
+  }
+
+  // Pre-cargar imágenes si ya existen en base de datos
+  if (alumno.dni_frontal_url) {
+    imagenDNIFrontal = alumno.dni_frontal_url;
+    mostrarPreview(alumno.dni_frontal_url, 'dni_frontal');
+  }
+  if (alumno.dni_reverso_url) {
+    imagenDNIReverso = alumno.dni_reverso_url;
+    mostrarPreview(alumno.dni_reverso_url, 'dni_reverso');
+  }
+  if (alumno.foto_carnet_url) {
+    imagenFotoCarnet = alumno.foto_carnet_url;
+    mostrarPreview(alumno.foto_carnet_url, 'foto_carnet');
+  }
+
+  verificarEdad();
+}
+
+// Permite al usuario continuar para un deporte adicional tras cerrar el modal
+window.permitirOtroDeporte = function(dni) {
+  document.getElementById('modalYaInscrito')?.remove();
+  const avisoHTML = `
+    <div id="avisoNuevoDeporte" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 flex items-start gap-3">
+      <span class="material-symbols-outlined text-blue-600 text-xl flex-shrink-0 mt-0.5">info</span>
+      <div>
+        <p class="text-sm font-semibold text-blue-800 dark:text-blue-200">Inscripción para deporte adicional</p>
+        <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">Tus datos personales han sido autocompletados. Puedes continuar para elegir el nuevo horario.</p>
+      </div>
+    </div>`;
+  document.getElementById('avisoNuevoDeporte')?.remove();
+  const ancla = document.getElementById('dni')?.closest('form') || document.body;
+  ancla.insertAdjacentHTML('afterbegin', avisoHTML);
+};
+
 async function verificarYaMostrarModal(dni) {
   try {
     const res = await fetch(`/api/mis-inscripciones/${encodeURIComponent(dni)}`);
@@ -217,15 +290,15 @@ async function verificarYaMostrarModal(dni) {
       return false; // NO bloquea — deja continuar
     }
 
-    // Tiene inscripción activa — mostrar modal bloqueante
+    // Tiene inscripción activa — mostrar modal con opción de inscribir otro deporte
     const deportes = activas.map(i => i.deporte || i.nombre_deporte || '').filter(Boolean).join(', ');
     const hayPendiente = activas.some(i => i.estado === 'pendiente');
     const mensajeEstado = hayPendiente
       ? 'ya tiene una inscripción registrada'
       : 'ya tiene una inscripción activa';
     const mensajeSecundario = hayPendiente
-      ? 'Si ya subiste tu comprobante de pago, espera la aprobación del administrador. De lo contrario, sube tu comprobante en <strong>Consulta tu inscripción</strong>.'
-      : 'Si deseas subir tu comprobante de pago o ver tus detalles, ve a <strong>Consulta tu inscripción</strong>.';
+      ? 'Si ya subiste tu comprobante de pago, espera la aprobación del administrador.'
+      : 'Si deseas inscribirte en otro deporte o ver tus horarios actuales, elige una opción:';
     const modalHTML = `
       <div id="modalYaInscrito" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -234,18 +307,22 @@ async function verificarYaMostrarModal(dni) {
               <span class="material-symbols-outlined text-3xl text-blue-600">info</span>
             </div>
             <div class="flex-1">
-              <h3 class="text-lg font-bold text-black dark:text-white mb-1">Ya estás inscrito</h3>
+              <h3 class="text-lg font-bold text-black dark:text-white mb-1">Alumno ya inscrito</h3>
               <p class="text-sm text-gray-600 dark:text-gray-300">El DNI <strong>${dni}</strong> ${mensajeEstado}${deportes ? ` en: <strong>${deportes}</strong>` : ''}.</p>
               <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">${mensajeSecundario}</p>
             </div>
           </div>
-          <div class="flex gap-3 mt-6">
+          <div class="flex flex-col sm:flex-row gap-2 mt-6">
+            <button type="button" onclick="permitirOtroDeporte('${dni}')" 
+               class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all text-center text-sm">
+              Inscribirme en otro deporte
+            </button>
             <a href="/consulta?dni=${dni}" 
                class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all text-center text-sm">
               Ver mi inscripción
             </a>
             <button onclick="document.getElementById('modalYaInscrito').remove()" 
-                    class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold transition-colors text-sm">
+                    class="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-black dark:text-white rounded-lg font-semibold transition-colors text-sm">
               Cerrar
             </button>
           </div>
@@ -289,7 +366,28 @@ async function buscarDNI() {
   helper.textContent = 'Verificando...';
   helper.className = 'text-sm text-blue-600 mt-1';
 
-  // Verificar si ya está inscrito con este DNI
+  // 1. Primero consultar si el alumno ya existe en la base de datos de Jaguares
+  try {
+    const resConsultar = await fetch(`/api/consultar/${encodeURIComponent(dni)}`);
+    if (resConsultar.ok) {
+      const dataConsultar = await resConsultar.json();
+      if (dataConsultar.success && dataConsultar.alumno) {
+        autocompletarFormulario(dataConsultar.alumno);
+        dniValidado = true;
+        helper.textContent = '✓ Alumno encontrado. Datos autocompletados.';
+        helper.className = 'text-sm text-green-600 mt-1 font-semibold';
+        getUtils().mostrarNotificacion('¡Alumno encontrado! Datos autocompletados.', 'success');
+
+        // Si ya tiene inscripciones activas, mostrar modal informativo con opción de deporte adicional
+        await verificarYaMostrarModal(dni);
+        return;
+      }
+    }
+  } catch (errConsulta) {
+    console.warn('Consulta en base de datos local:', errConsulta);
+  }
+
+  // 2. Si no está registrado en la base de datos, verificar si tiene inscripción pendiente
   const yaInscrito = await verificarYaMostrarModal(dni);
   if (yaInscrito) {
     helper.classList.add('hidden');
@@ -313,16 +411,16 @@ async function buscarDNI() {
     helper.className = 'text-sm text-green-600 mt-1 font-semibold';
     getUtils().mostrarNotificacion('DNI válido, continúa con el registro', 'success');
 
-    helper.textContent = 'Datos no encontrados. Complete manualmente.';
+    helper.textContent = 'DNI nuevo. Complete los datos.';
     setTimeout(() => {
       helper.classList.add('hidden');
     }, 3000);
   } catch (error) {
-    helper.textContent = 'Error al buscar. Complete manualmente.';
-    helper.classList.add('text-red-500');
+    helper.textContent = 'DNI nuevo. Complete manualmente.';
+    helper.classList.add('text-gray-500');
     setTimeout(() => {
       helper.classList.add('hidden');
-      helper.classList.remove('text-red-500');
+      helper.classList.remove('text-gray-500');
     }, 3000);
   }
 }
@@ -473,12 +571,25 @@ export function initInscripcion() {
   btnBuscarDni?.addEventListener('click', buscarDNI);
 
   const dniInput = document.getElementById('dni');
+  let debounceDniTimer = null;
   dniInput?.addEventListener('input', () => {
     dniValidado = false;
     const helper = document.getElementById('dni-helper');
-    helper.classList.add('hidden');
-    helper.textContent = '';
-    helper.className = 'text-sm text-primary hidden';
+    if (helper) {
+      helper.classList.add('hidden');
+      helper.textContent = '';
+      helper.className = 'text-sm text-primary hidden';
+    }
+
+    const val = dniInput.value.trim();
+    const tipoDoc = document.getElementById('tipo_documento')?.value || 'DNI';
+    // Si es DNI y tiene 8 dígitos, autocompletar automáticamente sin obligar a usar la lupa
+    if (tipoDoc === 'DNI' && val.length === 8) {
+      clearTimeout(debounceDniTimer);
+      debounceDniTimer = setTimeout(() => {
+        buscarDNI();
+      }, 350);
+    }
   });
 
   document.getElementById('dni_frontal')?.addEventListener('change', (e) => manejarImagenSeleccionada(e, 'dni_frontal'));
@@ -502,16 +613,18 @@ export function initInscripcion() {
         if (!data.success || !data.alumno) throw new Error('Alumno no encontrado');
 
         const a = data.alumno;
-        const apellidos = a.apellidos || '';
-        const partes = apellidos.split(' ');
+        autocompletarFormulario(a);
+        dniInput.value = dniParam;
+        dniValidado = true;
 
+        const partes = (a.apellidos || '').split(' ');
         const alumno = {
           dni: a.dni || dniParam,
           nombres: a.nombres || '',
-          apellido_paterno: partes[0] || '',
-          apellido_materno: partes.slice(1).join(' ') || '',
-          apellidos: apellidos,
-          fecha_nacimiento: a.fecha_nacimiento || '',
+          apellido_paterno: a.apellido_paterno || partes[0] || '',
+          apellido_materno: a.apellido_materno || partes.slice(1).join(' ') || '',
+          apellidos: a.apellidos || `${a.nombres} ${a.apellido_paterno || ''}`.trim(),
+          fecha_nacimiento: a.fecha_nacimiento ? String(a.fecha_nacimiento).split('T')[0] : '',
           sexo: a.sexo || 'Masculino',
           telefono: a.telefono || '',
           direccion: a.direccion || '',
@@ -521,9 +634,9 @@ export function initInscripcion() {
           apoderado: a.apoderado || '',
           telefono_apoderado: a.telefono_apoderado || '',
           edad: a.edad || getUtils().calcularEdad(a.fecha_nacimiento),
-          imagen_dni_frontal: null,
-          imagen_dni_reverso: null,
-          imagen_foto_carnet: null
+          imagen_dni_frontal: a.dni_frontal_url || null,
+          imagen_dni_reverso: a.dni_reverso_url || null,
+          imagen_foto_carnet: a.foto_carnet_url || null
         };
 
         getLocalStorage().set('datosInscripcion', {
@@ -542,7 +655,7 @@ export function initInscripcion() {
     })();
   } else if (dniParam && dniInput) {
     dniInput.value = dniParam;
-    // Auto-buscar para cargar datos del alumno (mostrará aviso no-bloqueante)
+    // Auto-buscar para cargar datos del alumno automáticamente
     setTimeout(() => buscarDNI(), 400);
   }
 
