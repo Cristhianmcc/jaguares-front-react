@@ -204,7 +204,7 @@ async function cargarDeportesDropdown() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-                ? 'http://localhost:3002'
+                ? ''
                 : 'https://api.jaguarescar.com');
 
         const session = localStorage.getItem('adminSession');
@@ -396,7 +396,7 @@ async function cargarInscritos(dia = null, deporte = null, busquedaTexto = null)
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-                ? 'http://localhost:3002'
+                ? ''
                 : 'https://api.jaguarescar.com');
         
 
@@ -547,6 +547,8 @@ function renderizarTabla(inscritos) {
 
                 horarios: [],
 
+                itemsPorDeporte: [],
+
                 estado_pago: ins.estado_pago,
 
                 estado_usuario: ins.estado_usuario
@@ -566,6 +568,10 @@ function renderizarTabla(inscritos) {
         if (deporte && !entry.deportes.includes(deporte)) entry.deportes.push(deporte);
 
         if (horario && !entry.horarios.includes(horario)) entry.horarios.push(horario);
+
+        if (deporte && horario) {
+            entry.itemsPorDeporte.push({ deporte, horario });
+        }
 
         // Si alguna inscripción está pendiente, el alumno queda como pendiente
 
@@ -652,31 +658,30 @@ function renderizarTabla(inscritos) {
 
         
 
+        const limpiarNombreDeporte = (d) => String(d || '')
+            .replace(/FÃºtbol|FÃ°tbol|Ftbol/gi, 'Fútbol')
+            .replace(/VÃ³ley|Vley|VÃ¹ley/gi, 'Vóley')
+            .replace(/BÃ¡squet|Bsquet/gi, 'Básquet');
+
         // Deportes como badges apilados
-
         const deportesBadges = inscrito.deportes.length > 0
-
             ? inscrito.deportes.map(d =>
-
-                `<span class="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold whitespace-nowrap">${d}</span>`
-
+                `<span class="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold whitespace-nowrap">${limpiarNombreDeporte(d)}</span>`
               ).join('')
-
             : '<span class="text-gray-400 text-xs">-</span>';
 
-        
-
-        // Horarios apilados, uno por línea
-
-        const horariosHtml = inscrito.horarios.length > 0
-
-            ? inscrito.horarios.map(h =>
-
-                `<span class="block text-xs text-gray-600 dark:text-gray-400">${h}</span>`
-
-              ).join('')
-
-            : '<span class="text-gray-400 text-xs">-</span>';
+        // Horarios apilados con el deporte correspondiente si hay más de 1 deporte
+        const tieneMultiplesDeportes = inscrito.deportes.length > 1;
+        const horariosHtml = (inscrito.itemsPorDeporte && inscrito.itemsPorDeporte.length > 0)
+            ? inscrito.itemsPorDeporte.map(item => {
+                const depPrefix = tieneMultiplesDeportes
+                    ? `<span class="font-bold text-primary mr-1">${limpiarNombreDeporte(item.deporte)}:</span>`
+                    : '';
+                return `<span class="block text-xs text-gray-700 dark:text-gray-300">${depPrefix}${item.horario}</span>`;
+              }).join('')
+            : (inscrito.horarios.length > 0
+                ? inscrito.horarios.map(h => `<span class="block text-xs text-gray-600 dark:text-gray-400">${h}</span>`).join('')
+                : '<span class="text-gray-400 text-xs">-</span>');
 
         
 
@@ -987,7 +992,7 @@ async function cargarInscripcionesParaDesactivar(dni) {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-                ? 'http://localhost:3002'
+                ? ''
                 : 'https://api.jaguarescar.com');
         const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
         const token = session.token || '';
@@ -1109,7 +1114,7 @@ async function confirmarDesactivar() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-        ? 'http://localhost:3002'
+        ? ''
         : 'https://api.jaguarescar.com');
 
         const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
@@ -1200,7 +1205,7 @@ async function confirmarReactivar() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-        ? 'http://localhost:3002'
+        ? ''
         : 'https://api.jaguarescar.com');
 
         
@@ -1299,7 +1304,7 @@ async function buscarPorDNI(dni) {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
     : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-        ? 'http://localhost:3002'
+        ? ''
         : 'https://api.jaguarescar.com');
 
         
@@ -1987,7 +1992,7 @@ function reactivarInscripcion(inscripcionId, deporteNombre) {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-                ? 'http://localhost:3002'
+                ? ''
                 : 'https://api.jaguarescar.com');
 
         const session = localStorage.getItem('adminSession');
@@ -2073,7 +2078,7 @@ function verDetalleAlumno(dni) {
 
 const API_BASE_CONFIG = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
 
-    ? 'http://localhost:3002'
+    ? ''
 
     : 'https://api.jaguarescar.com';
 
@@ -2361,7 +2366,7 @@ async function buscarNumeroOperacion() {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
             : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
-                ? 'http://localhost:3002'
+                ? ''
                 : 'https://api.jaguarescar.com');
         const resp = await fetch(`${API_BASE}/api/admin/buscar-numero-operacion?numero_operacion=${encodeURIComponent(valor)}`);
         const data = await resp.json();
@@ -2638,168 +2643,162 @@ async function ejecutarAgregarHorarioEspecial(inscripcionId, horarioId, dni, lab
     }
 }
 
-async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario, esUltimo) {
-    const confirmado = await confirmarAccion({
-        titulo: esUltimo ? 'Cancelar inscripción completa' : 'Quitar horario',
-        mensaje: esUltimo
-            ? `<strong>${labelHorario}</strong> es el <strong>único horario</strong> de esta inscripción.<br><br>Al quitarlo se <strong>cancelará TODA la inscripción</strong> y la mensualidad se recalculará automáticamente.`
-            : `¿Quitar el horario <strong>${labelHorario}</strong> de este alumno?`,
-        labelConfirmar: esUltimo ? '⚠ Sí, cancelar inscripción' : 'Sí, quitar horario',
-        labelCancelar: 'Cancelar',
-        tipo: esUltimo ? 'danger' : 'warning',
-    });
-    if (!confirmado) return;
+/**
+ * Modal personalizado de confirmacion para quitar/cancelar horario.
+ * Reemplaza el confirm() nativo del navegador con un diseño premium.
+ */
+function mostrarModalQuitarHorario(inscripcionId, horarioId, dni, labelHorario, esUltimo) {
+    // Eliminar modal anterior si existe
+    const anterior = document.getElementById('modalQuitarHorario');
+    if (anterior) anterior.remove();
 
-    try {
-        const session = localStorage.getItem('adminSession');
-        const token = session ? JSON.parse(session).token : '';
-        const apiBase = getOverrideApiBase();
-
-        const res = await fetch(apiBase + '/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            if (data.inscripcion_cancelada) {
-                mostrarToastAdmin('Inscripción cancelada y mensualidad recalculada.', 'success');
-                console.log(`Inscripción ${inscripcionId} cancelada para DNI ${dni}`);
-            } else {
-                mostrarToastAdmin('Horario quitado correctamente.', 'success');
-            }
-            // Actualizar detalle del alumno Y la tabla general de inscritos
-            buscarPorDNI(dni);
-            cargarInscritos();
-        } else {
-            mostrarToastAdmin('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'), 'error');
-        }
-    } catch (err) {
-        mostrarToastAdmin('Error al quitar horario: ' + err.message, 'error');
-    }
-}
-
-
-/* ─── Helpers de UI: confirmarAccion + mostrarToastAdmin ─────────────
-   Reemplazan confirm() y alert() nativos por modales/toasts elegantes.
-───────────────────────────────────────────────────────────────────── */
-function confirmarAccion({ titulo, mensaje, labelConfirmar = 'Confirmar', labelCancelar = 'Cancelar', tipo = 'danger' }) {
-  return new Promise((resolve) => {
-    // Eliminar modal previo si existe
-    const prev = document.getElementById('_modalConfirmAdmin');
-    if (prev) prev.remove();
-
-    const colorMap = {
-      danger:  { btn: '#ef4444', hover: '#dc2626', icon: '⚠️', badge: '#fef2f2', badgeText: '#991b1b' },
-      warning: { btn: '#f59e0b', hover: '#d97706', icon: '⚡', badge: '#fffbeb', badgeText: '#92400e' },
-      info:    { btn: '#3b82f6', hover: '#2563eb', icon: 'ℹ️', badge: '#eff6ff', badgeText: '#1e40af' },
-    };
-    const c = colorMap[tipo] || colorMap.danger;
+    const esCancelacion = !!esUltimo;
+    const accentColor   = esCancelacion ? '#ea580c' : '#dc2626';
+    const accentLight   = esCancelacion ? '#fff7ed' : '#fef2f2';
+    const accentBorder  = esCancelacion ? '#fed7aa' : '#fecaca';
+    const iconBg        = esCancelacion ? 'background:#ffedd5;'        : 'background:#fee2e2;';
+    const iconColor     = esCancelacion ? 'color:#c2410c;'             : 'color:#b91c1c;';
+    const iconSvg       = esCancelacion
+        ? `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+    const titulo        = esCancelacion ? 'Cancelar Inscripción' : 'Quitar Horario';
+    const subtitulo     = esCancelacion
+        ? 'Esta acción cancelará toda la inscripción'
+        : 'Esta acción no se puede deshacer fácilmente';
+    const detalleExtra  = esCancelacion
+        ? `<div style="margin-top:10px; padding:10px 12px; border-radius:8px; background:#fff3cd; border:1px solid #ffc107; display:flex; align-items:flex-start; gap:8px;">
+            <span style="font-size:16px; flex-shrink:0; margin-top:1px;">💰</span>
+            <span style="font-size:12.5px; color:#7c5500; line-height:1.4;">El monto de mensualidad se <strong>recalculará automáticamente</strong> descontando esta inscripción.</span>
+           </div>`
+        : '';
+    const btnTexto      = esCancelacion ? 'Sí, cancelar inscripción' : 'Sí, quitar horario';
+    const btnHover      = esCancelacion ? '#c2410c' : '#b91c1c';
 
     const overlay = document.createElement('div');
-    overlay.id = '_modalConfirmAdmin';
-    overlay.style.cssText = `
-      position:fixed; inset:0; z-index:99999;
-      background:rgba(0,0,0,0.55); backdrop-filter:blur(4px);
-      display:flex; align-items:center; justify-content:center;
-      animation: _fadeInOverlay 0.18s ease;
-    `;
-
+    overlay.id = 'modalQuitarHorario';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeInOverlay 0.18s ease;';
     overlay.innerHTML = `
       <style>
-        @keyframes _fadeInOverlay { from { opacity:0 } to { opacity:1 } }
-        @keyframes _slideUpCard { from { transform:translateY(24px); opacity:0 } to { transform:translateY(0); opacity:1 } }
-        #_modalConfirmAdmin .mc-card { animation: _slideUpCard 0.22s cubic-bezier(.22,.68,0,1.2) both; }
-        #_modalConfirmAdmin .mc-btn-confirm:hover { background:${c.hover} !important; transform:translateY(-1px); box-shadow:0 4px 14px rgba(0,0,0,0.25) !important; }
-        #_modalConfirmAdmin .mc-btn-cancel:hover { background:#f3f4f6 !important; color:#374151 !important; }
-        @media (prefers-color-scheme: dark) {
-          #_modalConfirmAdmin .mc-card { background:#1f2937 !important; color:#f9fafb !important; }
-          #_modalConfirmAdmin .mc-msg  { color:#d1d5db !important; }
-          #_modalConfirmAdmin .mc-btn-cancel { background:#374151 !important; color:#e5e7eb !important; border-color:#4b5563 !important; }
-          #_modalConfirmAdmin .mc-btn-cancel:hover { background:#4b5563 !important; color:#fff !important; }
+        @keyframes fadeInOverlay { from{opacity:0} to{opacity:1} }
+        @keyframes slideUpCard   { from{opacity:0;transform:translateY(16px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        #modalQuitarHorario .backdrop { position:absolute;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px); }
+        #modalQuitarHorario .card {
+          position:relative;z-index:1;width:100%;max-width:420px;
+          background:#fff;border-radius:18px;
+          box-shadow:0 24px 64px rgba(0,0,0,0.22),0 4px 16px rgba(0,0,0,0.12);
+          animation:slideUpCard 0.22s cubic-bezier(.34,1.56,.64,1);
+          overflow:hidden;
         }
+        @media (prefers-color-scheme:dark) {
+          #modalQuitarHorario .card { background:#1e1e2e; }
+          #modalQuitarHorario .card-body p { color:#d1d5db !important; }
+          #modalQuitarHorario .card-title { color:#f9fafb !important; }
+          #modalQuitarHorario .card-sub { color:#9ca3af !important; }
+        }
+        .dark #modalQuitarHorario .card { background:#1e1e2e; }
+        .dark #modalQuitarHorario .card-body p { color:#d1d5db !important; }
+        .dark #modalQuitarHorario .card-title { color:#f9fafb !important; }
+        .dark #modalQuitarHorario .card-sub { color:#9ca3af !important; }
       </style>
-      <div class="mc-card" role="dialog" aria-modal="true" style="
-        background:#fff; border-radius:18px; padding:32px 28px 24px;
-        max-width:420px; width:90%; box-shadow:0 25px 60px rgba(0,0,0,0.3);
-        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-        position:relative;
-      ">
-        <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom:20px;">
-          <div style="
-            width:48px; height:48px; flex-shrink:0; border-radius:12px;
-            background:${c.badge}; display:flex; align-items:center; justify-content:center;
-            font-size:24px; line-height:1;
-          ">${c.icon}</div>
-          <div style="flex:1;">
-            <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:6px; line-height:1.3;">${titulo}</div>
-            <div class="mc-msg" style="font-size:13.5px; color:#6b7280; line-height:1.6;">${mensaje.replace(/\n/g,'<br>')}</div>
+      <div class="backdrop" id="backdropQuitarHorario"></div>
+      <div class="card">
+        <!-- Header -->
+        <div style="padding:24px 24px 20px; border-bottom:1px solid #f3f4f6; display:flex; align-items:center; gap:14px;">
+          <div style="width:52px;height:52px;border-radius:14px;${iconBg}display:flex;align-items:center;justify-content:center;flex-shrink:0;${iconColor}">
+            ${iconSvg}
+          </div>
+          <div>
+            <h3 class="card-title" style="margin:0 0 2px;font-size:17px;font-weight:700;color:#111827;">${titulo}</h3>
+            <p class="card-sub" style="margin:0;font-size:12.5px;color:#6b7280;">${subtitulo}</p>
           </div>
         </div>
-        <div style="display:flex; gap:10px; justify-content:flex-end;">
-          <button id="_mcBtnCancelar" class="mc-btn-cancel" style="
-            padding:9px 18px; border-radius:9px; border:1px solid #e5e7eb;
-            background:#fff; color:#6b7280; font-size:13px; font-weight:600;
-            cursor:pointer; transition:all 0.15s;
-          ">${labelCancelar}</button>
-          <button id="_mcBtnConfirmar" class="mc-btn-confirm" style="
-            padding:9px 20px; border-radius:9px; border:none;
-            background:${c.btn}; color:#fff; font-size:13px; font-weight:700;
-            cursor:pointer; transition:all 0.15s; box-shadow:0 2px 8px rgba(0,0,0,0.18);
-          ">${labelConfirmar}</button>
+        <!-- Body -->
+        <div class="card-body" style="padding:20px 24px;">
+          <p style="margin:0 0 8px;font-size:14px;color:#374151;line-height:1.5;">
+            ¿Estás seguro de que deseas <strong>${esCancelacion ? 'cancelar la inscripción' : 'quitar el horario'}</strong>?
+          </p>
+          <div style="padding:10px 12px;border-radius:8px;background:${accentLight};border:1px solid ${accentBorder};display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">📅</span>
+            <span style="font-size:13px;font-weight:600;color:${accentColor};">${labelHorario}</span>
+          </div>
+          ${detalleExtra}
         </div>
-      </div>
-    `;
+        <!-- Footer -->
+        <div style="padding:16px 24px 20px;display:flex;gap:10px;justify-content:flex-end;">
+          <button id="btnCancelarQH"
+            style="padding:9px 20px;border-radius:10px;border:1.5px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;"
+            onmouseover="this.style.background='#f3f4f6'"
+            onmouseout="this.style.background='#f9fafb'">
+            Cancelar
+          </button>
+          <button id="btnConfirmarQH"
+            style="padding:9px 20px;border-radius:10px;border:none;background:${accentColor};color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:7px;"
+            onmouseover="this.style.background='${btnHover}'"
+            onmouseout="this.style.background='${accentColor}'">
+            <span style="font-size:15px;">${esCancelacion ? '🗑️' : '✕'}</span>
+            ${btnTexto}
+          </button>
+        </div>
+      </div>`;
 
     document.body.appendChild(overlay);
 
-    const btnConfirm = overlay.querySelector('#_mcBtnConfirmar');
-    const btnCancel  = overlay.querySelector('#_mcBtnCancelar');
-    const cerrar = (res) => { overlay.remove(); resolve(res); };
+    // Cerrar con backdrop
+    document.getElementById('backdropQuitarHorario').addEventListener('click', () => overlay.remove());
+    document.getElementById('btnCancelarQH').addEventListener('click', () => overlay.remove());
 
-    btnConfirm.addEventListener('click', () => cerrar(true));
-    btnCancel.addEventListener('click',  () => cerrar(false));
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrar(false); });
-    document.addEventListener('keydown', function esc(e) {
-      if (e.key === 'Escape') { cerrar(false); document.removeEventListener('keydown', esc); }
+    // Confirmar accion
+    document.getElementById('btnConfirmarQH').addEventListener('click', async () => {
+        const btnConf = document.getElementById('btnConfirmarQH');
+        if (btnConf) {
+            btnConf.disabled = true;
+            btnConf.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;"></span> Procesando...';
+            btnConf.style.opacity = '0.8';
+        }
+        try {
+            const session = localStorage.getItem('adminSession');
+            const token   = session ? JSON.parse(session).token : '';
+            const apiBase = getOverrideApiBase();
+
+            const res  = await fetch(apiBase + '/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+
+            overlay.remove();
+
+            if (data.success) {
+                if (data.inscripcion_cancelada) {
+                    console.log(`✅ Inscripción ${inscripcionId} cancelada para DNI ${dni}`);
+                }
+                buscarPorDNI(dni);
+                if (typeof cargarInscritos === 'function') {
+                    cargarInscritos();
+                }
+            } else {
+                mostrarToastError(data.error || 'No se pudo realizar la acción');
+            }
+        } catch (err) {
+            overlay.remove();
+            mostrarToastError('Error de conexión: ' + err.message);
+        }
     });
-  });
+
+    // Cerrar con Escape
+    const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
+    document.addEventListener('keydown', escHandler);
 }
 
-function mostrarToastAdmin(mensaje, tipo = 'success') {
-  const prev = document.getElementById('_toastAdmin');
-  if (prev) prev.remove();
-
-  const colores = {
-    success: { bg:'#10b981', icon:'✅' },
-    error:   { bg:'#ef4444', icon:'❌' },
-    warning: { bg:'#f59e0b', icon:'⚠️' },
-    info:    { bg:'#3b82f6', icon:'ℹ️' },
-  };
-  const col = colores[tipo] || colores.info;
-
-  const toast = document.createElement('div');
-  toast.id = '_toastAdmin';
-  toast.style.cssText = `
-    position:fixed; bottom:28px; right:28px; z-index:999999;
-    background:${col.bg}; color:#fff;
-    padding:13px 20px; border-radius:12px; font-size:13.5px; font-weight:600;
-    display:flex; align-items:center; gap:10px; max-width:360px;
-    box-shadow:0 8px 28px rgba(0,0,0,0.22);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    animation: _toastIn 0.28s cubic-bezier(.22,.68,0,1.2) both;
-  `;
-  toast.innerHTML = `
-    <style>@keyframes _toastIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-    @keyframes _toastOut{from{opacity:1}to{opacity:0;transform:translateY(12px)}}</style>
-    <span style="font-size:18px; line-height:1;">${col.icon}</span>
-    <span>${mensaje}</span>
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => {
-    toast.style.animation = '_toastOut 0.3s ease forwards';
-    setTimeout(() => toast.remove(), 320);
-  }, 3500);
+/** Toast de error no bloqueante */
+function mostrarToastError(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;background:#1f2937;color:#f9fafb;padding:12px 18px;border-radius:12px;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.3);animation:slideUpCard 0.2s ease;max-width:340px;';
+    t.innerHTML = `<span style="font-size:18px;flex-shrink:0;">❌</span><span>${msg}</span>`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4500);
 }
-/* ─── Fin helpers UI ──────────────────────────────────────────────── */
+
+async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario, esUltimo) {
+    mostrarModalQuitarHorario(inscripcionId, horarioId, dni, labelHorario, esUltimo);
+}

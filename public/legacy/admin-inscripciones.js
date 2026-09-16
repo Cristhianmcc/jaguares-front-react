@@ -2092,16 +2092,11 @@ function generarPdfDesdeInscripciones(dni, nombre) {
  * y ajusta pagos_mensuales automaticamente.
  */
 async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario, esUltimo) {
-  const confirmado = await confirmarAccion({
-    titulo: esUltimo ? 'Cancelar inscripción completa' : 'Quitar horario',
-    mensaje: esUltimo
-      ? `<strong>${labelHorario}</strong> es el <strong>único horario</strong> de esta inscripción.<br><br>Al quitarlo se <strong>cancelará TODA la inscripción</strong> y la mensualidad se recalculará automáticamente.`
-      : `¿Quitar el horario <strong>${labelHorario}</strong> de este alumno?`,
-    labelConfirmar: esUltimo ? '⚠ Sí, cancelar inscripción' : 'Sí, quitar horario',
-    labelCancelar: 'Cancelar',
-    tipo: esUltimo ? 'danger' : 'warning',
-  });
-  if (!confirmado) return;
+  const msg = esUltimo
+    ? `⚠️ ATENCIÓN: "${labelHorario}" es el ÚNICO horario de esta inscripción.\n\nAl quitarlo se CANCELARÁ TODA la inscripción y el monto de mensualidad se ajustará automáticamente.\n\n¿Deseas cancelar esta inscripción?`
+    : `¿Quitar el horario (${labelHorario}) de este alumno?`;
+
+  if (!confirm(msg)) return;
 
   try {
     const session = localStorage.getItem('adminSession');
@@ -2120,23 +2115,22 @@ async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHo
     const data = await res.json();
 
     if (data.success) {
+      // Cerrar el modal actual y reabrir con los datos actualizados
       const modal = document.getElementById('modalDetalleInscripcion');
       if (modal) modal.remove();
-      if (data.inscripcion_cancelada) {
-        mostrarToastAdmin('Inscripción cancelada y mensualidad recalculada.', 'success');
-        console.log(`Inscripción ${inscripcionId} cancelada para DNI ${dni}. Mensualidad recalculada.`);
-      } else {
-        mostrarToastAdmin('Horario quitado correctamente.', 'success');
-      }
+      // Si existe la funcion de recarga del admin-panel, usarla; si no, recargar la tabla
       if (typeof buscarPorDNI === 'function') {
         buscarPorDNI(dni);
       } else {
         await verDetalleInscripcion(dni);
       }
+      if (data.inscripcion_cancelada) {
+        console.log(`✅ Inscripción ${inscripcionId} cancelada para DNI ${dni}. Mensualidad recalculada.`);
+      }
     } else {
-      mostrarToastAdmin('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'), 'error');
+      alert('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'));
     }
   } catch (err) {
-    mostrarToastAdmin('Error al quitar horario: ' + err.message, 'error');
+    alert('Error al quitar horario: ' + err.message);
   }
 }
