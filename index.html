@@ -14,7 +14,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link rel="icon" href="/assets/logo.ico" />
     <script>
+      (function() {
+    var h = window.location.hostname;
+    var isLocal = h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(h);
+    if (isLocal) {
+      window.API_BASE_OVERRIDE = window.location.origin;
+    } else {
       window.API_BASE_OVERRIDE = "%VITE_API_BASE%";
+    }
+  })();
     </script>
     <!-- Override crítico: asegura que los sliders del tema SoccerClub sean visibles -->
     <!-- Solo aplica cuando las clases del tema están presentes en el body -->
