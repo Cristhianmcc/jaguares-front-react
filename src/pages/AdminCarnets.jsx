@@ -59,6 +59,35 @@ function generateCode128Svg(text, height = 40, maxW = 280) {
   return `<svg viewBox="0 0 ${totalWidth} ${height + 2}" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: ${maxW}px; height: ${height + 2}px; display: block; margin: 0 auto;">${rects.join('')}</svg>`;
 }
 
+
+// Helper para convertir URLs de Google Drive a URLs directas de imagen compatibles con <img>
+const getDriveFileId = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  const matchFile = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return matchFile[1];
+  const matchId = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchId) return matchId[1];
+  return null;
+};
+
+const formatFotoUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.includes('drive.google.com/thumbnail') || trimmed.includes('lh3.googleusercontent.com')) {
+    return trimmed;
+  }
+
+  const fileId = getDriveFileId(trimmed);
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+  }
+
+  return trimmed;
+};
+
 export default function AdminCarnets() {
   const [activeTab, setActiveTab] = useState('carnets');
   const [alumnos, setAlumnos] = useState([]);
@@ -1355,11 +1384,23 @@ export default function AdminCarnets() {
                           >
                             {alumnoSeleccionado.alumno?.foto_carnet_url ? (
                               <img
-                                src={alumnoSeleccionado.alumno.foto_carnet_url}
+                                src={formatFotoUrl(alumnoSeleccionado.alumno.foto_carnet_url)}
                                 alt="Foto alumno"
                                 crossOrigin="anonymous"
                                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                onLoad={(e) => {
+                                  e.target.style.display = 'block';
+                                  const fallback = e.target.parentElement.querySelector('.fallback-foto');
+                                  if (fallback) fallback.style.display = 'none';
+                                }}
                                 onError={(e) => {
+                                  const raw = alumnoSeleccionado.alumno?.foto_carnet_url || '';
+                                  const fId = getDriveFileId(raw);
+                                  if (fId && !e.target.dataset.triedLh3) {
+                                    e.target.dataset.triedLh3 = 'true';
+                                    e.target.src = `https://lh3.googleusercontent.com/d/${fId}`;
+                                    return;
+                                  }
                                   e.target.style.display = 'none';
                                   const fallback = e.target.parentElement.querySelector('.fallback-foto');
                                   if (fallback) fallback.style.display = 'flex';
@@ -1693,7 +1734,7 @@ export default function AdminCarnets() {
                         <div className="flex-shrink-0 flex flex-col items-center">
                           <div className="w-[85px] h-[102px] rounded-xl overflow-hidden border-2 border-amber-500 bg-slate-900 flex items-center justify-center">
                             {alumnoSeleccionado.alumno?.foto_carnet_url ? (
-                              <img src={alumnoSeleccionado.alumno.foto_carnet_url} alt="Foto" className="w-full h-full object-cover" />
+                              <img src={formatFotoUrl(alumnoSeleccionado.alumno.foto_carnet_url)} alt="Foto" crossOrigin="anonymous" className="w-full h-full object-cover" />
                             ) : (
                               <span className="material-symbols-outlined text-3xl text-slate-400">photo_camera</span>
                             )}
