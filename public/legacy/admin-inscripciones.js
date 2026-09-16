@@ -524,23 +524,32 @@ function mostrarModalDetalleInscripcion(data) {
                 }
                 
                 const tieneMultiples = dep.horarios.length > 1;
-                const horariosHTML = dep.horarios.map(h => 
-                  `<div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 text-sm ${esSuspendido ? 'opacity-60 line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}">
+                const horariosHTML = dep.horarios.map(h => {
+                  const esUltimoH = !tieneMultiples;
+                  const btnLabel  = esUltimoH ? '⚠ Cancelar Inscripción' : '✕ Quitar';
+                  const btnBorder = esUltimoH ? '#fed7aa' : '#fecaca';
+                  const btnBg     = esUltimoH ? '#fff7ed' : '#fff5f5';
+                  const btnColor  = esUltimoH ? '#c2410c' : '#dc2626';
+                  const btnTitle  = esUltimoH
+                    ? 'Último horario: al quitarlo se cancela TODA la inscripción'
+                    : 'Quitar este horario';
+                  return `<div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 text-sm ${esSuspendido ? 'opacity-60 line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}">
                     <div class="flex items-center gap-2">
                       <span class="material-symbols-outlined text-xs text-primary">calendar_today</span>
                       <span class="font-semibold">${h.dia}</span>
                       <span class="text-xs font-mono bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 font-semibold">${h.hora_inicio || ''} ${h.hora_fin ? '- ' + h.hora_fin : ''}</span>
                     </div>
-                    ${!esSuspendido && h.horario_id && tieneMultiples ? `
+                    ${!esSuspendido && h.horario_id ? `
                     <button type="button"
-                            onclick="quitarHorarioEspecialModal(${dep.inscripcion_id}, ${h.horario_id}, '${usuario.dni}', '${h.dia} ${h.hora_inicio || ''}')"
-                            style="padding:3px 8px; border-radius:5px; border:1px solid #fecaca; background:#fff5f5; color:#dc2626; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px;"
-                            title="Quitar este horario">
-                      <span style="font-size:11px; line-height:1;">✕</span> Quitar
+                            onclick="quitarHorarioEspecialModal(${dep.inscripcion_id}, ${h.horario_id}, '${usuario.dni}', '${h.dia} ${h.hora_inicio || ''}', ${esUltimoH})"
+                            style="padding:3px 8px; border-radius:5px; border:1px solid ${btnBorder}; background:${btnBg}; color:${btnColor}; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:3px;"
+                            title="${btnTitle}">
+                      ${btnLabel}
                     </button>
                     ` : ''}
-                  </div>`
-                ).join('');
+                  </div>`;
+                }).join('');
+
 
                 const botonAccesoEspecial = !esSuspendido ? `
                   <button type="button"
@@ -656,7 +665,7 @@ async function verificarNumOpEnModal(numOp) {
   try {
     const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
         ? window.API_BASE_OVERRIDE
-        : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
             ? 'http://localhost:3003'
             : 'https://api.jaguarescar.com');
     const resp = await fetch(`${API_BASE}/api/admin/buscar-numero-operacion?numero_operacion=${encodeURIComponent(numOp)}`);
@@ -1306,12 +1315,20 @@ async function verAsistenciasAlumno(dni, nombre) {
         <div class="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
           <div class="text-white px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0" style="background:#4f46e5;">
                 <div>
-                    <h3 class="text-lg font-bold">Asistencias</h3>
-              <p class="text-sm" style="color:#e0e7ff;">${nombre} &bull; DNI: ${dni}</p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-lg font-bold">Asistencias</h3>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white uppercase">Doble Control</span>
+                    </div>
+                    <p class="text-sm" style="color:#e0e7ff;">${nombre} &bull; DNI: ${dni}</p>
                 </div>
-                <button onclick="document.getElementById('modalAsistenciasAlumno').remove()" class="hover:bg-white/20 rounded-full p-1">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="generarPdfDesdeInscripciones('${dni}', '${nombre.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-lg shadow-sm flex items-center gap-1 transition-colors">
+                        <span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
+                    </button>
+                    <button onclick="document.getElementById('modalAsistenciasAlumno').remove()" class="hover:bg-white/20 rounded-full p-1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
             </div>
             <div id="asistenciasBody" class="flex-1 overflow-y-auto p-5">
                 <div class="flex justify-center py-10">
@@ -1592,364 +1609,512 @@ function mostrarDetalleDiaAsistencia(fecha, registros) {
     const fechaStr = d.toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
     cont.innerHTML = `
         <div style="margin-top:14px;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
-            <div style="background:#7c3aed;color:#fff;padding:8px 14px;font-size:13px;font-weight:600;">${fechaStr}</div>
-            ${registros.map(r => `
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f3f4f6;font-size:13px;">
-                    <span style="color:#374151;">${r.deporte}${r.categoria ? ` · ${r.categoria}` : ''}</span>
-                    <span style="padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:600;background:${r.presente ? '#dcfce7' : '#fee2e2'};color:${r.presente ? '#15803d' : '#dc2626'};">
-                        ${r.presente ? '✓ Presente' : '✗ Ausente'}
-                    </span>
+            <div style="background:#4f46e5;color:#fff;padding:8px 14px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;">
+                <span>${fechaStr}</span>
+                <span style="font-size:11px;opacity:0.9;">Control Docente & Puerta</span>
+            </div>
+            ${registros.map(r => {
+                const tienePuerta = r.asistencia_puerta === 1 || r.asistencia_puerta === true || r.asistencia_puerta === '1';
+                return `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f3f4f6;font-size:13px;gap:8px;flex-wrap:wrap;">
+                    <div>
+                        <span style="color:#1e293b;font-weight:700;">${r.deporte}${r.categoria ? ` · ${r.categoria}` : ''}</span>
+                        <div style="font-size:11px;color:#64748b;">${r.dia || ''} ${r.hora_inicio ? r.hora_inicio + ' - ' + r.hora_fin : ''}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <!-- Docente -->
+                        <span style="padding:3px 9px;border-radius:9999px;font-size:11px;font-weight:800;background:${r.presente ? '#dcfce7' : '#fee2e2'};color:${r.presente ? '#15803d' : '#dc2626'};border:1px solid ${r.presente ? '#86efac' : '#fca5a5'};">
+                            ${r.presente ? '✓ Docente: Presente' : '✗ Docente: Ausente'}
+                        </span>
+                        <!-- Puerta -->
+                        <span style="padding:3px 9px;border-radius:9999px;font-size:11px;font-weight:800;background:${tienePuerta ? '#10b981' : '#f1f5f9'};color:${tienePuerta ? '#ffffff' : '#64748b'};border:1px solid ${tienePuerta ? '#059669' : '#cbd5e1'};">
+                            ${tienePuerta ? '✓ Puerta OK' + (r.hora_puerta ? ' (' + r.hora_puerta + ')' : '') : '✗ Sin Puerta'}
+                        </span>
+                    </div>
                 </div>
-            `).join('')}
+            `;
+            }).join('')}
         </div>`;
 }
 
-function eliminarAlumnoCompleto(dni, nombre) {
-  mostrarModalConfirmacion({
-    titulo: 'Eliminar Alumno',
-    subtitulo: nombre,
-    icon: 'person_remove',
-    iconBg: 'bg-red-100 dark:bg-red-900/30',
-    iconColor: 'text-red-600 dark:text-red-400',
-    Mensaje: 'Se borrarán sus datos, inscripciones, pagos y todo registro. <strong class="text-red-600">Esta acción NO se puede deshacer.</strong>',
-    campos: '',
-    onConfirm: `ejecutarEliminarAlumno('${dni}')`,
-    btnClass: 'bg-red-600 hover:bg-red-700',
-    btnIcon: 'person_remove',
-    btnTexto: 'Eliminar Alumno'
+function generarPdfAsistenciasAlumno(dni, nombreCompleto, asistencias, desde, hasta) {
+    const total = asistencias.length;
+    const presentes = asistencias.filter(a => a.presente).length;
+    const faltas = total - presentes;
+    const puertaOk = asistencias.filter(a => a.asistencia_puerta === 1 || a.asistencia_puerta === true || a.asistencia_puerta === '1').length;
+    const pctDocente = total > 0 ? Math.round((presentes / total) * 100) : 0;
+    const pctPuerta = total > 0 ? Math.round((puertaOk / total) * 100) : 0;
+
+    const fechaHoy = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
+    const rangoTexto = (desde || hasta) 
+        ? `Del ${desde || 'Inicio'} al ${hasta || 'Presente'}`
+        : 'Historial Completo Registrado';
+
+    const limpiarDeporte = (d) => String(d || '').replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol').replace(/BÃ¡squet/gi, 'Básquet').replace(/VÃ³ley/gi, 'Vóley');
+    const limpiarHora = (h) => String(h || '').replace(/:00$/, '');
+
+    const filasHtml = asistencias.map((a, idx) => {
+        const fStr = a.fecha ? new Date(a.fecha).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+        const puertaOkBool = a.asistencia_puerta === 1 || a.asistencia_puerta === true || a.asistencia_puerta === '1';
+        const horaInicio = limpiarHora(a.hora_inicio);
+        const horaFin = limpiarHora(a.hora_fin);
+        const horarioStr = horaInicio && horaFin ? `${a.dia || ''} (${horaInicio} - ${horaFin})` : (a.dia || '-');
+
+        return `
+            <tr>
+                <td style="text-align: center; color: #64748b; font-weight: 700;">${idx + 1}</td>
+                <td><strong style="color: #0f172a;">${fStr}</strong></td>
+                <td><span style="font-weight: 800; color: #1e293b;">${limpiarDeporte(a.deporte)}</span></td>
+                <td style="color: #475569;">${a.categoria || '-'}</td>
+                <td style="color: #334155; font-size: 8.5pt;">${horarioStr}</td>
+                <td style="text-align: center;">
+                    <span class="${a.presente ? 'badge-docente-ok' : 'badge-docente-fail'}">${a.presente ? '✓ Presente' : '✗ Ausente'}</span>
+                </td>
+                <td style="text-align: center;">
+                    <span class="${puertaOkBool ? 'badge-puerta-ok' : 'badge-puerta-sin'}">${puertaOkBool ? '● Puerta OK' + (a.hora_puerta ? ' (' + a.hora_puerta + ')' : '') : '○ Sin Registro'}</span>
+                </td>
+                <td style="color: #64748b; font-size: 8pt;">${a.observaciones || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert('Por favor habilita las ventanas emergentes (popups) para descargar el reporte en PDF.');
+        return;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="utf-8">
+            <title>Reporte de Asistencia - ${nombreCompleto} - JAGUARES</title>
+            <style>
+                @page { size: A4 portrait; margin: 10mm 12mm; }
+                * { box-sizing: border-box; }
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                    color: #0f172a; 
+                    margin: 0; 
+                    padding: 0; 
+                    font-size: 9.5pt; 
+                    background: #ffffff;
+                    -webkit-font-smoothing: antialiased;
+                }
+                
+                /* Barra flotante no imprimible */
+                .no-print-bar {
+                    background: #0f172a;
+                    color: #ffffff;
+                    padding: 14px 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 3px solid #f59e0b;
+                    margin-bottom: 20px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }
+                .btn-imprimir {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: #ffffff;
+                    border: none;
+                    padding: 10px 22px;
+                    font-size: 11pt;
+                    font-weight: 800;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+                    transition: transform 0.1s;
+                }
+                .btn-imprimir:hover { transform: scale(1.02); }
+
+                .doc-container {
+                    max-width: 900px;
+                    margin: 0 auto;
+                    padding: 0 5px;
+                }
+
+                /* Header Institucional */
+                .header-table {
+                    width: 100%;
+                    border-bottom: 2.5px solid #0f172a;
+                    padding-bottom: 12px;
+                    margin-bottom: 16px;
+                }
+                .brand-title {
+                    font-size: 22pt;
+                    font-weight: 900;
+                    color: #0f172a;
+                    letter-spacing: 2px;
+                    line-height: 1;
+                    margin: 0;
+                }
+                .brand-badge {
+                    display: inline-block;
+                    height: 4px;
+                    width: 50px;
+                    background: #f59e0b;
+                    border-radius: 2px;
+                    margin-top: 4px;
+                    margin-bottom: 6px;
+                }
+                .brand-sub {
+                    font-size: 8.5pt;
+                    font-weight: 700;
+                    color: #475569;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .doc-type-badge {
+                    background: #0f172a;
+                    color: #ffffff;
+                    padding: 5px 12px;
+                    border-radius: 6px;
+                    font-size: 8.5pt;
+                    font-weight: 800;
+                    letter-spacing: 0.5px;
+                    display: inline-block;
+                }
+                .doc-meta {
+                    font-size: 8pt;
+                    color: #64748b;
+                    margin-top: 5px;
+                    font-weight: 600;
+                }
+
+                /* Ficha del Alumno */
+                .card-alumno {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 10px;
+                    padding: 12px 16px;
+                    margin-bottom: 16px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .meta-label {
+                    font-size: 7.5pt;
+                    text-transform: uppercase;
+                    color: #64748b;
+                    font-weight: 800;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 2px;
+                }
+                .meta-value {
+                    font-size: 11.5pt;
+                    font-weight: 900;
+                    color: #0f172a;
+                }
+
+                /* KPIs Resumen */
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 10px;
+                    margin-bottom: 16px;
+                }
+                .stat-card {
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 10px 12px;
+                    text-align: center;
+                    background: #f8fafc;
+                }
+                .stat-card.green {
+                    background: #ecfdf5;
+                    border-color: #a7f3d0;
+                }
+                .stat-card.amber {
+                    background: #fffbeb;
+                    border-color: #fde68a;
+                }
+                .stat-card.emerald {
+                    background: #d1fae5;
+                    border-color: #6ee7b7;
+                }
+                .stat-num {
+                    font-size: 14pt;
+                    font-weight: 900;
+                    color: #0f172a;
+                    line-height: 1.1;
+                }
+                .stat-lbl {
+                    font-size: 7pt;
+                    text-transform: uppercase;
+                    font-weight: 800;
+                    letter-spacing: 0.5px;
+                    color: #475569;
+                    margin-top: 3px;
+                }
+
+                /* Tabla de Asistencias */
+                table.asist-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    font-size: 8.5pt;
+                }
+                table.asist-table th {
+                    background: #0f172a;
+                    color: #f8fafc;
+                    padding: 7px 9px;
+                    text-align: left;
+                    font-size: 7.5pt;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.6px;
+                }
+                table.asist-table td {
+                    padding: 7px 9px;
+                    border-bottom: 1px solid #e2e8f0;
+                    vertical-align: middle;
+                }
+                table.asist-table tr:nth-child(even) {
+                    background-color: #f8fafc;
+                }
+
+                /* Pills de estado */
+                .badge-docente-ok {
+                    background: #ecfdf5;
+                    color: #065f46;
+                    border: 1px solid #a7f3d0;
+                    padding: 2.5px 8px;
+                    border-radius: 9999px;
+                    font-weight: 800;
+                    font-size: 7.5pt;
+                    display: inline-block;
+                    white-space: nowrap;
+                }
+                .badge-docente-fail {
+                    background: #fef2f2;
+                    color: #991b1b;
+                    border: 1px solid #fecaca;
+                    padding: 2.5px 8px;
+                    border-radius: 9999px;
+                    font-weight: 800;
+                    font-size: 7.5pt;
+                    display: inline-block;
+                    white-space: nowrap;
+                }
+                .badge-puerta-ok {
+                    background: #d1fae5;
+                    color: #064e3b;
+                    border: 1.5px solid #34d399;
+                    padding: 2.5px 9px;
+                    border-radius: 9999px;
+                    font-weight: 900;
+                    font-size: 7.5pt;
+                    display: inline-block;
+                    white-space: nowrap;
+                }
+                .badge-puerta-sin {
+                    background: #f1f5f9;
+                    color: #64748b;
+                    border: 1px solid #cbd5e1;
+                    padding: 2.5px 8px;
+                    border-radius: 9999px;
+                    font-weight: 700;
+                    font-size: 7.5pt;
+                    display: inline-block;
+                    white-space: nowrap;
+                }
+
+                /* Firmas */
+                .signatures-area {
+                    display: flex;
+                    justify-content: space-around;
+                    margin-top: 45px;
+                    margin-bottom: 25px;
+                }
+                .sig-box {
+                    width: 190px;
+                    border-top: 1.5px dashed #64748b;
+                    text-align: center;
+                    padding-top: 6px;
+                }
+                .sig-title {
+                    font-size: 8pt;
+                    font-weight: 800;
+                    color: #0f172a;
+                    text-transform: uppercase;
+                }
+                .sig-sub {
+                    font-size: 7pt;
+                    color: #64748b;
+                    margin-top: 1px;
+                }
+
+                /* Footer */
+                .doc-footer {
+                    border-top: 1px solid #cbd5e1;
+                    padding-top: 8px;
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 7.5pt;
+                    color: #64748b;
+                    font-weight: 500;
+                }
+
+                @media print {
+                    .no-print-bar { display: none !important; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="no-print-bar">
+                <div>
+                    <strong style="font-size: 11pt;">Vista de Impresión / Exportación a PDF</strong>
+                    <div style="font-size: 8.5pt; color: #94a3b8; margin-top: 2px;">
+                        Para enviar a los padres por WhatsApp: en la ventana que se abre selecciona destino "Guardar como PDF".
+                    </div>
+                </div>
+                <button onclick="window.print()" class="btn-imprimir">
+                    🖨️ Imprimir / Guardar como PDF
+                </button>
+            </div>
+
+            <div class="doc-container">
+                <table class="header-table">
+                    <tr>
+                        <td style="vertical-align: top;">
+                            <div class="brand-title">JAGUARES</div>
+                            <div class="brand-badge"></div>
+                            <div class="brand-sub">Academia de Formación Deportiva &bull; jaguarescar.com</div>
+                        </td>
+                        <td style="text-align: right; vertical-align: top;">
+                            <span class="doc-type-badge">REPORTE OFICIAL</span>
+                            <div class="doc-meta">Control Dual: Docente & Puerta</div>
+                            <div class="doc-meta">Emisión: ${fechaHoy}</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="card-alumno">
+                    <div>
+                        <div class="meta-label">Deportista / Alumno</div>
+                        <div class="meta-value">${nombreCompleto}</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Documento de Identidad</div>
+                        <div class="meta-value" style="font-family: monospace; letter-spacing: 1px;">DNI ${dni}</div>
+                    </div>
+                    <div>
+                        <div class="meta-label">Período de Asistencia</div>
+                        <div class="meta-value" style="font-size: 9.5pt; color: #475569;">${rangoTexto}</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-num">${total}</div>
+                        <div class="stat-lbl">Clases Totales</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-num" style="color: #065f46;">${presentes} <span style="font-size: 8.5pt;">(${pctDocente}%)</span></div>
+                        <div class="stat-lbl">Asistencia Docente</div>
+                    </div>
+                    <div class="stat-card amber">
+                        <div class="stat-num" style="color: #991b1b;">${faltas}</div>
+                        <div class="stat-lbl">Faltas Registradas</div>
+                    </div>
+                    <div class="stat-card emerald">
+                        <div class="stat-num" style="color: #064e3b;">${puertaOk} <span style="font-size: 8.5pt;">(${pctPuerta}%)</span></div>
+                        <div class="stat-lbl">Puerta (Lector QR)</div>
+                    </div>
+                </div>
+
+                <table class="asist-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25px; text-align: center;">#</th>
+                            <th style="width: 85px;">Fecha</th>
+                            <th>Deporte</th>
+                            <th>Categoría</th>
+                            <th>Día y Horario</th>
+                            <th style="text-align: center; width: 120px;">Docente en Cancha</th>
+                            <th style="text-align: center; width: 130px;">Puerta (Lector QR)</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasHtml}
+                    </tbody>
+                </table>
+
+                <div class="signatures-area">
+                    <div class="sig-box">
+                        <div class="sig-title">Profesor / Entrenador</div>
+                        <div class="sig-sub">Comando Técnico Jaguares</div>
+                    </div>
+                    <div class="sig-box">
+                        <div class="sig-title">Control de Puerta</div>
+                        <div class="sig-sub">Recepción / Portería Oficial</div>
+                    </div>
+                    <div class="sig-box">
+                        <div class="sig-title">Firma Padre o Tutor</div>
+                        <div class="sig-sub">Conformidad de Asistencia</div>
+                    </div>
+                </div>
+
+                <div class="doc-footer">
+                    <div>Jaguares &bull; Sistema Oficial de Control y Asistencias 2026 &bull; jaguarescar.com</div>
+                    <div>Página 1 de 1</div>
+                </div>
+            </div>
+
+            <script>
+                window.onload = function() {
+                    setTimeout(function() { window.print(); }, 450);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+function generarPdfDesdeInscripciones(dni, nombre) {
+    if (!_asistenciasData || !_asistenciasData.asistencias || _asistenciasData.asistencias.length === 0) {
+        alert('No hay asistencias registradas para generar el reporte');
+        return;
+    }
+    generarPdfAsistenciasAlumno(dni, nombre, _asistenciasData.asistencias, '', '');
+}
+
+/**
+ * Quitar horario desde el modal de detalle de inscripciones.
+ * Si es el unico horario (esUltimo=true), el backend cancela la inscripcion completa
+ * y ajusta pagos_mensuales automaticamente.
+ */
+async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario, esUltimo) {
+  const confirmado = await confirmarAccion({
+    titulo: esUltimo ? 'Cancelar inscripción completa' : 'Quitar horario',
+    mensaje: esUltimo
+      ? `<strong>${labelHorario}</strong> es el <strong>único horario</strong> de esta inscripción.<br><br>Al quitarlo se <strong>cancelará TODA la inscripción</strong> y la mensualidad se recalculará automáticamente.`
+      : `¿Quitar el horario <strong>${labelHorario}</strong> de este alumno?`,
+    labelConfirmar: esUltimo ? '⚠ Sí, cancelar inscripción' : 'Sí, quitar horario',
+    labelCancelar: 'Cancelar',
+    tipo: esUltimo ? 'danger' : 'warning',
   });
-}
-
-async function ejecutarEliminarAlumno(dni) {
-  cerrarModalConfirmacion();
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/alumnos/${dni}`, {
-      method: 'DELETE',
-      headers: getAuthHeadersInscripciones()
-    });
-    const data = await response.json();
-    if (data.success) {
-      mostrarNotificacion('Alumno eliminado correctamente', 'success');
-      await cargarInscripciones();
-    } else {
-      mostrarNotificacion('Error: ' + data.error, 'error');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    mostrarNotificacion('Error de conexión al eliminar alumno', 'error');
-  }
-}
-
-function eliminarInscripcionesUsuario(dni, nombre) {
-  mostrarModalConfirmacion({
-    titulo: 'Eliminar Inscripciones',
-    subtitulo: nombre,
-    icon: 'delete',
-    iconBg: 'bg-orange-100 dark:bg-orange-900/30',
-    iconColor: 'text-orange-600 dark:text-orange-400',
-    Mensaje: 'Se eliminarán <strong>todas las inscripciones</strong> de este alumno y se liberarán los cupos en los horarios donde esté inscrito.',
-    campos: '',
-    onConfirm: `ejecutarEliminarInscripciones('${dni}')`,
-    btnClass: 'bg-orange-600 hover:bg-orange-700',
-    btnIcon: 'delete',
-    btnTexto: 'Eliminar Inscripciones'
-  });
-}
-
-async function ejecutarEliminarInscripciones(dni) {
-  cerrarModalConfirmacion();
-  try {
-    const response = await fetch(`${API_BASE}/api/admin/inscripciones/${dni}`, {
-      method: 'DELETE',
-      headers: getAuthHeadersInscripciones()
-    });
-    const data = await response.json();
-    if (data.success) {
-      mostrarNotificacion(`Inscripciones eliminadas: ${data.eliminadas} horarios liberados`, 'success');
-      await cargarInscripciones();
-      // Recargar horarios si estamos en la vista de calendario
-      if (typeof cargarHorarios === 'function') {
-        await cargarHorarios();
-      }
-    } else {
-      mostrarNotificacion('Error: ' + data.error, 'error');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    mostrarNotificacion('Error de conexión al eliminar inscripciones', 'error');
-  }
-}
-
-function abrirModalObservacion(dni, notaActual) {
-  const existente = document.getElementById('modalObservacion');
-  if (existente) existente.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'modalObservacion';
-  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-  modal.innerHTML = `
-    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div class="flex items-center gap-4">
-          <div class="size-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-            <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">edit_note</span>
-          </div>
-          <div>
-            <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400">DNI: ${dni}</p>
-          </div>
-        </div>
-      </div>
-      <div class="p-6">
-        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Motivo o nota de pago</label>
-        <textarea id="inputObservacion" rows="4"
-          class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-          placeholder="Ej: Paga S/.60 hasta el 15/03 y luego solo sábados...">${notaActual}</textarea>
-      </div>
-      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
-        <button onclick="document.getElementById('modalObservacion').remove()"
-                class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
-          Cancelar
-        </button>
-        <button onclick="guardarObservacion('${dni}')"
-                class="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
-          <span class="material-symbols-outlined text-lg">save</span>
-          Guardar
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-  setTimeout(() => document.getElementById('inputObservacion')?.focus(), 100);
-}
-
-async function guardarObservacion(dni) {
-  const notas = document.getElementById('inputObservacion')?.value?.trim() || '';
-  const btn = document.querySelector('#modalObservacion button:last-child');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/admin/alumnos/${dni}/notas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` },
-      body: JSON.stringify({ notas })
-    });
-    const data = await res.json();
-    document.getElementById('modalObservacion')?.remove();
-    if (data.success) {
-      mostrarNotificacion('Observación guardada correctamente', 'success');
-      cargarInscripciones(); // recargar la lista
-    } else {
-      mostrarNotificacion(data.error || 'Error al guardar', 'error');
-    }
-  } catch (e) {
-    mostrarNotificacion('Error de conexión', 'error');
-    document.getElementById('modalObservacion')?.remove();
-  }
-}
-
-function mostrarNotificacion(Mensaje, tipo = 'info') {
-  const colores = {
-    success: 'bg-green-600',
-    error: 'bg-red-600',
-    info: 'bg-blue-600',
-    warning: 'bg-yellow-600'
-  };
-  
-  const notif = document.createElement('div');
-  notif.className = `fixed top-4 right-4 ${colores[tipo]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all`;
-  notif.textContent = Mensaje;
-  
-  document.body.appendChild(notif);
-  
-  setTimeout(() => {
-    notif.style.opacity = '0';
-    setTimeout(() => notif.remove(), 300);
-  }, 3000);
-}
-
-
-
-
-
-
-
-// ==================== ACCESO ESPECIAL (OVERRIDE DE HORARIOS EN MODAL) ====================
-
-function togglePanelAccesoEspecialModal(inscripcionId, deporteNombre, dni) {
-  const panel = document.getElementById('panelAccesoEspecialModal_' + inscripcionId);
-  if (!panel) return;
-
-  if (!panel.classList.contains('hidden')) {
-    panel.classList.add('hidden');
-  } else {
-    panel.classList.remove('hidden');
-    cargarHorariosParaPanelModal(inscripcionId, deporteNombre, dni);
-  }
-}
-
-function cerrarPanelAccesoEspecialModal(inscripcionId) {
-  const panel = document.getElementById('panelAccesoEspecialModal_' + inscripcionId);
-  if (panel) panel.classList.add('hidden');
-}
-
-async function cargarHorariosParaPanelModal(inscripcionId, deporteNombre, dni) {
-  const lista = document.getElementById('listaHorariosEspecialesModal_' + inscripcionId);
-  const msg = document.getElementById('msgEspecialModal_' + inscripcionId);
-  if (!lista) return;
-
-  lista.innerHTML = '<div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#92400e; padding:4px 0;"><span>⏳</span> Cargando horarios de ' + deporteNombre + '...</div>';
-  if (msg) msg.innerHTML = '';
+  if (!confirmado) return;
 
   try {
     const session = localStorage.getItem('adminSession');
     const token = session ? JSON.parse(session).token : '';
-    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
+    const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+      ? window.API_BASE_OVERRIDE
+      : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname))
+          ? 'http://localhost:3003'
+          : 'https://api.jaguarescar.com');
 
-    const res = await fetch((apiBase || '') + '/api/horarios?refresh=true', {
-      headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-    });
-    const data = await res.json();
-    const todosHorarios = data.horarios || [];
-
-    // Normalizador robusto contra problemas de codificación UTF-8
-    const normalizarDeporte = (str) => {
-      if (!str) return '';
-      return String(str)
-        .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'futbol')
-        .replace(/BÃ¡squet|B\uFFFDsquet/gi, 'basquet')
-        .replace(/VÃ³ley|V\uFFFDley/gi, 'voley')
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .trim().toLowerCase();
-    };
-
-    const depNormal = normalizarDeporte(deporteNombre);
-    const filtrados = todosHorarios.filter(h => {
-      return normalizarDeporte(h.deporte) === depNormal;
-    });
-
-    if (filtrados.length === 0) {
-      lista.innerHTML = '<span style="font-size:11px; color:#78350f;">No se encontraron horarios para este deporte.</span>';
-      return;
-    }
-
-    // Obtener horarios ya asignados desde el modal abierto
-    let asignadosIds = [];
-    try {
-      const respDetalle = await fetch((apiBase || '') + '/api/admin/inscripciones/' + encodeURIComponent(dni), {
-        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-      });
-      const dataDetalle = await respDetalle.json();
-      if (dataDetalle.inscripciones) {
-        dataDetalle.inscripciones.forEach(ins => {
-          if (ins.inscripcion_id === inscripcionId && ins.horario_id) {
-            asignadosIds.push(parseInt(ins.horario_id));
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Pre-check asignados modal:', e);
-    }
-
-    const limpiarTildes = (t) => {
-      if (!t) return '';
-      return String(t)
-        .replace(/EconÃ³mico|EconÃ³m|Econ\uFFFDmico/gi, 'Económico')
-        .replace(/EstÃ¡ndar|Est\uFFFDndar/gi, 'Estándar')
-        .replace(/CategorÃ­a|Categor\uFFFD/gi, 'Categoría');
-    };
-
-    lista.innerHTML = '';
-    filtrados.forEach(h => {
-      const yaAsignado = asignadosIds.includes(parseInt(h.horario_id));
-      const btn = document.createElement('button');
-      btn.type = 'button';
-
-      const planLimpio = limpiarTildes(h.plan || 'Plan');
-      const catLimpia = limpiarTildes(h.categoria || '');
-
-      if (yaAsignado) {
-        btn.style.cssText = 'padding:5px 10px; border-radius:6px; background:#f3f4f6; border:1px solid #d1d5db; color:#9ca3af; font-size:11px; font-weight:500; cursor:not-allowed; display:inline-flex; align-items:center; gap:4px; opacity:0.75;';
-        btn.innerHTML = '<span>✓</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:10px; background:#e5e7eb; padding:1px 5px; border-radius:3px; color:#6b7280;">(Ya asignado)</span>';
-      } else {
-        btn.style.cssText = 'padding:5px 10px; border-radius:6px; background:#ffffff; border:1.5px solid #f59e0b; color:#92400e; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:all 0.15s;';
-        btn.onmouseover = () => { btn.style.background = '#fef3c7'; btn.style.borderColor = '#d97706'; };
-        btn.onmouseout = () => { btn.style.background = '#ffffff'; btn.style.borderColor = '#f59e0b'; };
-        btn.innerHTML = '<span style="color:#d97706; font-size:13px; font-weight:900;">+</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:9px; background:#fef3c7; border:1px solid #fde68a; padding:1px 4px; border-radius:3px; color:#b45309; font-weight:600;">' + planLimpio + (catLimpia ? ' • ' + catLimpia : '') + '</span>';
-        btn.onclick = () => ejecutarAgregarHorarioEspecialModal(inscripcionId, h.horario_id, dni, h.dia + ' ' + h.hora_inicio, btn);
-      }
-
-      lista.appendChild(btn);
-    });
-
-  } catch (err) {
-    lista.innerHTML = '<span style="font-size:11px; color:#dc2626; font-weight:600;">Error al cargar horarios: ' + err.message + '</span>';
-  }
-}
-
-async function ejecutarAgregarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario, btnEl) {
-  const msg = document.getElementById('msgEspecialModal_' + inscripcionId);
-  if (btnEl) {
-    btnEl.disabled = true;
-    btnEl.style.opacity = '0.6';
-  }
-  if (msg) msg.innerHTML = '<span style="color:#2563eb; font-weight:600;">⏳ Guardando ' + labelHorario + '...</span>';
-
-  try {
-    const session = localStorage.getItem('adminSession');
-    const token = session ? JSON.parse(session).token : '';
-    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
-
-    const res = await fetch((apiBase || '') + '/api/admin/inscripciones/' + inscripcionId + '/override-horario', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-      },
-      body: JSON.stringify({ horario_id: parseInt(horarioId) })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      if (msg) msg.innerHTML = '<span style="color:#15803d; font-weight:700;">✅ ' + data.mensaje + '</span>';
-      setTimeout(() => {
-        const modal = document.getElementById('modalDetalleInscripcion');
-        if (modal) modal.remove();
-        verDetalleInscripcion(dni);
-      }, 700);
-    } else {
-      if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">⚠️ ' + (data.error || 'Error al asignar') + '</span>';
-      if (btnEl) {
-        btnEl.disabled = false;
-        btnEl.style.opacity = '1';
-      }
-    }
-  } catch (err) {
-    if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">⚠️ Error: ' + err.message + '</span>';
-    if (btnEl) {
-      btnEl.disabled = false;
-      btnEl.style.opacity = '1';
-    }
-  }
-}
-
-async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario) {
-  mostrarConfirmacionModal(
-    '¿Quitar este horario?',
-    '¿Estás seguro de quitar el horario <b>' + labelHorario + '</b> de este alumno? El cambio se guardará de inmediato.',
-    async () => {
-      try {
-    const session = localStorage.getItem('adminSession');
-    const token = session ? JSON.parse(session).token : '';
-    const apiBase = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : '';
-
-    const res = await fetch((apiBase || '') + '/api/admin/inscripciones/' + inscripcionId + '/override-horario/' + horarioId, {
+    const res = await fetch(`${API_BASE}/api/admin/inscripciones/${inscripcionId}/override-horario/${horarioId}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': 'Bearer ' + token
-      }
+      headers: { 'Authorization': 'Bearer ' + token }
     });
 
     const data = await res.json();
@@ -1957,219 +2122,21 @@ async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHo
     if (data.success) {
       const modal = document.getElementById('modalDetalleInscripcion');
       if (modal) modal.remove();
-      verDetalleInscripcion(dni);
-    } else {
-      alert('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'));
-    }
-  } catch (err) {
-    alert('Error al quitar horario: ' + err.message);
-  }
-    }
-  );
-}
-
-// Compatibilidad hacia atrás
-async function cargarHorariosOverride() {
-  const select = document.getElementById('overrideInscripcionSelect');
-  const inscripcionId = select?.value;
-  const container = document.getElementById('overrideHorariosContainer');
-  const lista = document.getElementById('overrideHorariosList');
-  const btnAgregar = document.getElementById('btnAgregarOverride');
-  
-  if (!inscripcionId || !container || !lista) return;
-  
-  container.style.display = 'none';
-  lista.innerHTML = '<span style="font-size:12px;color:#78350f;">Cargando horarios...</span>';
-  
-  try {
-    // Obtener el deporte_id de la inscripcion seleccionada
-    const optionEl = select.options[select.selectedIndex];
-    const deporteId = optionEl?.dataset?.deporteId;
-    
-    if (!deporteId) {
-      lista.innerHTML = '<span style="color:red;font-size:12px;">No se pudo obtener el deporte</span>';
-      container.style.display = 'block';
-      return;
-    }
-    
-    // Obtener horarios ya asignados al alumno en esta inscripcion
-    const modal = document.getElementById('modalDetalleInscripcion');
-    const dni = modal?.dataset?.dni;
-    let horariosAsignados = [];
-    
-    if (dni) {
-      try {
-        const resp = await fetch(`/api/admin/inscripciones/${encodeURIComponent(dni)}`, {
-          headers: { 'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('adminSession') || '{}').token || '')}` }
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          // Recolectar todos los horario_id ya asignados
-          (data.inscripciones || []).forEach(insc => {
-            (insc.horarios || []).forEach(h => horariosAsignados.push(h.horario_id));
-          });
-        }
-      } catch (e) { /* sin cache, igual mostramos todos */ }
-    }
-    
-    // Cargar todos los horarios del deporte (sin filtrar por plan/categoria)
-    const res = await fetch(`/api/horarios?deporte_id=${deporteId}&refresh=true`, {
-      headers: { 'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('adminSession') || '{}').token || '')}` }
-    });
-    const data = await res.json();
-    const horarios = data.horarios || data || [];
-    
-    lista.innerHTML = '';
-    if (!Array.isArray(horarios) || horarios.length === 0) {
-      lista.innerHTML = '<span style="font-size:12px;color:#78350f;">No hay horarios disponibles para este deporte</span>';
-      container.style.display = 'block';
-      return;
-    }
-    
-    horarios.forEach(h => {
-      const yaAsignado = horariosAsignados.includes(h.horario_id);
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.dataset.horarioId = h.horario_id;
-      btn.style.cssText = `
-        padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: ${yaAsignado ? 'not-allowed' : 'pointer'};
-        border: 2px solid ${yaAsignado ? '#d1d5db' : '#f59e0b'};
-        background: ${yaAsignado ? '#f3f4f6' : 'white'};
-        color: ${yaAsignado ? '#9ca3af' : '#92400e'};
-        opacity: ${yaAsignado ? '0.6' : '1'};
-      `;
-      btn.textContent = `${h.dia} ${h.hora_inicio} (${h.plan || '?'}) ${yaAsignado ? '✓' : ''}`;
-      if (!yaAsignado) {
-        btn.onclick = () => seleccionarHorarioOverride(btn, h);
+      if (data.inscripcion_cancelada) {
+        mostrarToastAdmin('Inscripción cancelada y mensualidad recalculada.', 'success');
+        console.log(`Inscripción ${inscripcionId} cancelada para DNI ${dni}. Mensualidad recalculada.`);
+      } else {
+        mostrarToastAdmin('Horario quitado correctamente.', 'success');
       }
-      lista.appendChild(btn);
-    });
-    
-    container.style.display = 'block';
-    if (btnAgregar) btnAgregar.style.display = 'none';
-    
-  } catch (err) {
-    lista.innerHTML = `<span style="color:red;font-size:12px;">Error: ${err.message}</span>`;
-    container.style.display = 'block';
-  }
-}
-
-function seleccionarHorarioOverride(btn, horario) {
-  // Quitar seleccion previa
-  document.querySelectorAll('#overrideHorariosList button').forEach(b => {
-    b.style.background = 'white';
-    b.style.borderColor = '#f59e0b';
-    b.style.color = '#92400e';
-  });
-  // Marcar el seleccionado
-  btn.style.background = '#f59e0b';
-  btn.style.borderColor = '#d97706';
-  btn.style.color = 'white';
-  
-  const btnAgregar = document.getElementById('btnAgregarOverride');
-  if (btnAgregar) {
-    btnAgregar.style.display = 'block';
-    btnAgregar.dataset.horarioId = horario.horario_id;
-    btnAgregar.textContent = `+ Agregar: ${horario.dia} ${horario.hora_inicio} (${horario.plan || ''})`;
-  }
-}
-
-async function ejecutarOverrideHorario() {
-  const btnAgregar = document.getElementById('btnAgregarOverride');
-  const overrideMensaje = document.getElementById('overrideMensaje');
-  const select = document.getElementById('overrideInscripcionSelect');
-  
-  const inscripcionId = select?.value;
-  const horarioId = btnAgregar?.dataset?.horarioId;
-  
-  if (!inscripcionId || !horarioId) {
-    if (overrideMensaje) overrideMensaje.innerHTML = '<span style="color:red;">Selecciona inscripcion y horario</span>';
-    return;
-  }
-  
-  btnAgregar.disabled = true;
-  btnAgregar.textContent = 'Guardando...';
-  
-  try {
-    const res = await fetch(`/api/admin/inscripciones/${inscripcionId}/override-horario`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('adminSession') || '{}').token || '')}`
-      },
-      body: JSON.stringify({ horario_id: parseInt(horarioId) })
-    });
-    
-    const data = await res.json();
-    
-    if (data.success) {
-      if (overrideMensaje) {
-        overrideMensaje.innerHTML = `<span style="color:#059669;font-weight:700;">✅ ${data.mensaje}</span><br><span style="color:#78350f;font-size:11px;">${data.aviso || ''}</span>`;
+      if (typeof buscarPorDNI === 'function') {
+        buscarPorDNI(dni);
+      } else {
+        await verDetalleInscripcion(dni);
       }
-      btnAgregar.style.display = 'none';
-      // Recargar el modal en 1.5s para mostrar el nuevo horario
-      setTimeout(() => {
-        const modal = document.getElementById('modalDetalleInscripcion');
-        const dni = modal?.dataset?.dni;
-        if (dni) cargarDetalleAlumno(dni);
-      }, 1500);
     } else {
-      if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:#dc2626; font-size:12px; font-weight:600;">⚠️ ${data.error}</span>`;
-      btnAgregar.disabled = false;
-      btnAgregar.textContent = '+ Agregar Horario Especial';
+      mostrarToastAdmin('No se pudo quitar el horario: ' + (data.error || 'Error desconocido'), 'error');
     }
   } catch (err) {
-    if (overrideMensaje) overrideMensaje.innerHTML = `<span style="color:#dc2626; font-size:12px; font-weight:600;">⚠️ Error: ${err.message}</span>`;
-    btnAgregar.disabled = false;
-    btnAgregar.textContent = '+ Agregar Horario Especial';
+    mostrarToastAdmin('Error al quitar horario: ' + err.message, 'error');
   }
-}
-
-
-function mostrarConfirmacionModal(titulo, mensaje, onConfirm) {
-  const modalId = 'modalConfirmacionAccion';
-  const existente = document.getElementById(modalId);
-  if (existente) existente.remove();
-
-  const modal = document.createElement('div');
-  modal.id = modalId;
-  modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(3px); z-index:99999; display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn .15s ease;';
-  modal.innerHTML = `
-    <div style="background:white; border-radius:16px; max-width:420px; width:100%; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1); overflow:hidden; border:1px solid #fee2e2;">
-      <div style="padding:20px 24px 16px 24px; display:flex; align-items:flex-start; gap:14px;">
-        <div style="width:40px; height:40px; border-radius:50%; background:#fee2e2; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <span style="font-size:20px; color:#dc2626; line-height:1;">⚠️</span>
-        </div>
-        <div style="flex:1;">
-          <h3 style="margin:0 0 6px 0; font-size:16px; font-weight:700; color:#111827;">${titulo}</h3>
-          <p style="margin:0; font-size:13px; color:#4b5563; line-height:1.45;">${mensaje}</p>
-        </div>
-      </div>
-      <div style="background:#f9fafb; padding:12px 20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #f3f4f6;">
-        <button type="button" id="btnConfirmarCancelar"
-                style="padding:8px 16px; font-size:13px; font-weight:600; color:#374151; background:white; border:1px solid #d1d5db; border-radius:8px; cursor:pointer; transition:background 0.15s;">
-          Cancelar
-        </button>
-        <button type="button" id="btnConfirmarAceptar"
-                style="padding:8px 18px; font-size:13px; font-weight:600; color:white; background:#dc2626; border:none; border-radius:8px; cursor:pointer; transition:background 0.15s; box-shadow:0 1px 2px rgba(220,38,38,0.2);">
-          Quitar Horario
-        </button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  const btnCancelar = modal.querySelector('#btnConfirmarCancelar');
-  const btnAceptar = modal.querySelector('#btnConfirmarAceptar');
-
-  const cerrar = () => modal.remove();
-
-  btnCancelar.onclick = cerrar;
-  modal.onclick = (e) => { if (e.target === modal) cerrar(); };
-
-  btnAceptar.onclick = () => {
-    cerrar();
-    if (typeof onConfirm === 'function') onConfirm();
-  };
 }
