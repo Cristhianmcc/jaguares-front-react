@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config/api.js';
 
 export default function VerificarCarnet() {
   const [dni, setDni] = useState('');
@@ -28,7 +29,10 @@ export default function VerificarCarnet() {
     setError('');
     try {
       // Consulta pública informativa de credencial (no altera asistencias de puerta)
-      const res = await fetch(`/api/consultar/${encodeURIComponent(d)}?incluir_inactivos=1&t=${Date.now()}`);
+      const res = await fetch(`${API_BASE}/api/consultar/${encodeURIComponent(d)}?incluir_inactivos=1&t=${Date.now()}`);
+      if (!res.ok) {
+        throw new Error('Error al conectar con el servidor (' + res.status + ')');
+      }
       const data = await res.json();
 
       if (data.success && data.alumno) {
