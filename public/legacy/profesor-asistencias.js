@@ -4,8 +4,8 @@
 
 const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
-    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3003'
+    : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
+        ? (window.location.port === '5173' ? '' : 'http://localhost:3003')
         : 'https://api.jaguarescar.com');
 
 // Helper para obtener fecha local de Perú (UTC-5)
@@ -392,7 +392,19 @@ function renderizarAlumnos() {
         div.className = 'flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors';
         
         const presente = alumno.asistencia_registrada ? alumno.presente : true; // Por defecto marcar presente
-        
+        const puertaRegistrada = alumno.asistencia_puerta === 1 || alumno.asistencia_puerta === true || alumno.asistencia_puerta === '1';
+        const horaPuerta = alumno.hora_puerta ? ` (${alumno.hora_puerta})` : '';
+
+        const badgePuerta = puertaRegistrada
+            ? `<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-black text-xs shadow-xs select-none" title="Ingreso verificado en puerta${horaPuerta}">
+                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block ring-2 ring-emerald-500/30"></span>
+                 <span class="text-[11px] uppercase tracking-wider font-extrabold">Puerta OK${horaPuerta}</span>
+               </div>`
+            : `<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-semibold text-xs select-none" title="Aún no registra escaneo de carnet en puerta">
+                 <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 inline-block"></span>
+                 <span class="text-[10px] uppercase tracking-wider">Sin Puerta</span>
+               </div>`;
+
         div.innerHTML = `
             <div class="flex items-center gap-4">
                 <span class="w-8 h-8 flex items-center justify-center bg-primary text-white font-bold rounded-full text-sm">
@@ -420,6 +432,7 @@ function renderizarAlumnos() {
                            ${presente ? 'checked' : ''}
                            class="w-6 h-6 rounded border-gray-300 text-green-600 focus:ring-green-500">
                 </label>
+                ${badgePuerta}
             </div>
         `;
         

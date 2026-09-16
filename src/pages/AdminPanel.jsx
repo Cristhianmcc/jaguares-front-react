@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 const html = `
     <header class="sticky top-0 z-50 border-b border-solid border-border-color bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm shadow-sm">
@@ -63,6 +63,10 @@ const html = `
                     <a href="/admin-payment-config" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-sm transition-colors">
                         <span class="material-symbols-outlined">credit_card</span>
                         Configuración de Pagos
+                    </a>
+                    <a href="/admin-carnets" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-sm transition-colors shadow-sm">
+                        <span class="material-symbols-outlined">badge</span>
+                        Carnets & Control Acceso
                     </a>
                 </div>
             </div>
