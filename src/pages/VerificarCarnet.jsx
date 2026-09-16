@@ -1,6 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE } from '../config/api.js';
 
+
+// Helper para convertir URLs de Google Drive a URLs directas de imagen compatibles con <img>
+const getDriveFileId = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  const matchFile = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile) return matchFile[1];
+  const matchId = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchId) return matchId[1];
+  return null;
+};
+
+const formatFotoUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.includes('drive.google.com/thumbnail') || trimmed.includes('lh3.googleusercontent.com')) {
+    return trimmed;
+  }
+
+  const fileId = getDriveFileId(trimmed);
+  if (fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+  }
+
+  return trimmed;
+};
+
 export default function VerificarCarnet() {
   const [dni, setDni] = useState('');
   const [loading, setLoading] = useState(true);
@@ -234,7 +263,7 @@ export default function VerificarCarnet() {
                   <div className="w-20 h-24 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-lg bg-slate-800 flex items-center justify-center relative">
                     {datos.alumno?.foto_carnet_url ? (
                       <img
-                        src={datos.alumno.foto_carnet_url}
+                        src={formatFotoUrl(datos.alumno.foto_carnet_url)}
                         alt="Foto carnet"
                         className="w-full h-full object-cover"
                       />
