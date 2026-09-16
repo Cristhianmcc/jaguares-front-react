@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { fetchWithAuth } from '../config/api.js';
+import { fetchWithAuth, API_BASE } from '../config/api.js';
 
 // Patrones estándar Code 128 (índices 0 al 106)
 const CODE128_PATTERNS = [
@@ -247,7 +247,7 @@ export default function AdminCarnets() {
     setIniciandoSesion(true);
     setLoginError('');
     try {
-      const res = await fetch('/api/admin/login', {
+      const res = await fetch(`${API_BASE}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginUser, password: loginPass })
@@ -279,15 +279,17 @@ export default function AdminCarnets() {
     if (!dni) return;
     setCargandoDetalle(true);
     try {
-      const token = getAuthToken();
-      const res = await fetch(`/api/consultar/${dni}?incluir_inactivos=1&t=${Date.now()}`);
-      const data = await res.json();
-      if (data.success) {
-        setAlumnoSeleccionado(data);
-      } else {
-        const resAdmin = await fetch(`/api/admin/inscripciones/${dni}`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
+      const res = await fetchWithAuth(`/api/consultar/${encodeURIComponent(dni)}?incluir_inactivos=1&t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.alumno) {
+          setAlumnoSeleccionado(data);
+          return;
+        }
+      }
+
+      const resAdmin = await fetchWithAuth(`/api/admin/inscripciones/${encodeURIComponent(dni)}`);
+      if (resAdmin.ok) {
         const dataAdmin = await resAdmin.json();
         if (dataAdmin.success) {
           setAlumnoSeleccionado({
@@ -296,6 +298,7 @@ export default function AdminCarnets() {
             pago: { estado: dataAdmin.alumno?.estado_pago || 'pendiente' },
             inscripciones: dataAdmin.inscripciones
           });
+          return;
         }
       }
     } catch (err) {

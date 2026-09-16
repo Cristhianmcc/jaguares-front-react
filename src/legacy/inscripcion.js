@@ -15,6 +15,22 @@ function getValidaciones() {
   return window.Validaciones;
 }
 
+
+function getApiBaseUrl() {
+  if (typeof window !== 'undefined') {
+    if (window.academiaAPI && window.academiaAPI.baseUrl !== undefined) {
+      return window.academiaAPI.baseUrl;
+    }
+    if (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%')) {
+      return window.API_BASE_OVERRIDE;
+    }
+    const h = window.location.hostname;
+    const isLocal = h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h);
+    return isLocal ? '' : 'https://api.jaguarescar.com';
+  }
+  return '';
+}
+
 function getAcademiaAPI() {
   return window.academiaAPI;
 }
@@ -265,7 +281,7 @@ window.permitirOtroDeporte = function(dni) {
 
 async function verificarYaMostrarModal(dni) {
   try {
-    const res = await fetch(`/api/mis-inscripciones/${encodeURIComponent(dni)}`);
+    const res = await fetch(`${getApiBaseUrl()}/api/mis-inscripciones/${encodeURIComponent(dni)}`);
     if (!res.ok) return false;
     const data = await res.json();
     const inscripciones = data.inscripciones || data || [];
@@ -368,7 +384,7 @@ async function buscarDNI() {
 
   // 1. Primero consultar si el alumno ya existe en la base de datos de Jaguares
   try {
-    const resConsultar = await fetch(`/api/consultar/${encodeURIComponent(dni)}`);
+    const resConsultar = await fetch(`${getApiBaseUrl()}/api/consultar/${encodeURIComponent(dni)}`);
     if (resConsultar.ok) {
       const dataConsultar = await resConsultar.json();
       if (dataConsultar.success && dataConsultar.alumno) {
@@ -607,7 +623,7 @@ export function initInscripcion() {
     // Nuevo deporte: cargar datos del alumno desde el backend y saltar al paso 2
     (async () => {
       try {
-        const res = await fetch(`/api/consultar/${encodeURIComponent(dniParam)}`);
+        const res = await fetch(`${getApiBaseUrl()}/api/consultar/${encodeURIComponent(dniParam)}`);
         if (!res.ok) throw new Error('No se encontraron datos');
         const data = await res.json();
         if (!data.success || !data.alumno) throw new Error('Alumno no encontrado');
