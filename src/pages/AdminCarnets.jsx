@@ -78,8 +78,7 @@ const formatFotoUrl = (url) => {
 
   // Soporte para fotos locales subidas al servidor (/uploads/carnets/...)
   if (trimmed.startsWith('/uploads/')) {
-    const apiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_PRODUCTION || '';
-    return apiBase ? `${apiBase.replace(/\/$/, '')}${trimmed}` : trimmed;
+    return `${API_BASE}${trimmed}`;
   }
 
   if (trimmed.includes('drive.google.com/thumbnail') || trimmed.includes('lh3.googleusercontent.com')) {
@@ -174,9 +173,22 @@ export default function AdminCarnets() {
       const formData = new FormData();
       formData.append('foto', modalFotoCarnet.archivo);
 
-      const token = localStorage.getItem('adminSession') || localStorage.getItem('token');
-      const apiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_PRODUCTION || '';
-      const url = `${apiBase}/api/admin/alumnos/${encodeURIComponent(dni)}/foto-carnet`;
+      let token = '';
+      const session = localStorage.getItem('adminSession');
+      if (session) {
+        try {
+          const data = JSON.parse(session);
+          token = data.token || data.admin_token || '';
+        } catch (_) {
+          token = session;
+        }
+      }
+      if (!token) {
+        token = localStorage.getItem('admin_token') || localStorage.getItem('token') || '';
+      }
+
+      // En desarrollo local usa '' (proxy de Vite a localhost:3002/3003), en producción usa https://api.jaguarescar.com
+      const url = `${API_BASE}/api/admin/alumnos/${encodeURIComponent(dni)}/foto-carnet`;
 
       const res = await fetch(url, {
         method: 'POST',
@@ -639,6 +651,10 @@ export default function AdminCarnets() {
       cacheBust: false,
       skipFonts: true,
       filter: (node) => {
+        // Ignorar elementos marcados como no-capture (botones de cambiar foto en vivo)
+        if (node.dataset?.noCapture === 'true' || (node.classList && node.classList.contains('no-capture'))) {
+          return false;
+        }
         // Ignorar imágenes que fallaron al cargar (404 / eliminadas) o están ocultas
         if (node.tagName === 'IMG' && (node.style.display === 'none' || node.naturalWidth === 0)) {
           return false;
@@ -663,6 +679,7 @@ export default function AdminCarnets() {
         scale: 3,
         useCORS: true,
         allowTaint: true,
+        ignoreElements: (element) => element.dataset?.noCapture === 'true' || (element.classList && element.classList.contains('no-capture')),
         backgroundColor: bgFondo,
         logging: false,
       });
@@ -1748,7 +1765,31 @@ export default function AdminCarnets() {
                               position: 'relative',
                               flexShrink: 0,
                             }}
+                            className="group relative cursor-pointer"
+                            onClick={() => abrirModalCambiarFoto()}
+                            title="Haz clic para cambiar la foto tamaño carnet"
                           >
+                            {/* Overlay interactivo en la foto para cambiarla */}
+                            <div
+                              data-no-capture="true"
+                              className="no-capture absolute inset-0 bg-slate-950/65 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-all z-20 backdrop-blur-[2px]"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                                <span className="material-symbols-outlined text-base">photo_camera</span>
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-wider mt-1 text-center drop-shadow-md px-1 leading-tight text-white">
+                                Cambiar Foto
+                              </span>
+                            </div>
+
+                            {/* Badge flotante de cámara en la esquina para indicar que es clickeable */}
+                            <div
+                              data-no-capture="true"
+                              className="no-capture absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md z-20 pointer-events-none group-hover:scale-110 transition-transform"
+                              title="Cambiar foto tamaño carnet"
+                            >
+                              <span className="material-symbols-outlined text-[13px] font-bold">photo_camera</span>
+                            </div>
                             {alumnoSeleccionado.alumno?.foto_carnet_url ? (
                               <img
                                 src={formatFotoUrl(alumnoSeleccionado.alumno.foto_carnet_url)}
@@ -2099,7 +2140,18 @@ export default function AdminCarnets() {
 
                       <div className="p-3.5 flex gap-3.5 items-center relative z-10">
                         <div className="flex-shrink-0 flex flex-col items-center">
-                          <div className="w-[85px] h-[102px] rounded-xl overflow-hidden border-2 border-amber-500 bg-slate-900 flex items-center justify-center">
+                          <div
+                            className="w-[85px] h-[102px] rounded-xl overflow-hidden border-2 border-amber-500 bg-slate-900 flex items-center justify-center relative group cursor-pointer"
+                            onClick={() => abrirModalCambiarFoto()}
+                            title="Haz clic para cambiar la foto"
+                          >
+                            <div
+                              data-no-capture="true"
+                              className="no-capture absolute inset-0 bg-slate-950/65 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity z-20"
+                            >
+                              <span className="material-symbols-outlined text-lg text-amber-400">photo_camera</span>
+                              <span className="text-[8px] font-black uppercase">Cambiar</span>
+                            </div>
                             {alumnoSeleccionado.alumno?.foto_carnet_url ? (
                               <img src={formatFotoUrl(alumnoSeleccionado.alumno.foto_carnet_url)} alt="Foto" crossOrigin="anonymous" className="w-full h-full object-cover" />
                             ) : (
