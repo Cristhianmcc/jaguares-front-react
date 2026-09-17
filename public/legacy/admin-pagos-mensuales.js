@@ -559,7 +559,9 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
             }
 
             const rows = data.asistencias.map(asist => {
-                const fechaFormato = asist.fecha ? new Date(asist.fecha).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+                // Parseo directo del string para evitar desplazamiento de zona horaria (UTC midnight → Lima = día anterior)
+                const _fd = asist.fecha ? String(asist.fecha).split('T')[0].split('-') : null;
+                const fechaFormato = _fd && _fd.length === 3 ? `${_fd[2]}/${_fd[1]}/${_fd[0]}` : '-';
                 const tienePuerta = asist.asistencia_puerta === 1 || asist.asistencia_puerta === true || asist.asistencia_puerta === '1';
 
                 return `
@@ -1232,7 +1234,9 @@ function generarPdfAsistenciasAlumno(dni, nombreCompleto, asistencias, desde, ha
     const limpiarHora = (h) => String(h || '').replace(/:00$/, '');
 
     const filasHtml = asistencias.map((a, idx) => {
-        const fStr = a.fecha ? new Date(a.fecha).toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '-';
+        // Parseo directo para evitar UTC midnight → día anterior en Lima
+        const _fa = a.fecha ? String(a.fecha).split('T')[0].split('-') : null;
+        const fStr = _fa && _fa.length === 3 ? `${_fa[2]}/${_fa[1]}/${_fa[0]}` : '-';
         const puertaOkBool = a.asistencia_puerta === 1 || a.asistencia_puerta === true || a.asistencia_puerta === '1';
         const horaInicio = limpiarHora(a.hora_inicio);
         const horaFin = limpiarHora(a.hora_fin);
