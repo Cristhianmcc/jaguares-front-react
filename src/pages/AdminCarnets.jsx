@@ -107,6 +107,12 @@ export default function AdminCarnets() {
   const [arrastrandoCarnet, setArrastrandoCarnet] = useState(false);
   const [hoverSlotA4, setHoverSlotA4] = useState(null);
   const [generandoA4Cuadruple, setGenerandoA4Cuadruple] = useState(false);
+  // Estados para Lote de Hojas A4 (dividir categoría o grupo en tandas de 4)
+  const [loteHojas, setLoteHojas] = useState([]);
+  const [hojaActual, setHojaActual] = useState(0);
+  const [procesandoLote, setProcesandoLote] = useState(false);
+  const [progresoLote, setProgresoLote] = useState('');
+  const carnetsCacheRef = useRef({});
 
   
   // Opciones de Carnet
@@ -884,6 +890,228 @@ export default function AdminCarnets() {
       setTimeout(() => setToastMensaje(''), 4000);
     } finally {
       setGenerandoA4Cuadruple(false);
+    }
+  };
+
+  // Helper para capturar carnet de cualquier alumno (usando carnetImprimible temporalmente con caché)
+  const capturarCarnetDeAlumno = async (alumnoItem) => {
+    if (!alumnoItem || !alumnoItem.dni) return null;
+    const dni = String(alumnoItem.dni);
+    const cacheKey = `${dni}_${formatoCarnet}_${temaImpresion}_${tipoCodigo}`;
+
+    if (carnetsCacheRef.current[cacheKey]) {
+      return carnetsCacheRef.current[cacheKey];
+    }
+
+    const alData = {
+      success: true,
+      alumno: {
+        ...alumnoItem,
+        nombres: alumnoItem.nombres || '',
+        apellidos: alumnoItem.apellidos || '',
+        dni: alumnoItem.dni,
+        fecha_nacimiento: alumnoItem.fecha_nacimiento || null,
+        foto_carnet_url: alumnoItem.foto_carnet_url || null,
+        telefono_apoderado: alumnoItem.telefono_apoderado || alumnoItem.telefono || '',
+      },
+      inscripciones: [
+        {
+          deporte: alumnoItem.deporte || alumnoItem.deportes || 'Fútbol',
+          plan: alumnoItem.plan || 'Oficial',
+          categoria: alumnoItem.categoria || ''
+        }
+      ],
+      pago: {
+        estado: alumnoItem.estado_pago || 'confirmado'
+      }
+    };
+
+    // Si tiene foto, pre-cargarla para evitar capturar cuadro vacío
+    if (alumnoItem.foto_carnet_url) {
+      try {
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = formatFotoUrl(alumnoItem.foto_carnet_url);
+          setTimeout(resolve, 250);
+        });
+      } catch (_) {}
+    }
+
+    setAlumnoSeleccionado(alData);
+    await new Promise(r => setTimeout(r, 70));
+
+    const carnetEl = document.getElementById('carnetImprimible');
+    if (!carnetEl) return null;
+
+    try {
+      const dataUrl = await capturarCarnetDataUrl(carnetEl, 'jpeg');
+      carnetsCacheRef.current[cacheKey] = dataUrl;
+      return dataUrl;
+    } catch (err) {
+      console.error(`Error capturando carnet de ${dni}:`, err);
+      return null;
+    }
+  };
+
+  // Cargar una hoja específica del lote (índice 0, 1, 2...)
+  const cargarHojaLote = async (indiceHoja, listaChunks = loteHojas) => {
+    if (!listaChunks || !listaChunks[indiceHoja]) return;
+    const alumnosHoja = listaChunks[indiceHoja];
+    setHojaActual(indiceHoja);
+    setProcesandoLote(true);
+    setProgresoLote(`Cargando Hoja ${indiceHoja + 1} de ${listaChunks.length} (${alumnosHoja.length} alumnos)...`);
+
+    const nuevosSlots = [null, null, null, null];
+
+    for (let i = 0; i < alumnosHoja.length; i++) {
+      const a = alumnosHoja[i];
+      setProgresoLote(`Generando carnet ${i + 1} de ${alumnosHoja.length} (DNI ${a.dni})...`);
+      const dataUrl = await capturarCarnetDeAlumno(a);
+
+      nuevosSlots[i] = {
+        dataUrl,
+        alumno: a,
+        nombre: getPrimerNombreYPrimerApellido(a.nombres, a.apellidos),
+        dni: a.dni,
+        deporte: a.deporte || a.deportes || 'Fútbol',
+        plan: a.plan || 'Oficial',
+        formato: formatoCarnet
+      };
+    }
+
+    setSlotsA4(nuevosSlots);
+    setProcesandoLote(false);
+    setProgresoLote('');
+    setToastMensaje(`✅ Hoja ${indiceHoja + 1} de ${listaChunks.length} cargada en la bandeja.`);
+    setTimeout(() => setToastMensaje(''), 3000);
+  };
+
+  // Dividir todos los alumnos filtrados en hojas de 4 y cargar la primera
+  const cargarTodaLaCategoriaEnHojas = async () => {
+    if (alumnosFiltrados.length === 0) {
+      setToastMensaje('No hay alumnos en la lista filtrada.');
+      setTimeout(() => setToastMensaje(''), 3000);
+      return;
+    }
+
+    const chunks = [];
+    for (let i = 0; i < alumnosFiltrados.length; i += 4) {
+      chunks.push(alumnosFiltrados.slice(i, i + 4));
+    }
+
+    setLoteHojas(chunks);
+    await cargarHojaLote(0, chunks);
+  };
+
+  // Cambiar de hoja en el lote actual
+  const cambiarHojaLote = async (nuevoIndice) => {
+    if (nuevoIndice < 0 || nuevoIndice >= loteHojas.length || procesandoLote) return;
+    await cargarHojaLote(nuevoIndice, loteHojas);
+  };
+
+  // Imprimir o descargar TODAS las hojas del lote en un solo PDF multipágina
+  const exportarPdfTodoElLote = async (accion = 'descargar') => {
+    if (!loteHojas || loteHojas.length === 0) {
+      setToastMensaje('Primero carga un lote en hojas.');
+      setTimeout(() => setToastMensaje(''), 3500);
+      return;
+    }
+
+    setGenerandoA4Cuadruple(true);
+    setProcesandoLote(true);
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const carnetW = 90;
+      const carnetH = 115;
+      const posiciones = [
+        { x: 10,  y: 20 },
+        { x: 110, y: 20 },
+        { x: 10,  y: 155 },
+        { x: 110, y: 155 },
+      ];
+
+      for (let hIdx = 0; hIdx < loteHojas.length; hIdx++) {
+        if (hIdx > 0) {
+          pdf.addPage('a4', 'portrait');
+        }
+
+        const chunk = loteHojas[hIdx];
+        setProgresoLote(`Procesando Hoja ${hIdx + 1} de ${loteHojas.length}...`);
+
+        // Encabezado
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text('CLUB DEPORTES JAGUARES - PLANTILLA OFICIAL EN HOJA A4 (HOJA ' + (hIdx + 1) + ' DE ' + loteHojas.length + ')', 105, 10, { align: 'center' });
+        pdf.setFontSize(7);
+        pdf.setTextColor(130, 130, 130);
+        pdf.text('Imprimir en escala 100% (sin ajuste de página) en papel fotográfico u opalina A4 (9 cm × 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
+
+        // Pie
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(120, 120, 120);
+        const catTexto = filtroCategoria ? `Cat. ${filtroCategoria}` : 'General';
+        pdf.text(`Líneas punteadas exteriores diseñadas para corte exacto con guillotina. Lote: ${catTexto}`, 105, 290, { align: 'center' });
+
+        for (let sIdx = 0; sIdx < 4; sIdx++) {
+          const pos = posiciones[sIdx];
+
+          // Línea punteada
+          pdf.setDrawColor(180, 180, 180);
+          pdf.setLineDashPattern([2, 2], 0);
+          pdf.setLineWidth(0.25);
+          pdf.rect(pos.x - 0.5, pos.y - 0.5, carnetW + 1, carnetH + 1);
+
+          const al = chunk[sIdx];
+          if (al) {
+            const dataUrl = await capturarCarnetDeAlumno(al);
+            const nombre = getPrimerNombreYPrimerApellido(al.nombres, al.apellidos);
+
+            pdf.setFontSize(6.5);
+            pdf.setTextColor(130, 130, 130);
+            pdf.text(`✂ Espacio ${sIdx + 1}: ${nombre} (DNI ${al.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
+
+            if (dataUrl) {
+              pdf.addImage(dataUrl, 'JPEG', pos.x, pos.y, carnetW, carnetH, undefined, 'FAST');
+            }
+          } else {
+            pdf.setFontSize(8);
+            pdf.setTextColor(200, 200, 200);
+            pdf.text(`[ Espacio ${sIdx + 1} Vacío ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
+          }
+        }
+      }
+
+      if (accion === 'imprimir') {
+        const blobUrl = pdf.output('bloburl');
+        const printWindow = window.open(blobUrl, '_blank');
+        if (printWindow) {
+          printWindow.addEventListener('load', () => printWindow.print());
+        }
+        setToastMensaje('✅ Abriendo diálogo de impresión del lote completo.');
+      } else {
+        const catSlug = filtroCategoria ? `Cat_${filtroCategoria}` : 'Alumnos';
+        const fechaStr = new Date().toISOString().split('T')[0];
+        pdf.save(`Lote_${catSlug}_${loteHojas.length}_Hojas_${fechaStr}.pdf`);
+        setToastMensaje(`✅ Lote de ${loteHojas.length} hojas descargado con éxito.`);
+      }
+      setTimeout(() => setToastMensaje(''), 4500);
+    } catch (err) {
+      console.error('Error generando PDF de lote:', err);
+      setToastMensaje('Hubo un error al generar el PDF del lote.');
+      setTimeout(() => setToastMensaje(''), 4000);
+    } finally {
+      setGenerandoA4Cuadruple(false);
+      setProcesandoLote(false);
+      setProgresoLote('');
     }
   };
 
@@ -2426,6 +2654,48 @@ export default function AdminCarnets() {
                   )}
                 </div>
               </div>
+
+              {/* Navegador de Hojas del Lote */}
+              {loteHojas.length > 1 && (
+                <div className="flex items-center justify-between bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl px-3 py-2 mb-2 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => cambiarHojaLote(hojaActual - 1)}
+                    disabled={hojaActual === 0 || procesandoLote}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:hover:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    title="Ir a la hoja anterior del lote"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                    <span>Anterior</span>
+                  </button>
+                  <div className="text-center">
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                      Hoja {hojaActual + 1} de {loteHojas.length}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
+                      ({loteHojas[hojaActual]?.length || 0} alumnos en esta hoja)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => cambiarHojaLote(hojaActual + 1)}
+                    disabled={hojaActual === loteHojas.length - 1 || procesandoLote}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:hover:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    title="Ir a la siguiente hoja del lote"
+                  >
+                    <span>Siguiente</span>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Barra de progreso de lote */}
+              {procesandoLote && (
+                <div className="mb-2 p-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-center flex items-center justify-center gap-2 animate-pulse">
+                  <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{progresoLote}</span>
+                </div>
+              )}
 
               {/* Representación visual de la Hoja A4 física (Proporción exacta 210 x 297 mm) */}
               <div className="flex-1 flex justify-center items-center py-1">
