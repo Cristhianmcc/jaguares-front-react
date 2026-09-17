@@ -2527,7 +2527,7 @@ export default function AdminCarnets() {
                       type="button"
                       onClick={() => setModalPagoClase(prev => ({ ...prev, monto: m }))}
                       className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border ${
-                        modalPagoClase.monto === m
+                        Number(modalPagoClase.monto) === m
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
                           : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
                       }`}
@@ -2543,11 +2543,18 @@ export default function AdminCarnets() {
                   <input
                     type="number"
                     step="0.5"
-                    min="1"
-                    value={modalPagoClase.monto}
-                    onChange={(e) => setModalPagoClase(prev => ({ ...prev, monto: parseFloat(e.target.value) || 0 }))}
+                    min="0"
+                    value={modalPagoClase.monto === '' ? '' : modalPagoClase.monto}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setModalPagoClase(prev => ({
+                        ...prev,
+                        monto: val === '' ? '' : val
+                      }));
+                    }}
                     className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="15.00"
+                    placeholder="Ej. 15.00"
                   />
                 </div>
               </div>
@@ -2627,10 +2634,11 @@ export default function AdminCarnets() {
                 </button>
                 <button
                   type="button"
-                  disabled={cargandoEscaneo || !modalPagoClase.monto || modalPagoClase.monto <= 0}
+                  disabled={cargandoEscaneo || !modalPagoClase.monto || parseFloat(modalPagoClase.monto) <= 0}
                   onClick={async () => {
                     const alumnoDni = modalPagoClase.alumno?.dni;
-                    const monto = modalPagoClase.monto;
+                    const monto = parseFloat(modalPagoClase.monto) || 0;
+                    if (monto <= 0) return;
                     const metodo = modalPagoClase.metodo;
                     setModalPagoClase(prev => ({ ...prev, abierto: false }));
                     await procesarEscaneo(alumnoDni, true, { monto, metodo });
