@@ -793,7 +793,7 @@ function mostrarModalConfirmacion(config) {
       
       <!-- Contenido -->
       <div class="p-6">
-        <p class="text-gray-700 dark:text-gray-300 mb-4">${config.Mensaje}</p>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">${config.Mensaje || config.mensaje || ""}</p>
         
         ${config.campos ? config.campos : ''}
       </div>
@@ -981,13 +981,20 @@ async function ejecutarMarcarPendiente(inscripcionId, dni) {
  * Eliminar una inscripción específica (individual) sin afectar al alumno
  */
 function eliminarInscripcionIndividual(inscripcionId, deporte, dni) {
+  const deporteLimpio = String(deporte || '')
+    .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol')
+    .replace(/EconÃ³mico|EconÃ³m/gi, 'Económico')
+    .replace(/EstÃ¡ndar/gi, 'Estándar')
+    .replace(/BÃ¡squet/gi, 'Básquet')
+    .replace(/VÃ³ley/gi, 'Vóley');
+
   mostrarModalConfirmacion({
     titulo: 'Eliminar Inscripción',
-    subtitulo: `DNI: ${dni} • ${deporte}`,
+    subtitulo: `DNI: ${dni} • ${deporteLimpio}`,
     icon: 'delete',
     iconBg: 'bg-red-100 dark:bg-red-900/30',
     iconColor: 'text-red-600 dark:text-red-400',
-    mensaje: `¿Estás seguro de que deseas eliminar únicamente la inscripción de <b>${deporte}</b>?<br><br><span class="text-xs text-gray-500 dark:text-gray-400">Si el alumno tiene otra inscripción activa o confirmada, esta se mantendrá intacta.</span>`,
+    Mensaje: `¿Estás seguro de que deseas eliminar únicamente la inscripción de <b>${deporteLimpio}</b>?<br><br><span class="text-xs text-gray-500 dark:text-gray-400">Si el alumno tiene otra inscripción activa o confirmada, esta se mantendrá intacta.</span>`,
     btnTexto: 'Eliminar Inscripción',
     btnIcon: 'delete',
     btnClass: 'bg-red-600 hover:bg-red-700',
