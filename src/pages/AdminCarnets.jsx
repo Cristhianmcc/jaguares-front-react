@@ -1014,6 +1014,19 @@ export default function AdminCarnets() {
 
   // Imprimir o descargar TODAS las hojas del lote en un solo PDF multipágina
   const exportarPdfTodoElLote = async (accion = 'descargar') => {
+    let chunks = loteHojas;
+    if (!chunks || chunks.length === 0) {
+      if (alumnosFiltrados.length === 0) {
+        setToastMensaje('No hay alumnos para imprimir.');
+        setTimeout(() => setToastMensaje(''), 3000);
+        return;
+      }
+      chunks = [];
+      for (let i = 0; i < alumnosFiltrados.length; i += 4) {
+        chunks.push(alumnosFiltrados.slice(i, i + 4));
+      }
+      setLoteHojas(chunks);
+    }
     if (!loteHojas || loteHojas.length === 0) {
       setToastMensaje('Primero carga un lote en hojas.');
       setTimeout(() => setToastMensaje(''), 3500);
@@ -1250,75 +1263,125 @@ export default function AdminCarnets() {
     setMostrarModalWhatsApp(false);
   };
 
-    // Categorías / Años disponibles calculados dinámicamente de los alumnos
+      // Normalizar acentos y mayúsculas en deportes para evitar Ãº, Ã¡, etc.
+  const normalizarDeporte = (dep) => {
+    if (!dep) return '';
+    let s = String(dep)
+      .replace(/Ãº/gi, 'ú')
+      .replace(/Ã¡/gi, 'á')
+      .replace(/Ã³/gi, 'ó')
+      .replace(/Ã©/gi, 'é')
+      .replace(/Ã­/gi, 'í')
+      .replace(/Ã±/gi, 'ñ')
+      .replace(/Â/g, '')
+      .trim();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  // Categorías basadas en el año de nacimiento (Cat. 2012, Cat. 2015...) cruzadas con el filtro de deporte
   const categoriasDisponibles = React.useMemo(() => {
     const mapa = new Map();
-    alumnos.forEach(a => {
-      const anio = getAnioNacimiento(a.fecha_nacimiento);
-      const cat = (a.categoria || '').trim();
+    // Si hay deporte seleccionado, cruzar conteo
+    const baseAlumnos = filtroDeporte
+      ? alumnos.filter(a => {
+          const depStr = normalizarDeporte(a.deporte || a.deportes || '').toLowerCase();
+          const target = normalizarDeporte(filtroDeporte).toLowerCase().trim();
+          return depStr.includes(target);
+        })
+      : alumnos;
 
+    baseAlumnos.forEach(a => {
+      const anio = getAnioNacimiento(a.fecha_nacimiento);
       if (anio && anio !== '----') {
-        const key = `anio:${anio}`;
+        const key = String(anio);
         if (!mapa.has(key)) {
           mapa.set(key, { valor: anio, label: `Cat. ${anio}`, total: 0, sortKey: Number(anio) || 0 });
         }
         mapa.get(key).total += 1;
-      }
-
-      if (cat && cat !== anio) {
-        const key = `cat:${cat}`;
-        if (!mapa.has(key)) {
-          mapa.set(key, { valor: cat, label: cat, total: 0, sortKey: 9999 });
+      } else {
+        // Alumnos sin fecha de nacimiento pero con categoría textual
+        const catRaw = (a.categoria || '').trim();
+        if (catRaw) {
+          const m = catRaw.match(/\b(20\d{2})\b/);
+          if (m) {
+            const yr = m[1];
+            if (!mapa.has(yr)) {
+              mapa.set(yr, { valor: yr, label: `Cat. ${yr}`, total: 0, sortKey: Number(yr) || 0 });
+            }
+            mapa.get(yr).total += 1;
+          } else if (!catRaw.includes(',')) {
+            if (!mapa.has(catRaw)) {
+              mapa.set(catRaw, { valor: catRaw, label: catRaw, total: 0, sortKey: 0 });
+            }
+            mapa.get(catRaw).total += 1;
+          }
         }
-        mapa.get(key).total += 1;
       }
     });
 
     return Array.from(mapa.values()).sort((a, b) => b.sortKey - a.sortKey);
-  }, [alumnos]);
+  }, [alumnos, filtroDeporte]);
 
-  // Deportes disponibles
+  // Deportes disponibles con acentos limpios y cruzados con la categoría seleccionada
   const deportesDisponibles = React.useMemo(() => {
     const mapa = new Map();
-    alumnos.forEach(a => {
-      const dep = (a.deporte || a.deportes || '').trim();
-      if (dep) {
-        mapa.set(dep, (mapa.get(dep) || 0) + 1);
-      }
-    });
-    return Array.from(mapa.entries()).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [alumnos]);
+    const baseAlumnos = filtroCategoria
+      ? alumnos.filter(a => {
+          const anio = getAnioNacimiento(a.fecha_nacimiento);
+          const cat = (a.categoria || '').toLowerCase();
+          return anio === filtroCategoria || cat.includes(filtroCategoria.toLowerCase());
+        })
+      : alumnos;
 
+    baseAlumnos.forEach(a => {
+      const raw = a.deporte || a.deportes || '';
+      const list = raw.split(',').map(s => normalizarDeporte(s)).filter(Boolean);
+      const uniqueDeps = Array.from(new Set(list));
+      uniqueDeps.forEach(depName => {
+        const cleanName = depName.charAt(0).toUpperCase() + depName.slice(1);
+        mapa.set(cleanName, (mapa.get(cleanName) || 0) + 1);
+      });
+    });
+
+    return Array.from(mapa.entries())
+      .map(([nombre, total]) => ({ nombre, total }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [alumnos, filtroCategoria]);
+
+  // Filtrado reactivo combinado con soporte para múltiples deportes por alumno
   const alumnosFiltrados = React.useMemo(() => {
     return alumnos.filter(a => {
       const anio = getAnioNacimiento(a.fecha_nacimiento);
       const cat = (a.categoria || '').toLowerCase();
-      const dep = (a.deporte || a.deportes || '').toLowerCase();
+      const depRaw = normalizarDeporte(a.deporte || a.deportes || '').toLowerCase();
 
-      // Filtro texto
+      // 1. Filtro texto libre
       const q = busqueda.toLowerCase().trim();
       if (q) {
         const match =
           (a.dni && String(a.dni).toLowerCase().includes(q)) ||
           (a.nombres && String(a.nombres).toLowerCase().includes(q)) ||
           (a.apellidos && String(a.apellidos).toLowerCase().includes(q)) ||
-          (dep && dep.includes(q)) ||
+          (depRaw && depRaw.includes(q)) ||
           (cat && cat.includes(q)) ||
           (anio && anio.includes(q)) ||
           (`cat ${anio}`.includes(q)) ||
-          (`categoria ${anio}`.includes(q));
+          (`cat. ${anio}`.includes(q));
         if (!match) return false;
       }
 
-      // Filtro Categoría seleccionada
+      // 2. Filtro Categoría
       if (filtroCategoria) {
-        const matchCat = (anio === filtroCategoria) || ((a.categoria || '').trim() === filtroCategoria);
+        const matchCat = (anio === filtroCategoria) || 
+                         (cat.includes(filtroCategoria.toLowerCase()));
         if (!matchCat) return false;
       }
 
-      // Filtro Deporte seleccionado
+      // 3. Filtro Deporte (comprueba si practica el deporte seleccionado aunque tenga varios)
       if (filtroDeporte) {
-        const matchDep = (a.deporte || a.deportes || '').trim().toLowerCase() === filtroDeporte.toLowerCase();
+        const target = normalizarDeporte(filtroDeporte).toLowerCase().trim();
+        const deps = depRaw.split(',').map(d => d.trim());
+        const matchDep = deps.some(d => d.includes(target) || target.includes(d));
         if (!matchDep) return false;
       }
 
@@ -1648,21 +1711,22 @@ export default function AdminCarnets() {
               </div>
 
               {/* Filtros Dropdowns por Categoría y Deporte */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-2 mb-2.5">
                 {/* Selector Categoría */}
                 <div className="relative">
                   <select
                     value={filtroCategoria}
                     onChange={(e) => setFiltroCategoria(e.target.value)}
-                    className={`w-full py-2 pl-2 pr-5 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate ${
+                    className={`w-full py-2 pl-2 pr-6 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate bg-slate-900 text-white ${
                       filtroCategoria
-                        ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40'
-                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        ? 'border-amber-500 text-amber-400 ring-1 ring-amber-500/50 shadow-xs'
+                        : 'border-slate-700 text-slate-300 hover:border-slate-600'
                     }`}
+                    style={{ colorScheme: 'dark' }}
                   >
-                    <option value="">Todas las Categorías</option>
+                    <option value="" className="bg-slate-900 text-white py-1">Todas las Categorías</option>
                     {categoriasDisponibles.map((c) => (
-                      <option key={c.valor} value={c.valor}>
+                      <option key={c.valor} value={c.valor} className="bg-slate-900 text-white py-1">
                         {c.label} ({c.total})
                       </option>
                     ))}
@@ -1677,15 +1741,16 @@ export default function AdminCarnets() {
                   <select
                     value={filtroDeporte}
                     onChange={(e) => setFiltroDeporte(e.target.value)}
-                    className={`w-full py-2 pl-2 pr-5 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate ${
+                    className={`w-full py-2 pl-2 pr-6 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate bg-slate-900 text-white ${
                       filtroDeporte
-                        ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40'
-                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                        ? 'border-amber-500 text-amber-400 ring-1 ring-amber-500/50 shadow-xs'
+                        : 'border-slate-700 text-slate-300 hover:border-slate-600'
                     }`}
+                    style={{ colorScheme: 'dark' }}
                   >
-                    <option value="">Todos los Deportes</option>
+                    <option value="" className="bg-slate-900 text-white py-1">Todos los Deportes</option>
                     {deportesDisponibles.map((d) => (
-                      <option key={d.nombre} value={d.nombre}>
+                      <option key={d.nombre} value={d.nombre} className="bg-slate-900 text-white py-1">
                         {d.nombre} ({d.total})
                       </option>
                     ))}
@@ -1695,6 +1760,37 @@ export default function AdminCarnets() {
                   </span>
                 </div>
               </div>
+
+              {/* Botones de Impresión en Masa / Lote por Categoría */}
+              {alumnosFiltrados.length > 0 && (
+                <div className="mb-3 flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    onClick={cargarTodaLaCategoriaEnHojas}
+                    disabled={procesandoLote}
+                    className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                    title="Cargar en la bandeja A4 los carnets divididos en hojas de 4"
+                  >
+                    <span className="material-symbols-outlined text-base">auto_awesome_motion</span>
+                    <span className="truncate font-black">
+                      {procesandoLote
+                        ? (progresoLote || 'Cargando lote...')
+                        : `⚡ Cargar en Hoja A4 (${alumnosFiltrados.length} al • ${Math.ceil(alumnosFiltrados.length / 4)} ${Math.ceil(alumnosFiltrados.length / 4) === 1 ? 'hoja' : 'hojas'})`}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => exportarPdfTodoElLote('imprimir')}
+                    disabled={procesandoLote || generandoA4Cuadruple}
+                    className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    title={`Imprimir directamente las ${Math.ceil(alumnosFiltrados.length / 4)} hojas de este grupo`}
+                  >
+                    <span className="material-symbols-outlined text-sm">print</span>
+                    <span>Imprimir Todo ({alumnosFiltrados.length} Alumnos en PDF)</span>
+                  </button>
+                </div>
+              )}
 
               {authError && (
                 <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-left animate-in fade-in duration-200">
@@ -2623,10 +2719,10 @@ export default function AdminCarnets() {
                         ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:shadow cursor-pointer'
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                     }`}
-                    title="Imprimir directamente la hoja A4 con los carnets asignados"
+                    title="Imprimir directamente la hoja A4 actual con los carnets asignados"
                   >
                     <span className="material-symbols-outlined text-sm">print</span>
-                    Imprimir A4
+                    Imprimir Hoja
                   </button>
 
                   <button
@@ -2637,11 +2733,23 @@ export default function AdminCarnets() {
                         ? 'bg-rose-600 hover:bg-rose-500 text-white hover:shadow cursor-pointer'
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                     }`}
-                    title="Descargar PDF A4 oficial con guías de corte listas"
+                    title="Descargar PDF de esta hoja A4"
                   >
                     <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                    {generandoA4Cuadruple ? 'Generando...' : 'PDF A4'}
+                    {generandoA4Cuadruple ? 'Generando...' : 'PDF Hoja'}
                   </button>
+
+                  {alumnosFiltrados.length > 0 && (
+                    <button
+                      onClick={() => exportarPdfTodoElLote('imprimir')}
+                      disabled={procesandoLote || generandoA4Cuadruple}
+                      className="px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 cursor-pointer disabled:opacity-50"
+                      title={`Imprimir directamente todas las hojas (${Math.ceil(alumnosFiltrados.length / 4)} hojas) del grupo filtrado`}
+                    >
+                      <span className="material-symbols-outlined text-sm font-bold">local_printshop</span>
+                      <span>{procesandoLote ? 'Procesando...' : `Imprimir Todo (${alumnosFiltrados.length})`}</span>
+                    </button>
+                  )}
 
                   {slotsA4.some(Boolean) && (
                     <button
@@ -2651,8 +2759,7 @@ export default function AdminCarnets() {
                     >
                       <span className="material-symbols-outlined text-base">delete_sweep</span>
                     </button>
-                  )}
-                </div>
+                  )}</div>
               </div>
 
               {/* Navegador de Hojas del Lote */}
