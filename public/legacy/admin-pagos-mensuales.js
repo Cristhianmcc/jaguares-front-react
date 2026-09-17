@@ -654,6 +654,566 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
     cargarAsistencias('', '');
 }
 
+
+
+async function desactivarNoShow(pagoId) {
+    const pagoData = window._pagosData?.[pagoId];
+    if (!pagoData || !pagoData.deportes?.length) {
+        mostrarToast('No hay inscripciones activas para desactivar', 'error');
+        return;
+    }
+
+    const deportesActivos = pagoData.deportes.filter(d => String(d.estado || '').toLowerCase() !== 'cancelada');
+    if (deportesActivos.length === 0) {
+        mostrarToast('No hay deportes activos disponibles para desactivar', 'error');
+        return;
+    }
+
+    mostrarModalSeleccionDeportes({
+        title: 'No vino',
+        description: 'Selecciona los deportes que el alumno no asistió y deseas cancelar.',
+        confirmText: 'Desactivar seleccionados',
+        deportes: deportesActivos,
+        onConfirm: async (inscripcionIds) => {
+            const API_BASE = getAPIBase();
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/desactivar-inscripciones`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dni: pagoData.dni, inscripcion_ids: inscripcionIds })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    mostrarToast('Inscripciones desactivadas correctamente', 'success');
+                    cargarPagosMensuales();
+                } else {
+                    mostrarToast(data.error || 'No se pudo desactivar', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error al desactivar inscripciones:', error);
+                mostrarToast('Error de conexión', 'error');
+            }
+        }
+    });
+}
+
+function reactivarInscripcionesPago(pagoId) {
+    const pagoData = window._pagosData?.[pagoId];
+    if (!pagoData || !pagoData.deportes?.length) {
+        mostrarToast('No hay inscripciones canceladas para reactivar', 'error');
+        return;
+    }
+
+    const deportesCancelados = pagoData.deportes.filter(d => String(d.estado || '').toLowerCase() === 'cancelada');
+    if (deportesCancelados.length === 0) {
+        mostrarToast('No hay inscripciones canceladas para reactivar', 'error');
+        return;
+    }
+
+    mostrarModalSeleccionDeportes({
+        title: 'Reactivar deporte',
+        description: 'Selecciona los deportes cancelados que deseas reactivar.',
+        confirmText: 'Reactivar seleccionados',
+        deportes: deportesCancelados,
+        onConfirm: async (inscripcionIds) => {
+            const API_BASE = getAPIBase();
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/reactivar-inscripciones`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dni: pagoData.dni, inscripcion_ids: inscripcionIds })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    mostrarToast('Inscripciones reactivadas correctamente', 'success');
+                    cargarPagosMensuales();
+                } else {
+                    mostrarToast(data.error || 'No se pudo reactivar', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error al reactivar inscripciones:', error);
+                mostrarToast('Error de conexión', 'error');
+            }
+        }
+    });
+}
+
+function mostrarModalSeleccionDeportes({ title, description, confirmText, deportes, onConfirm }) {
+    const existente = document.getElementById('modalSeleccionDeportes');
+    if (existente) existente.remove();
+
+    const opcionesHTML = deportes.map((d, index) => `
+        <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+            <div>
+                <div class="text-sm font-semibold text-black dark:text-white">${d.deporte}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">S/ ${parseFloat(d.precio || 0).toFixed(2)}</div>
+            </div>
+            <input type="checkbox" class="checkbox-inscripcion-no-vino" value="${d.inscripcion_id || ''}" checked>
+        </label>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'modalSeleccionDeportes';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+            <div class="flex justify-between items-start gap-4 mb-4">
+                <div>
+                    <h3 class="text-xl font-black text-black dark:text-white">${title}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${description}</p>
+                </div>
+                <button id="modalSeleccionDeportesCerrar" class="text-gray-500 hover:text-black dark:hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="space-y-3 mb-4">
+                ${opcionesHTML}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">Si dejas todo desmarcado no se hará ninguna acción.</div>
+            <div class="flex gap-3 justify-end">
+                <button id="modalSeleccionDeportesCancelar" class="px-5 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm">Cancelar</button>
+                <button id="modalSeleccionDeportesConfirmar" class="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm">${confirmText}</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    document.getElementById('modalSeleccionDeportesCerrar').addEventListener('click', () => modal.remove());
+    document.getElementById('modalSeleccionDeportesCancelar').addEventListener('click', () => modal.remove());
+    document.getElementById('modalSeleccionDeportesConfirmar').addEventListener('click', () => {
+        const checkboxes = Array.from(document.querySelectorAll('.checkbox-inscripcion-no-vino'));
+        const seleccionados = checkboxes.filter(cb => cb.checked).map(cb => cb.value).filter(Boolean);
+        if (seleccionados.length === 0) {
+            mostrarToast('Selecciona al menos un deporte', 'error');
+            return;
+        }
+        modal.remove();
+        onConfirm(seleccionados);
+    });
+}
+
+// ==================== MODAL PERSONALIZADO ====================
+
+function mostrarModalAccion({ titulo, mensaje, icono, iconoColor, inputPlaceholder, btnTexto, btnColor, onConfirm }) {
+    const existente = document.getElementById('modalAccionPago');
+    if (existente) existente.remove();
+
+    const inputHTML = inputPlaceholder ? `
+        <input type="text" id="modalAccionInput" placeholder="${inputPlaceholder}"
+               class="w-full mt-4 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+    ` : '';
+
+    const modal = document.createElement('div');
+    modal.id = 'modalAccionPago';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4';
+    modal.style.animation = 'fadeIn .2s ease';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 max-w-sm w-full shadow-2xl" style="animation: scaleIn .2s ease">
+            <div class="flex justify-center mb-4">
+                <div class="size-16 rounded-full ${iconoColor} flex items-center justify-center">
+                    <span class="material-symbols-outlined" style="font-size:40px">${icono}</span>
+                </div>
+            </div>
+            <h3 class="text-xl font-black text-center text-black dark:text-white mb-2">${titulo}</h3>
+            <p class="text-sm text-center text-gray-500 dark:text-gray-400">${mensaje}</p>
+            ${inputHTML}
+            <div class="flex gap-3 mt-6">
+                <button id="modalAccionCancelar" class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm transition-colors">
+                    Cancelar
+                </button>
+                <button id="modalAccionConfirmar" class="flex-1 py-3 ${btnColor} text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">${icono}</span>
+                    ${btnTexto}
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModalAccion(); });
+    document.getElementById('modalAccionCancelar').addEventListener('click', cerrarModalAccion);
+    document.getElementById('modalAccionConfirmar').addEventListener('click', () => {
+        const input = document.getElementById('modalAccionInput');
+        onConfirm(input ? input.value : null);
+        cerrarModalAccion();
+    });
+}
+
+function cerrarModalAccion() {
+    const modal = document.getElementById('modalAccionPago');
+    if (modal) modal.remove();
+}
+
+function mostrarToast(mensaje, tipo) {
+    const existente = document.getElementById('toastPago');
+    if (existente) existente.remove();
+
+    const colores = {
+        success: 'bg-green-600',
+        error: 'bg-red-600'
+    };
+    const iconos = {
+        success: 'check_circle',
+        error: 'error'
+    };
+
+    const toast = document.createElement('div');
+    toast.id = 'toastPago';
+    toast.className = `fixed top-6 right-6 z-[99999] ${colores[tipo] || 'bg-gray-800'} text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-semibold`;
+    toast.style.animation = 'fadeIn .3s ease';
+    toast.innerHTML = `<span class="material-symbols-outlined">${iconos[tipo] || 'info'}</span> ${mensaje}`;
+    document.body.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+}
+
+// ==================== CONFIRMAR / RECHAZAR ====================
+
+async function confirmarPagoMensual(pagoId) {
+    const pagoData = (window._pagosData && window._pagosData[pagoId]) || {};
+    const deportes = pagoData.deportes || [];
+    const montoOriginal = pagoData.monto || 0;
+
+    // Si tiene más de 1 deporte, mostrar modal con checkboxes
+    if (deportes.length > 1) {
+        mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal);
+    } else {
+        // Solo 1 deporte: confirmar directo
+        mostrarModalAccion({
+            titulo: 'Confirmar Pago',
+            mensaje: `¿Confirmar pago de S/ ${montoOriginal.toFixed(2)}?`,
+            icono: 'check_circle',
+            iconoColor: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+            btnTexto: 'Confirmar',
+            btnColor: 'bg-green-600 hover:bg-green-700',
+            onConfirm: async () => {
+                await ejecutarConfirmarPago(pagoId, null, null);
+            }
+        });
+    }
+}
+
+function mostrarModalConfirmarConDeportes(pagoId, deportes, montoOriginal) {
+    const existente = document.getElementById('modalAccionPago');
+    if (existente) existente.remove();
+
+    const checkboxesHTML = deportes.map((d, i) => `
+        <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+            <div class="flex items-center gap-3">
+                <input type="checkbox" checked class="checkbox-deporte-confirmar w-4 h-4 accent-green-600" value="${i}" data-precio="${d.precio}" data-deporte="${d.deporte}">
+                <span class="text-sm font-semibold text-black dark:text-white">${d.deporte}</span>
+            </div>
+            <span class="text-sm font-bold text-green-600">S/ ${d.precio.toFixed(2)}</span>
+        </label>
+    `).join('');
+
+    const sumaDeportes = deportes.reduce((s, d) => s + d.precio, 0);
+
+    const modal = document.createElement('div');
+    modal.id = 'modalAccionPago';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4';
+    modal.style.animation = 'fadeIn .2s ease';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 max-w-md w-full shadow-2xl" style="animation: scaleIn .2s ease">
+            <div class="flex justify-center mb-4">
+                <div class="size-16 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center justify-center">
+                    <span class="material-symbols-outlined" style="font-size:40px">check_circle</span>
+                </div>
+            </div>
+            <h3 class="text-xl font-black text-center text-black dark:text-white mb-2">Confirmar Pago</h3>
+            <p class="text-sm text-center text-gray-500 dark:text-gray-400 mb-4">Selecciona los deportes a confirmar en este pago</p>
+            
+            <div class="space-y-2 mb-4">
+                ${checkboxesHTML}
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 mb-4">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Monto original del comprobante:</span>
+                    <span class="font-bold">S/ ${montoOriginal.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between text-sm font-bold text-black dark:text-white">
+                    <span>Monto a confirmar:</span>
+                    <span id="montoConfirmarCalc" class="text-green-600">S/ ${sumaDeportes.toFixed(2)}</span>
+                </div>
+            </div>
+
+            <div id="avisoMontoConfirmar" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 mb-4">
+                <p class="text-xs text-amber-700 dark:text-amber-400">
+                    <span class="material-symbols-outlined text-xs align-middle">info</span>
+                    El monto se ajustará automáticamente. Recuerda luego ir a <strong>Lista de Inscritos</strong> para desactivar el deporte no confirmado.
+                </p>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="modalAccionCancelar" class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white rounded-xl font-bold text-sm transition-colors">
+                    Cancelar
+                </button>
+                <button id="modalAccionConfirmar" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">check_circle</span>
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event listeners para checkboxes
+    const checkboxes = modal.querySelectorAll('.checkbox-deporte-confirmar');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            let total = 0;
+            checkboxes.forEach(c => {
+                if (c.checked) total += parseFloat(c.dataset.precio);
+            });
+            document.getElementById('montoConfirmarCalc').textContent = `S/ ${total.toFixed(2)}`;
+            const aviso = document.getElementById('avisoMontoConfirmar');
+            const algunoDesmarcado = Array.from(checkboxes).some(c => !c.checked);
+            if (algunoDesmarcado && Array.from(checkboxes).some(c => c.checked)) {
+                aviso.classList.remove('hidden');
+            } else {
+                aviso.classList.add('hidden');
+            }
+        });
+    });
+
+    modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModalAccion(); });
+    document.getElementById('modalAccionCancelar').addEventListener('click', cerrarModalAccion);
+    document.getElementById('modalAccionConfirmar').addEventListener('click', async () => {
+        const seleccionados = Array.from(checkboxes).filter(c => c.checked);
+        const noSeleccionados = Array.from(checkboxes).filter(c => !c.checked);
+        if (seleccionados.length === 0) {
+            mostrarToast('Selecciona al menos un deporte', 'error');
+            return;
+        }
+        let nuevoMonto = 0;
+        seleccionados.forEach(c => nuevoMonto += parseFloat(c.dataset.precio));
+
+        const todosSeleccionados = seleccionados.length === checkboxes.length;
+        const deportesConfirmados = seleccionados.map(c => c.dataset.deporte).join(', ');
+        const obs = todosSeleccionados ? null : `Confirmado solo: ${deportesConfirmados}`;
+        const montoFinal = todosSeleccionados ? null : nuevoMonto;
+
+        // Deportes no confirmados → crear pago pendiente separado
+        const deportesPendientes = todosSeleccionados ? [] : noSeleccionados.map(c => ({
+            deporte: c.dataset.deporte,
+            precio: parseFloat(c.dataset.precio)
+        }));
+
+        cerrarModalAccion();
+        await ejecutarConfirmarPago(pagoId, montoFinal, obs, deportesPendientes);
+    });
+}
+
+async function ejecutarConfirmarPago(pagoId, monto, observaciones, deportesPendientes) {
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    try {
+        const body = {};
+        if (monto !== null && monto !== undefined) body.monto = monto;
+        if (observaciones) body.observaciones = observaciones;
+        if (deportesPendientes && deportesPendientes.length > 0) body.deportes_pendientes = deportesPendientes;
+        const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/confirmar`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (data.success) {
+            mostrarToast('Pago confirmado exitosamente', 'success');
+            cargarPagosMensuales();
+        } else {
+            mostrarToast(data.error || 'No se pudo confirmar', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarToast('Error al confirmar pago', 'error');
+    }
+}
+
+async function rechazarPagoMensual(pagoId) {
+    mostrarModalAccion({
+        titulo: 'Rechazar Pago',
+        mensaje: '¿Estás seguro de rechazar este pago mensual?',
+        icono: 'cancel',
+        iconoColor: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+        inputPlaceholder: 'Motivo del rechazo (opcional)...',
+        btnTexto: 'Rechazar',
+        btnColor: 'bg-red-600 hover:bg-red-700',
+        onConfirm: async (motivo) => {
+            const API_BASE = getAPIBase();
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/rechazar`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ observaciones: motivo })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    mostrarToast('Pago rechazado', 'success');
+                    cargarPagosMensuales();
+                } else {
+                    mostrarToast(data.error || 'No se pudo rechazar', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                mostrarToast('Error al rechazar pago', 'error');
+            }
+        }
+    });
+}
+
+// ==================== OBSERVACIONES ====================
+
+function abrirModalObservacionPago(pagoId, notaActual) {
+    const existente = document.getElementById('modalObservacionPago');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalObservacionPago';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <div class="size-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">edit_note</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nota u observación del pago</label>
+                <textarea id="inputObservacionPago" rows="4"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                    placeholder="Ej: Paga S/.60 hasta el 15/04 y el resto en quincena...">${notaActual}</textarea>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalObservacionPago').remove()"
+                    class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button onclick="guardarObservacionPago(${pagoId})"
+                    class="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    setTimeout(() => document.getElementById('inputObservacionPago')?.focus(), 100);
+}
+
+async function guardarObservacionPago(pagoId) {
+    const obs = document.getElementById('inputObservacionPago')?.value?.trim() || '';
+    const btn = document.querySelector('#modalObservacionPago button:last-child');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
+
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/observaciones`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ observaciones: obs })
+        });
+        const data = await response.json();
+        document.getElementById('modalObservacionPago')?.remove();
+        if (data.success) {
+            mostrarToast('Observación guardada correctamente', 'success');
+            cargarPagosMensuales();
+        } else {
+            mostrarToast(data.error || 'Error al guardar', 'error');
+        }
+    } catch (e) {
+        mostrarToast('Error de conexión', 'error');
+        document.getElementById('modalObservacionPago')?.remove();
+    }
+}
+
+// ==================== EDITAR MONTO ====================
+
+function abrirModalEditarMonto(pagoId, montoActual) {
+    const existente = document.getElementById('modalEditarMonto');
+    if (existente) existente.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalEditarMonto';
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4">
+                    <div class="size-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-indigo-600 dark:text-indigo-400">payments</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-black dark:text-white uppercase">Editar Monto</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nuevo monto (S/)</label>
+                <input type="number" id="inputEditarMonto" step="0.01" min="0" value="${montoActual.toFixed(2)}"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-lg font-bold text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    placeholder="80.00">
+                <p class="text-xs text-gray-400 mt-2">Solo modifica el monto de este registro. No afecta el plan ni los precios futuros.</p>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+                <button onclick="document.getElementById('modalEditarMonto').remove()"
+                    class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+                    Cancelar
+                </button>
+                <button onclick="guardarMontoPago(${pagoId})"
+                    class="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    setTimeout(() => { const inp = document.getElementById('inputEditarMonto'); inp?.focus(); inp?.select(); }, 100);
+}
+
+async function guardarMontoPago(pagoId) {
+    const monto = parseFloat(document.getElementById('inputEditarMonto')?.value);
+    if (isNaN(monto) || monto < 0) { mostrarToast('Ingresa un monto válido', 'error'); return; }
+
+    const btn = document.querySelector('#modalEditarMonto button:last-child');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
+
+    const API_BASE = getAPIBase();
+    const token = getToken();
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/monto`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monto })
+        });
+        const data = await response.json();
+        document.getElementById('modalEditarMonto')?.remove();
+        if (data.success) {
+            mostrarToast('Monto actualizado correctamente', 'success');
+            cargarPagosMensuales();
+        } else {
+            mostrarToast(data.error || 'Error al actualizar', 'error');
+        }
+    } catch (e) {
+        mostrarToast('Error de conexión', 'error');
+        document.getElementById('modalEditarMonto')?.remove();
+    }
+}
 // Función generadora de reporte imprimible / PDF con Doble Asistencia
 function generarPdfAsistenciasAlumno(dni, nombreCompleto, asistencias, desde, hasta) {
     const total = asistencias.length;
