@@ -571,6 +571,16 @@ function mostrarModalDetalleInscripcion(data) {
                     </button>`
                   : '';
                 
+                
+                const botonEliminarInscripcion = `
+                  <button type="button"
+                          onclick="eliminarInscripcionIndividual(${dep.inscripcion_id}, '${(dep.deporte || '').replace(/'/g, "\\'")}', '${usuario.dni}')" 
+                          class="mt-2 w-full px-3 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg text-xs font-bold uppercase transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                    Eliminar esta inscripción
+                  </button>
+                `;
+
                 const botonPendiente = !esPendiente && !esSuspendido
                   ? `<button onclick="marcarPendienteInscripcion(${dep.inscripcion_id}, '${usuario.dni}')" 
                       class="mt-2 w-full px-3 py-2 border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg text-xs font-bold uppercase transition-colors flex items-center justify-center gap-2">
@@ -620,6 +630,7 @@ function mostrarModalDetalleInscripcion(data) {
 
                     ${botonActivar}
                     ${botonPendiente}
+                    ${botonEliminarInscripcion}
                   </div>
                 `;
               }).join('');
@@ -959,6 +970,52 @@ async function ejecutarMarcarPendiente(inscripcionId, dni) {
       cargarInscripciones();
     } else {
       mostrarNotificacion('Error: ' + data.error, 'error');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarNotificacion('Error de conexión', 'error');
+  }
+}
+
+/**
+ * Eliminar una inscripción específica (individual) sin afectar al alumno
+ */
+function eliminarInscripcionIndividual(inscripcionId, deporte, dni) {
+  mostrarModalConfirmacion({
+    titulo: 'Eliminar Inscripción',
+    subtitulo: `DNI: ${dni} • ${deporte}`,
+    icon: 'delete',
+    iconBg: 'bg-red-100 dark:bg-red-900/30',
+    iconColor: 'text-red-600 dark:text-red-400',
+    mensaje: `¿Estás seguro de que deseas eliminar únicamente la inscripción de <b>${deporte}</b>?<br><br><span class="text-xs text-gray-500 dark:text-gray-400">Si el alumno tiene otra inscripción activa o confirmada, esta se mantendrá intacta.</span>`,
+    btnTexto: 'Eliminar Inscripción',
+    btnIcon: 'delete',
+    btnClass: 'bg-red-600 hover:bg-red-700',
+    onConfirm: `ejecutarEliminarInscripcionIndividual(${inscripcionId}, '${dni}')`
+  });
+}
+
+async function ejecutarEliminarInscripcionIndividual(inscripcionId, dni) {
+  cerrarModalConfirmacion();
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/inscripciones/individual/${inscripcionId}`, {
+      method: 'DELETE',
+      headers: getAuthHeadersInscripciones()
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarNotificacion(data.mensaje || 'Inscripción eliminada correctamente', 'success');
+      cerrarModalDetalle();
+      if (data.tieneOtrasInscripciones) {
+        await verDetalleInscripcion(dni);
+      }
+      if (typeof cargarInscripciones === 'function') {
+        cargarInscripciones();
+      }
+    } else {
+      mostrarNotificacion('Error: ' + (data.error || 'No se pudo eliminar la inscripción'), 'error');
     }
   } catch (error) {
     console.error('Error:', error);
