@@ -98,6 +98,8 @@ export default function AdminCarnets() {
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [filtroDeporte, setFiltroDeporte] = useState('');
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   // Estados para Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
@@ -1020,16 +1022,81 @@ export default function AdminCarnets() {
     setMostrarModalWhatsApp(false);
   };
 
-  const alumnosFiltrados = alumnos.filter(a => {
-    const q = busqueda.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      (a.dni && String(a.dni).toLowerCase().includes(q)) ||
-      (a.nombres && String(a.nombres).toLowerCase().includes(q)) ||
-      (a.apellidos && String(a.apellidos).toLowerCase().includes(q)) ||
-      (a.deporte && String(a.deporte).toLowerCase().includes(q))
-    );
-  });
+    // Categorías / Años disponibles calculados dinámicamente de los alumnos
+  const categoriasDisponibles = React.useMemo(() => {
+    const mapa = new Map();
+    alumnos.forEach(a => {
+      const anio = getAnioNacimiento(a.fecha_nacimiento);
+      const cat = (a.categoria || '').trim();
+
+      if (anio && anio !== '----') {
+        const key = `anio:${anio}`;
+        if (!mapa.has(key)) {
+          mapa.set(key, { valor: anio, label: `Cat. ${anio}`, total: 0, sortKey: Number(anio) || 0 });
+        }
+        mapa.get(key).total += 1;
+      }
+
+      if (cat && cat !== anio) {
+        const key = `cat:${cat}`;
+        if (!mapa.has(key)) {
+          mapa.set(key, { valor: cat, label: cat, total: 0, sortKey: 9999 });
+        }
+        mapa.get(key).total += 1;
+      }
+    });
+
+    return Array.from(mapa.values()).sort((a, b) => b.sortKey - a.sortKey);
+  }, [alumnos]);
+
+  // Deportes disponibles
+  const deportesDisponibles = React.useMemo(() => {
+    const mapa = new Map();
+    alumnos.forEach(a => {
+      const dep = (a.deporte || a.deportes || '').trim();
+      if (dep) {
+        mapa.set(dep, (mapa.get(dep) || 0) + 1);
+      }
+    });
+    return Array.from(mapa.entries()).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [alumnos]);
+
+  const alumnosFiltrados = React.useMemo(() => {
+    return alumnos.filter(a => {
+      const anio = getAnioNacimiento(a.fecha_nacimiento);
+      const cat = (a.categoria || '').toLowerCase();
+      const dep = (a.deporte || a.deportes || '').toLowerCase();
+
+      // Filtro texto
+      const q = busqueda.toLowerCase().trim();
+      if (q) {
+        const match =
+          (a.dni && String(a.dni).toLowerCase().includes(q)) ||
+          (a.nombres && String(a.nombres).toLowerCase().includes(q)) ||
+          (a.apellidos && String(a.apellidos).toLowerCase().includes(q)) ||
+          (dep && dep.includes(q)) ||
+          (cat && cat.includes(q)) ||
+          (anio && anio.includes(q)) ||
+          (`cat ${anio}`.includes(q)) ||
+          (`categoria ${anio}`.includes(q));
+        if (!match) return false;
+      }
+
+      // Filtro Categoría seleccionada
+      if (filtroCategoria) {
+        const matchCat = (anio === filtroCategoria) || ((a.categoria || '').trim() === filtroCategoria);
+        if (!matchCat) return false;
+      }
+
+      // Filtro Deporte seleccionado
+      if (filtroDeporte) {
+        const matchDep = (a.deporte || a.deportes || '').trim().toLowerCase() === filtroDeporte.toLowerCase();
+        if (!matchDep) return false;
+      }
+
+      return true;
+    });
+  }, [alumnos, busqueda, filtroCategoria, filtroDeporte]);
 
   const getQrVerificationUrl = (dni) => {
     if (destinoQr === 'produccion') {
@@ -1293,15 +1360,33 @@ export default function AdminCarnets() {
           <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start">
             {/* Buscador y Lista de Alumnos */}
             <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Buscar Alumno ({alumnosFiltrados.length})
+              {/* Encabezado con contador y botón Limpiar */}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-amber-500">group</span>
+                  <span>Alumnos ({alumnosFiltrados.length})</span>
                 </h3>
+                {(filtroCategoria || filtroDeporte || busqueda) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusqueda('');
+                      setFiltroCategoria('');
+                      setFiltroDeporte('');
+                    }}
+                    className="text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Restablecer todos los filtros"
+                  >
+                    <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                    <span>Limpiar</span>
+                  </button>
+                )}
               </div>
 
-              <div className="relative mb-4 flex gap-2">
+              {/* Input de Búsqueda */}
+              <div className="relative mb-2 flex gap-2">
                 <div className="relative flex-1">
-                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
                     search
                   </span>
                   <input
@@ -1311,17 +1396,76 @@ export default function AdminCarnets() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') buscarDirectoDni();
                     }}
-                    placeholder="Buscar por DNI, nombre o disciplina..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+                    placeholder="Buscar DNI, nombre, cat o deporte..."
+                    className="w-full pl-10 pr-7 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                   />
+                  {busqueda && (
+                    <button
+                      type="button"
+                      onClick={() => setBusqueda('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold p-1"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => buscarDirectoDni()}
                   title="Buscar DNI directamente en base de datos"
-                  className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-colors flex items-center justify-center shadow-sm"
+                  className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-colors flex items-center justify-center shadow-sm cursor-pointer active:scale-95"
                 >
                   <span className="material-symbols-outlined text-lg">search</span>
                 </button>
+              </div>
+
+              {/* Filtros Dropdowns por Categoría y Deporte */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {/* Selector Categoría */}
+                <div className="relative">
+                  <select
+                    value={filtroCategoria}
+                    onChange={(e) => setFiltroCategoria(e.target.value)}
+                    className={`w-full py-2 pl-2 pr-5 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate ${
+                      filtroCategoria
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <option value="">Todas las Categorías</option>
+                    {categoriasDisponibles.map((c) => (
+                      <option key={c.valor} value={c.valor}>
+                        {c.label} ({c.total})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
+                    expand_more
+                  </span>
+                </div>
+
+                {/* Selector Deporte */}
+                <div className="relative">
+                  <select
+                    value={filtroDeporte}
+                    onChange={(e) => setFiltroDeporte(e.target.value)}
+                    className={`w-full py-2 pl-2 pr-5 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate ${
+                      filtroDeporte
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <option value="">Todos los Deportes</option>
+                    {deportesDisponibles.map((d) => (
+                      <option key={d.nombre} value={d.nombre}>
+                        {d.nombre} ({d.total})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
+                    expand_more
+                  </span>
+                </div>
               </div>
 
               {authError && (
@@ -1381,9 +1525,20 @@ export default function AdminCarnets() {
                             <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
                               {a.nombres} {a.apellidos}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5 font-mono">
-                              DNI: {a.dni} • {limpiarTexto(a.deporte || a.deportes)}
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className="text-xs text-slate-500 font-mono">
+                                DNI: {a.dni}
+                              </span>
+                              <span className="text-[10px] text-slate-400">•</span>
+                              <span className="text-xs text-slate-400 font-medium truncate max-w-[90px]">
+                                {limpiarTexto(a.deporte || a.deportes)}
+                              </span>
+                              {getAnioNacimiento(a.fecha_nacimiento) !== '----' && (
+                                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
+                                  Cat. {getAnioNacimiento(a.fecha_nacimiento)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <span className="material-symbols-outlined text-slate-400 text-lg">chevron_right</span>
