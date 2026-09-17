@@ -1660,3 +1660,14 @@ function generarPdfAsistenciasAlumno(dni, nombreCompleto, asistencias, desde, ha
     `);
     printWindow.document.close();
 }
+// Exponer funciones globales en window para compatibilidad total con inline handlers
+window.confirmarPagoMensual = confirmarPagoMensual;
+window.rechazarPagoMensual = rechazarPagoMensual;
+window.abrirModalObservacionPago = abrirModalObservacionPago;
+window.abrirModalEditarMonto = abrirModalEditarMonto;
+window.abrirModalAsistenciasAlumno = abrirModalAsistenciasAlumno;
+window.cerrarModalAccion = cerrarModalAccion;
+window.mostrarModalAccion = mostrarModalAccion;
+window.mostrarModalConfirmarConDeportes = mostrarModalConfirmarConDeportes;
+window.ejecutarConfirmarPago = ejecutarConfirmarPago;
+window.cargarPagosMensuales = cargarPagosMensuales;
