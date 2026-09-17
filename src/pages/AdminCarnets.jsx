@@ -95,6 +95,12 @@ export default function AdminCarnets() {
   const [busqueda, setBusqueda] = useState('');
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  // Estados para Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
+  const [slotsA4, setSlotsA4] = useState([null, null, null, null]);
+  const [arrastrandoCarnet, setArrastrandoCarnet] = useState(false);
+  const [hoverSlotA4, setHoverSlotA4] = useState(null);
+  const [generandoA4Cuadruple, setGenerandoA4Cuadruple] = useState(false);
+
   
   // Opciones de Carnet
   const [formatoCarnet, setFormatoCarnet] = useState('vertical'); // 'vertical' (9cm x 11.5cm) | 'horizontal'
@@ -555,6 +561,166 @@ export default function AdminCarnets() {
   };
 
   // 2. Exportar en Hoja A4 con guías de corte para imprimir en hoja común
+  
+  // Funciones para la Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
+  const agregarAlumnoASlot = async (slotIndex) => {
+    const carnetEl = document.getElementById('carnetImprimible');
+    if (!carnetEl || !alumnoSeleccionado) {
+      setToastMensaje('Selecciona primero un alumno para agregarlo a la hoja.');
+      setTimeout(() => setToastMensaje(''), 3500);
+      return;
+    }
+
+    let targetIndex = slotIndex;
+    if (targetIndex === undefined || targetIndex === null) {
+      targetIndex = slotsA4.findIndex(s => s === null);
+      if (targetIndex === -1) {
+        setToastMensaje('¡La hoja A4 ya tiene los 4 espacios ocupados! Quita uno o vacía la hoja.');
+        setTimeout(() => setToastMensaje(''), 4000);
+        return;
+      }
+    }
+
+    try {
+      const dataUrl = await capturarCarnetDataUrl(carnetEl, 'jpeg');
+      const al = alumnoSeleccionado.alumno || {};
+      const nombre = getPrimerNombreYPrimerApellido(al.nombres, al.apellidos);
+      const dni = al.dni || '';
+      const deporte = alumnoSeleccionado.inscripciones?.[0]?.deporte || 'Fútbol';
+      const plan = alumnoSeleccionado.inscripciones?.[0]?.plan || 'Oficial';
+
+      setSlotsA4(prev => {
+        const copy = [...prev];
+        copy[targetIndex] = {
+          dataUrl,
+          alumno: al,
+          nombre,
+          dni,
+          deporte,
+          plan,
+          formato: formatoCarnet
+        };
+        return copy;
+      });
+
+      setToastMensaje(`¡Carnet de ${nombre} asignado al Espacio ${targetIndex + 1} de la Hoja A4!`);
+      setTimeout(() => setToastMensaje(''), 3500);
+    } catch (err) {
+      console.error('Error al capturar carnet para slot A4:', err);
+      setToastMensaje('No se pudo capturar el carnet para la hoja A4.');
+      setTimeout(() => setToastMensaje(''), 3500);
+    }
+  };
+
+  const quitarDeSlot = (slotIndex) => {
+    setSlotsA4(prev => {
+      const copy = [...prev];
+      copy[slotIndex] = null;
+      return copy;
+    });
+    setToastMensaje(`Espacio ${slotIndex + 1} liberado.`);
+    setTimeout(() => setToastMensaje(''), 2500);
+  };
+
+  const vaciarHojaA4 = () => {
+    setSlotsA4([null, null, null, null]);
+    setToastMensaje('Hoja A4 vaciada. Lista para un nuevo lote.');
+    setTimeout(() => setToastMensaje(''), 2500);
+  };
+
+  const exportarPdfHojaA4Cuadruple = async (accion = 'descargar') => {
+    const ocupados = slotsA4.filter(Boolean);
+    if (ocupados.length === 0) {
+      setToastMensaje('Agrega al menos 1 carnet a la hoja A4 antes de imprimir o descargar.');
+      setTimeout(() => setToastMensaje(''), 4000);
+      return;
+    }
+
+    setGenerandoA4Cuadruple(true);
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Medidas de carnet oficial: 90mm x 115mm
+      const carnetW = 90;
+      const carnetH = 115;
+
+      // Coordenadas exactas para cuadrícula 2x2 en A4 (210mm x 297mm):
+      // Ancho: 10mm margen + 90mm + 10mm separación + 90mm + 10mm margen = 210mm
+      // Alto:  20mm margen + 115mm + 20mm separación + 115mm + 27mm margen = 297mm
+      const posiciones = [
+        { x: 10,  y: 20 },  // Slot 0: Arriba Izquierda
+        { x: 110, y: 20 },  // Slot 1: Arriba Derecha
+        { x: 10,  y: 155 }, // Slot 2: Abajo Izquierda
+        { x: 110, y: 155 }, // Slot 3: Abajo Derecha
+      ];
+
+      // Encabezado superior oficial
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text('CLUB DEPORTES JAGUARES - PLANTILLA OFICIAL DE IMPRESIÓN EN HOJA A4 (4 CARNETS)', 105, 10, { align: 'center' });
+      pdf.setFontSize(7);
+      pdf.setTextColor(130, 130, 130);
+      pdf.text('Imprimir en escala 100% (sin ajuste de página) en papel fotográfico u opalina A4 (9 cm × 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
+
+      // Pie de página
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('Líneas punteadas exteriores diseñadas para corte exacto con guillotina o tijera para mica estándar.', 105, 290, { align: 'center' });
+
+      // Dibujar los slots
+      slotsA4.forEach((slot, index) => {
+        const pos = posiciones[index];
+        
+        // Línea de corte punteada
+        pdf.setDrawColor(180, 180, 180);
+        pdf.setLineDashPattern([2, 2], 0);
+        pdf.setLineWidth(0.25);
+        pdf.rect(pos.x - 0.5, pos.y - 0.5, carnetW + 1, carnetH + 1);
+
+        if (slot && slot.dataUrl) {
+          // Marcador de tijera arriba de cada carnet
+          pdf.setFontSize(6.5);
+          pdf.setTextColor(130, 130, 130);
+          pdf.text(`✂ Espacio ${index + 1}: ${slot.nombre} (DNI ${slot.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
+
+          // Imagen del carnet en alta resolución
+          pdf.addImage(slot.dataUrl, 'JPEG', pos.x, pos.y, carnetW, carnetH, undefined, 'FAST');
+        } else {
+          // Espacio vacío marcado en el PDF
+          pdf.setFontSize(8);
+          pdf.setTextColor(200, 200, 200);
+          pdf.text(`[ Espacio ${index + 1} Vacío ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
+        }
+      });
+
+      if (accion === 'imprimir') {
+        const blobUrl = pdf.output('bloburl');
+        const printWindow = window.open(blobUrl, '_blank');
+        if (printWindow) {
+          printWindow.addEventListener('load', () => {
+            printWindow.print();
+          });
+        }
+        setToastMensaje('¡Abriendo vista de impresión de la Hoja A4!');
+      } else {
+        const fechaStr = new Date().toISOString().split('T')[0];
+        pdf.save(`Hoja_A4_4_Carnets_${fechaStr}.pdf`);
+        setToastMensaje('¡Hoja A4 (4 carnets) descargada con éxito!');
+      }
+      setTimeout(() => setToastMensaje(''), 4500);
+    } catch (err) {
+      console.error('Error al generar PDF Hoja A4:', err);
+      setToastMensaje('Hubo un error al generar la Hoja A4.');
+      setTimeout(() => setToastMensaje(''), 4000);
+    } finally {
+      setGenerandoA4Cuadruple(false);
+    }
+  };
+
   const exportarCarnetHojaA4 = async () => {
     const carnetEl = document.getElementById('carnetImprimible');
     if (!carnetEl || !alumnoSeleccionado) return;
@@ -960,9 +1126,9 @@ export default function AdminCarnets() {
 
         {/* PESTAÑA 1: GENERADOR DE CARNETS */}
         {activeTab === 'carnets' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start">
             {/* Buscador y Lista de Alumnos */}
-            <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+            <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Buscar Alumno ({alumnosFiltrados.length})
@@ -1065,159 +1231,163 @@ export default function AdminCarnets() {
             </div>
 
             {/* Previsualización del Carnet Oficial */}
-            <div className="lg:col-span-7 flex flex-col items-center">
-              <div className="w-full flex flex-wrap items-center justify-between gap-3 mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  {formatoCarnet === 'vertical' ? 'Carnet Vertical Oficial (9cm × 11.5cm)' : 'Carnet Horizontal (CR80)'}
-                </span>
+            <div className="col-span-12 lg:col-span-8 xl:col-span-5 flex flex-col items-center">
+              <div className="w-full mb-3 flex flex-col gap-2.5">
+                {/* Fila 1: Título de Formato y Selectores de Configuración */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    {formatoCarnet === 'vertical' ? 'Carnet Vertical (9 × 11.5 cm)' : 'Carnet Horizontal (CR80)'}
+                  </span>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Selector de Formato: Vertical 9x11.5 vs Horizontal */}
-                  <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
-                    <button
-                      onClick={() => setFormatoCarnet('vertical')}
-                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                        formatoCarnet === 'vertical'
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                      title="Formato Vertical 9cm x 11.5cm exactos para la mica del cliente"
-                    >
-                      <span className="material-symbols-outlined text-sm">portrait</span>
-                      Vertical (9 × 11.5 cm)
-                    </button>
-                    <button
-                      onClick={() => setFormatoCarnet('horizontal')}
-                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                        formatoCarnet === 'horizontal'
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                      title="Formato Horizontal CR80"
-                    >
-                      <span className="material-symbols-outlined text-sm">landscape</span>
-                      Horizontal
-                    </button>
-                  </div>
-
-                  {/* Selector de Tipo de Código */}
-                  <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
-                    <button
-                      onClick={() => setTipoCodigo('barcode')}
-                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                        tipoCodigo === 'barcode'
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                      title="Código de Barras Code 128: Para pistola lectora USB en portería (100% privado)"
-                    >
-                      <span className="material-symbols-outlined text-sm">barcode</span>
-                      Barras (Pistola)
-                    </button>
-                    <button
-                      onClick={() => setTipoCodigo('qr')}
-                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                        tipoCodigo === 'qr'
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                      title="Código QR: Para cámara de celular"
-                    >
-                      <span className="material-symbols-outlined text-sm">qr_code_2</span>
-                      QR (Celular)
-                    </button>
-                  </div>
-
-                  {/* Selector de Tema */}
-                  <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
-                    <button
-                      onClick={() => setTemaImpresion('dark')}
-                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                        temaImpresion === 'dark'
-                          ? 'bg-slate-900 text-amber-400 shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full bg-slate-950 border border-amber-400 inline-block" />
-                      Oscuro
-                    </button>
-                    <button
-                      onClick={() => setTemaImpresion('light')}
-                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                        temaImpresion === 'light'
-                          ? 'bg-white text-slate-900 shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full bg-white border border-slate-400 inline-block" />
-                      Claro
-                    </button>
-                  </div>
-
-                  {/* Acciones */}
-                  {alumnoSeleccionado && (
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Selector de Formato: Vertical vs Horizontal */}
+                    <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
                       <button
-                        onClick={handlePrint}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                        onClick={() => setFormatoCarnet('vertical')}
+                        className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 text-[11px] ${
+                          formatoCarnet === 'vertical'
+                            ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                        title="Formato Vertical 9cm x 11.5cm exactos para la mica del cliente"
                       >
-                        <span className="material-symbols-outlined text-base">print</span>
-                        Imprimir
+                        <span className="material-symbols-outlined text-sm">portrait</span>
+                        Vertical
                       </button>
-
                       <button
-                        onClick={exportarCarnetPDF}
-                        disabled={generandoImagen}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black transition-all shadow-xs hover:shadow-md"
-                        title="Descargar PDF con tamaño exacto de la mica (9cm x 11.5cm)"
+                        onClick={() => setFormatoCarnet('horizontal')}
+                        className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 text-[11px] ${
+                          formatoCarnet === 'horizontal'
+                            ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                        title="Formato Horizontal CR80"
                       >
-                        <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                        {generandoImagen ? 'Generando...' : 'PDF Carnet (9x11.5cm)'}
-                      </button>
-
-                      <button
-                        onClick={exportarCarnetHojaA4}
-                        disabled={generandoImagen}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-                        title="Descargar PDF en hoja A4 centrado con guías para recortar"
-                      >
-                        <span className="material-symbols-outlined text-base">content_cut</span>
-                        Hoja A4 con Guía
-                      </button>
-
-                      <button
-                        onClick={() => exportarCarnetImagen('jpg', true, true)}
-                        disabled={generandoImagen}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow-xs"
-                        title="Descargar carnet en alta definición como JPG"
-                      >
-                        <span className="material-symbols-outlined text-base">image</span>
-                        {generandoImagen ? 'Generando...' : 'Descargar JPG'}
-                      </button>
-
-                      <button
-                        onClick={() => exportarCarnetImagen('png', true, true)}
-                        disabled={generandoImagen}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
-                        title="Descargar carnet como imagen PNG"
-                      >
-                        <span className="material-symbols-outlined text-base">download</span>
-                        PNG
-                      </button>
-
-                      <button
-                        onClick={abrirModalWhatsApp}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-sm hover:shadow-md"
-                        title="Enviar carnet por WhatsApp"
-                      >
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-                        </svg>
-                        WhatsApp
+                        <span className="material-symbols-outlined text-sm">landscape</span>
+                        Horizontal
                       </button>
                     </div>
-                  )}
+
+                    {/* Selector de Tipo de Código */}
+                    <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
+                      <button
+                        onClick={() => setTipoCodigo('barcode')}
+                        className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 text-[11px] ${
+                          tipoCodigo === 'barcode'
+                            ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                        title="Código de Barras Code 128: Para pistola lectora USB en portería"
+                      >
+                        <span className="material-symbols-outlined text-sm">barcode</span>
+                        Barras
+                      </button>
+                      <button
+                        onClick={() => setTipoCodigo('qr')}
+                        className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 text-[11px] ${
+                          tipoCodigo === 'qr'
+                            ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                        title="Código QR: Para cámara de celular"
+                      >
+                        <span className="material-symbols-outlined text-sm">qr_code_2</span>
+                        QR
+                      </button>
+                    </div>
+
+                    {/* Selector de Tema */}
+                    <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
+                      <button
+                        onClick={() => setTemaImpresion('dark')}
+                        className={`px-2 py-1 rounded-lg transition-colors flex items-center gap-1 text-[11px] ${
+                          temaImpresion === 'dark'
+                            ? 'bg-slate-900 text-amber-400 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-slate-950 border border-amber-400 inline-block" />
+                        Oscuro
+                      </button>
+                      <button
+                        onClick={() => setTemaImpresion('light')}
+                        className={`px-2 py-1 rounded-lg transition-colors flex items-center gap-1 text-[11px] ${
+                          temaImpresion === 'light'
+                            ? 'bg-white text-slate-900 shadow-xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-white border border-slate-400 inline-block" />
+                        Claro
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Fila 2: Acciones del Carnet Individual (flex-wrap garantizado) */}
+                {alumnoSeleccionado && (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 w-full pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                    <button
+                      onClick={handlePrint}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Imprimir carnet individual"
+                    >
+                      <span className="material-symbols-outlined text-sm">print</span>
+                      <span>Imprimir</span>
+                    </button>
+
+                    <button
+                      onClick={exportarCarnetPDF}
+                      disabled={generandoImagen}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black transition-all shadow-xs hover:shadow cursor-pointer active:scale-95"
+                      title="Descargar PDF con tamaño exacto de la mica (9cm x 11.5cm)"
+                    >
+                      <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                      <span>{generandoImagen ? 'Generando...' : 'PDF Carnet'}</span>
+                    </button>
+
+                    <button
+                      onClick={exportarCarnetHojaA4}
+                      disabled={generandoImagen}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Descargar PDF en hoja A4 centrado con guías para recortar (1 carnet)"
+                    >
+                      <span className="material-symbols-outlined text-sm">content_cut</span>
+                      <span>Hoja A4 (1)</span>
+                    </button>
+
+                    <button
+                      onClick={() => exportarCarnetImagen('jpg', true, true)}
+                      disabled={generandoImagen}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Descargar carnet en alta definición como JPG"
+                    >
+                      <span className="material-symbols-outlined text-sm">image</span>
+                      <span>JPG</span>
+                    </button>
+
+                    <button
+                      onClick={() => exportarCarnetImagen('png', true, true)}
+                      disabled={generandoImagen}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Descargar carnet como imagen PNG"
+                    >
+                      <span className="material-symbols-outlined text-sm">download</span>
+                      <span>PNG</span>
+                    </button>
+
+                    <button
+                      onClick={abrirModalWhatsApp}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95"
+                      title="Enviar carnet por WhatsApp al apoderado"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                      </svg>
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {cargandoDetalle ? (
@@ -1226,11 +1396,40 @@ export default function AdminCarnets() {
                   <p className="text-sm font-medium mt-2">Generando carnet...</p>
                 </div>
               ) : alumnoSeleccionado ? (
-                <div id="carnetPrintWrapper" className="w-full flex justify-center py-3">
+                <>
+                  {/* Barra compacta de asignación a Hoja A4 y Drag & Drop */}
+                  <div className="flex items-center justify-between w-full max-w-[360px] mb-2 px-1 gap-2">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold select-none leading-none">
+                      <span className="material-symbols-outlined text-sm text-amber-500 animate-pulse">drag_indicator</span>
+                      <span>Arrastra a la Hoja A4</span>
+                      <span className="material-symbols-outlined text-xs text-amber-400/80">arrow_forward</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => agregarAlumnoASlot()}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xs active:scale-95 flex-shrink-0 cursor-pointer leading-none"
+                      title="Asignar carnet al siguiente espacio libre de la Hoja A4"
+                    >
+                      <span className="material-symbols-outlined text-sm">add_to_photos</span>
+                      <span>Agregar a Hoja A4</span>
+                    </button>
+                  </div>
+              <div id="carnetPrintWrapper" className="w-full flex justify-center py-1">
                   {/* ====== VISTA VERTICAL 9cm x 11.5cm CON LOS 5 DATOS EXACTOS PEDIDOS ====== */}
                   {formatoCarnet === 'vertical' ? (
                     <div
                       id="carnetImprimible"
+                      draggable={Boolean(alumnoSeleccionado)}
+                      onDragStart={(e) => {
+                        if (!alumnoSeleccionado) return;
+                        e.dataTransfer.setData('text/plain', 'carnet-actual');
+                        setArrastrandoCarnet(true);
+                      }}
+                      onDragEnd={() => {
+                        setArrastrandoCarnet(false);
+                        setHoverSlotA4(null);
+                      }}
                       className={`formato-vertical w-[360px] h-[460px] rounded-2xl overflow-hidden relative border-2 transition-all flex flex-col justify-between shadow-2xl ${
                         temaImpresion === 'light'
                           ? 'bg-white text-slate-900 border-amber-500 shadow-xl'
@@ -1783,6 +1982,7 @@ export default function AdminCarnets() {
                     </div>
                   )}
                 </div>
+                </>
               ) : (
                 <div className="text-center py-20 text-slate-400">
                   <span className="material-symbols-outlined text-5xl mb-2 text-slate-400">badge</span>
@@ -1790,6 +1990,201 @@ export default function AdminCarnets() {
                 </div>
               )}
             </div>
+
+            {/* Columna 3: Bandeja Hoja A4 (4 Carnets 2x2 con Drag & Drop) */}
+            <div className="col-span-12 lg:col-span-12 xl:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 shadow-sm flex flex-col">
+              {/* Cabecera de la Bandeja */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-amber-500 text-xl">layers</span>
+                    <h3 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white">
+                      Bandeja Hoja A4 (4 Carnets)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                      {slotsA4.filter(Boolean).length} / 4 Carnets
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Arrastra o asigna carnets a los 4 espacios para imprimir en 1 sola hoja sin gastar papel
+                  </p>
+                </div>
+
+                {/* Acciones principales de la Bandeja */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => exportarPdfHojaA4Cuadruple('imprimir')}
+                    disabled={slotsA4.filter(Boolean).length === 0 || generandoA4Cuadruple}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-sm ${
+                      slotsA4.filter(Boolean).length > 0
+                        ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:shadow cursor-pointer'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                    }`}
+                    title="Imprimir directamente la hoja A4 con los carnets asignados"
+                  >
+                    <span className="material-symbols-outlined text-sm">print</span>
+                    Imprimir A4
+                  </button>
+
+                  <button
+                    onClick={() => exportarPdfHojaA4Cuadruple('descargar')}
+                    disabled={slotsA4.filter(Boolean).length === 0 || generandoA4Cuadruple}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 shadow-sm ${
+                      slotsA4.filter(Boolean).length > 0
+                        ? 'bg-rose-600 hover:bg-rose-500 text-white hover:shadow cursor-pointer'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                    }`}
+                    title="Descargar PDF A4 oficial con guías de corte listas"
+                  >
+                    <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    {generandoA4Cuadruple ? 'Generando...' : 'PDF A4'}
+                  </button>
+
+                  {slotsA4.some(Boolean) && (
+                    <button
+                      onClick={vaciarHojaA4}
+                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all"
+                      title="Vaciar todos los espacios de la hoja A4"
+                    >
+                      <span className="material-symbols-outlined text-base">delete_sweep</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Representación visual de la Hoja A4 física (Proporción exacta 210 x 297 mm) */}
+              <div className="flex-1 flex justify-center items-center py-1">
+                <div
+                  className="w-full max-w-[420px] bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700/80 rounded-2xl p-3 shadow-inner relative flex flex-col justify-between"
+                  style={{
+                    aspectRatio: '210 / 297',
+                  }}
+                >
+                  {/* Encabezado guía de corte superior */}
+                  <div className="flex items-center justify-between pb-1.5 border-b border-dashed border-slate-300 dark:border-slate-800 text-[9px] font-mono text-slate-600 dark:text-slate-400">
+                    <span>✂ 210 mm (ANCHO A4)</span>
+                    <span className="font-bold text-amber-500">2 × 2 CARNETS (9 × 11.5 cm)</span>
+                    <span>297 mm ✂</span>
+                  </div>
+
+                  {/* Cuadrícula 2x2 con los 4 espacios de corte */}
+                  <div className="grid grid-cols-2 gap-2.5 my-auto">
+                    {slotsA4.map((slot, index) => {
+                      const isHovered = hoverSlotA4 === index;
+                      const posNombre = ['Arriba Izquierda', 'Arriba Derecha', 'Abajo Izquierda', 'Abajo Derecha'][index];
+
+                      return (
+                        <div
+                          key={index}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'copy';
+                            setHoverSlotA4(index);
+                          }}
+                          onDragLeave={() => setHoverSlotA4(null)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setHoverSlotA4(null);
+                            setArrastrandoCarnet(false);
+                            agregarAlumnoASlot(index);
+                          }}
+                          onClick={() => {
+                            if (!slot && alumnoSeleccionado) {
+                              agregarAlumnoASlot(index);
+                            }
+                          }}
+                          className={`rounded-xl transition-all relative overflow-hidden flex flex-col items-center justify-center ${
+                            slot
+                              ? 'bg-slate-900 border-2 border-amber-500 shadow-md'
+                              : isHovered
+                              ? 'bg-amber-500/20 border-2 border-dashed border-amber-400 scale-[1.02] shadow-lg animate-pulse'
+                              : arrastrandoCarnet
+                              ? 'bg-amber-500/5 border-2 border-dashed border-amber-500/50 hover:bg-amber-500/15'
+                              : 'bg-white/60 dark:bg-slate-900/60 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-500/5 cursor-pointer'
+                          }`}
+                          style={{
+                            aspectRatio: '90 / 115', // Medida física oficial proporcional
+                          }}
+                        >
+                          {slot ? (
+                            // Espacio Ocupado
+                            <div className="w-full h-full relative group">
+                              <img
+                                src={slot.dataUrl}
+                                alt={slot.nombre}
+                                className="w-full h-full object-cover"
+                              />
+                              {/* Overlay con datos y botón quitar */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/70 p-2 flex flex-col justify-between opacity-90 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center justify-between">
+                                  <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[9px] font-black uppercase">
+                                    #{index + 1}
+                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      quitarDeSlot(index);
+                                    }}
+                                    className="w-6 h-6 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center transition-all shadow-md cursor-pointer"
+                                    title="Quitar este carnet de la hoja A4"
+                                  >
+                                    <span className="material-symbols-outlined text-sm font-bold">close</span>
+                                  </button>
+                                </div>
+
+                                <div>
+                                  <p className="font-black text-[10.5px] text-white truncate leading-tight drop-shadow-md">
+                                    {slot.nombre}
+                                  </p>
+                                  <p className="text-[8.5px] text-amber-300 font-mono truncate">
+                                    DNI: {slot.dni} • {slot.deporte}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            // Espacio Vacío
+                            <div className="p-2 text-center flex flex-col items-center justify-center gap-1 select-none">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                isHovered
+                                  ? 'bg-amber-500 text-slate-950 scale-110 shadow'
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                              }`}>
+                                <span className="material-symbols-outlined text-base">
+                                  {isHovered ? 'arrow_downward' : 'add'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                                  Espacio {index + 1}
+                                </span>
+                                <span className="text-[8.5px] font-medium text-slate-400 dark:text-slate-500 block leading-tight">
+                                  {isHovered
+                                    ? '¡Suelta aquí!'
+                                    : alumnoSeleccionado
+                                    ? 'Clic para poner'
+                                    : posNombre}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Guía inferior con porcentaje de ahorro de papel */}
+                  <div className="pt-1.5 border-t border-dashed border-slate-300 dark:border-slate-800 flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs text-amber-500">eco</span>
+                      Ahorro de papel: 75%
+                    </span>
+                    <span>Guías punteadas de corte</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
 
