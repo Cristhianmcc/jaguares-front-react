@@ -1393,21 +1393,24 @@ export default function AdminCarnets() {
                 </div>
               ) : alumnoSeleccionado ? (
                 <>
+                  {/* Barra compacta de asignación a Hoja A4 y Drag & Drop */}
                   <div className="flex items-center justify-between w-full max-w-[360px] mb-2 px-1 gap-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 font-bold text-xs select-none">
-                    <span className="material-symbols-outlined text-base animate-pulse">drag_indicator</span>
-                    <span className="text-[11px]">Jala el carnet a la Hoja 👉</span>
-                  </div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold select-none leading-none">
+                      <span className="material-symbols-outlined text-sm text-amber-500 animate-pulse">drag_indicator</span>
+                      <span>Arrastra a la Hoja A4</span>
+                      <span className="material-symbols-outlined text-xs text-amber-400/80">arrow_forward</span>
+                    </div>
 
-                  <button
-                    onClick={() => agregarAlumnoASlot()}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-sm active:scale-95 flex-shrink-0"
-                    title="Asignar carnet al siguiente espacio libre de la Hoja A4"
-                  >
-                    <span className="material-symbols-outlined text-sm font-bold">add_to_photos</span>
-                    <span>➕ Agregar a Hoja A4</span>
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => agregarAlumnoASlot()}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xs active:scale-95 flex-shrink-0 cursor-pointer leading-none"
+                      title="Asignar carnet al siguiente espacio libre de la Hoja A4"
+                    >
+                      <span className="material-symbols-outlined text-sm">add_to_photos</span>
+                      <span>Agregar a Hoja A4</span>
+                    </button>
+                  </div>
               <div id="carnetPrintWrapper" className="w-full flex justify-center py-1">
                   {/* ====== VISTA VERTICAL 9cm x 11.5cm CON LOS 5 DATOS EXACTOS PEDIDOS ====== */}
                   {formatoCarnet === 'vertical' ? (
