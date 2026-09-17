@@ -76,6 +76,12 @@ const formatFotoUrl = (url) => {
   const trimmed = url.trim();
   if (!trimmed) return '';
 
+  // Soporte para fotos locales subidas al servidor (/uploads/carnets/...)
+  if (trimmed.startsWith('/uploads/')) {
+    const apiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_PRODUCTION || '';
+    return apiBase ? `${apiBase.replace(/\/$/, '')}${trimmed}` : trimmed;
+  }
+
   if (trimmed.includes('drive.google.com/thumbnail') || trimmed.includes('lh3.googleusercontent.com')) {
     return trimmed;
   }
@@ -108,6 +114,131 @@ export default function AdminCarnets() {
   const [tipoCodigo, setTipoCodigo] = useState('barcode');
   const [generandoImagen, setGenerandoImagen] = useState(false);
   const [toastMensaje, setToastMensaje] = useState('');
+
+  // Modal para Cambiar / Actualizar Foto Tamaño Carnet
+  const [modalFotoCarnet, setModalFotoCarnet] = useState({
+    abierto: false,
+    alumno: null,
+    archivo: null,
+    previewUrl: null,
+    subiendo: false
+  });
+
+  const abrirModalCambiarFoto = (alumnoTarget = null) => {
+    const al = alumnoTarget || alumnoSeleccionado?.alumno;
+    if (!al) {
+      setToastMensaje('Selecciona un alumno para cambiar su foto');
+      setTimeout(() => setToastMensaje(''), 3000);
+      return;
+    }
+    setModalFotoCarnet({
+      abierto: true,
+      alumno: al,
+      archivo: null,
+      previewUrl: null,
+      subiendo: false
+    });
+  };
+
+  const handleSeleccionarFoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setToastMensaje('Selecciona un archivo de imagen válido (JPG, PNG o WebP)');
+      setTimeout(() => setToastMensaje(''), 3500);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setToastMensaje('La imagen supera los 10 MB. Elige una más ligera.');
+      setTimeout(() => setToastMensaje(''), 3500);
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setModalFotoCarnet(prev => ({
+      ...prev,
+      archivo: file,
+      previewUrl: preview
+    }));
+  };
+
+  const handleGuardarFotoCarnet = async () => {
+    if (!modalFotoCarnet.archivo || !modalFotoCarnet.alumno) return;
+    const dni = modalFotoCarnet.alumno.dni;
+    if (!dni) return;
+
+    setModalFotoCarnet(prev => ({ ...prev, subiendo: true }));
+    try {
+      const formData = new FormData();
+      formData.append('foto', modalFotoCarnet.archivo);
+
+      const token = localStorage.getItem('adminSession') || localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_PRODUCTION || '';
+      const url = `${apiBase}/api/admin/alumnos/${encodeURIComponent(dni)}/foto-carnet`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Error al actualizar la foto');
+      }
+
+      const nuevaUrl = data.foto_carnet_url;
+
+      // Actualizar el carnet en pantalla si corresponde
+      if (alumnoSeleccionado && alumnoSeleccionado.alumno?.dni === dni) {
+        setAlumnoSeleccionado(prev => ({
+          ...prev,
+          alumno: {
+            ...prev.alumno,
+            foto_carnet_url: nuevaUrl
+          }
+        }));
+      }
+
+      // Actualizar en la lista de alumnos en memoria
+      setAlumnos(prev => prev.map(item => {
+        if (item.alumno?.dni === dni) {
+          return {
+            ...item,
+            alumno: {
+              ...item.alumno,
+              foto_carnet_url: nuevaUrl
+            }
+          };
+        }
+        return item;
+      }));
+
+      setToastMensaje('¡Foto tamaño carnet actualizada con éxito!');
+      setTimeout(() => setToastMensaje(''), 4000);
+
+      if (modalFotoCarnet.previewUrl) {
+        URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+      }
+
+      setModalFotoCarnet({
+        abierto: false,
+        alumno: null,
+        archivo: null,
+        previewUrl: null,
+        subiendo: false
+      });
+    } catch (err) {
+      console.error('Error al subir foto:', err);
+      setToastMensaje(`Error: ${err.message}`);
+      setTimeout(() => setToastMensaje(''), 4500);
+      setModalFotoCarnet(prev => ({ ...prev, subiendo: false }));
+    }
+  };
 
   const [destinoQr, setDestinoQr] = useState(
     typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -1393,6 +1524,15 @@ export default function AdminCarnets() {
                     </button>
 
                     <button
+                      onClick={() => abrirModalCambiarFoto()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95"
+                      title="Actualizar o cambiar la foto tamaño carnet del alumno"
+                    >
+                      <span className="material-symbols-outlined text-sm">photo_camera</span>
+                      <span>Cambiar Foto</span>
+                    </button>
+
+                    <button
                       onClick={abrirModalWhatsApp}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95"
                       title="Enviar carnet por WhatsApp al apoderado"
@@ -1421,15 +1561,27 @@ export default function AdminCarnets() {
                       <span className="material-symbols-outlined text-xs text-amber-400/80">arrow_forward</span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => agregarAlumnoASlot()}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xs active:scale-95 flex-shrink-0 cursor-pointer leading-none"
-                      title="Asignar carnet al siguiente espacio libre de la Hoja A4"
-                    >
-                      <span className="material-symbols-outlined text-sm">add_to_photos</span>
-                      <span>Agregar a Hoja A4</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => abrirModalCambiarFoto()}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-xs active:scale-95 flex-shrink-0 cursor-pointer leading-none"
+                        title="Cambiar foto tamaño carnet"
+                      >
+                        <span className="material-symbols-outlined text-sm">photo_camera</span>
+                        <span>Foto</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => agregarAlumnoASlot()}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-xs active:scale-95 flex-shrink-0 cursor-pointer leading-none"
+                        title="Asignar carnet al siguiente espacio libre de la Hoja A4"
+                      >
+                        <span className="material-symbols-outlined text-sm">add_to_photos</span>
+                        <span>Agregar a Hoja A4</span>
+                      </button>
+                    </div>
                   </div>
               <div id="carnetPrintWrapper" className="w-full flex justify-center py-1">
                   {/* ====== VISTA VERTICAL 9cm x 11.5cm CON LOS 5 DATOS EXACTOS PEDIDOS ====== */}
@@ -2467,6 +2619,182 @@ export default function AdminCarnets() {
             )}
           </div>
         )}
+        {/* Modal Elegante: Cambiar / Actualizar Foto Tamaño Carnet */}
+        {modalFotoCarnet.abierto && (
+          <div
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => {
+              if (!modalFotoCarnet.subiendo) {
+                if (modalFotoCarnet.previewUrl) URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+                setModalFotoCarnet({ abierto: false, alumno: null, archivo: null, previewUrl: null, subiendo: false });
+              }
+            }}
+          >
+            <div
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Encabezado */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl">photo_camera</span>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 dark:text-white text-base leading-tight">
+                      Cambiar Foto Tamaño Carnet
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Actualiza la fotografía oficial del alumno para su credencial
+                    </p>
+                  </div>
+                </div>
+                <button
+                  disabled={modalFotoCarnet.subiendo}
+                  onClick={() => {
+                    if (modalFotoCarnet.previewUrl) URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+                    setModalFotoCarnet({ abierto: false, alumno: null, archivo: null, previewUrl: null, subiendo: false });
+                  }}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              </div>
+
+              {/* Info Alumno */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center flex-shrink-0">
+                  {modalFotoCarnet.alumno?.nombres?.charAt(0) || 'A'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                    {modalFotoCarnet.alumno?.nombres} {modalFotoCarnet.alumno?.apellidos || modalFotoCarnet.alumno?.apellido_paterno || ''}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    DNI: {modalFotoCarnet.alumno?.dni}
+                  </p>
+                </div>
+              </div>
+
+              {/* Comparativa: Foto Actual vs Nueva Foto */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Foto Actual */}
+                <div className="flex flex-col items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Foto Actual
+                  </span>
+                  <div className="w-28 h-32 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700/60 border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center shadow-xs">
+                    {modalFotoCarnet.alumno?.foto_carnet_url ? (
+                      <img
+                        src={formatFotoUrl(modalFotoCarnet.alumno.foto_carnet_url)}
+                        alt="Foto Actual"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center p-2">
+                        <span className="material-symbols-outlined text-3xl text-slate-400">person</span>
+                        <p className="text-[10px] text-slate-400 font-bold mt-1">Sin foto</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nueva Foto */}
+                <div className="flex flex-col items-center gap-2 p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-800/60">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                    Nueva Foto (3:4)
+                  </span>
+                  <div className="w-28 h-32 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-blue-500 flex items-center justify-center shadow-xs relative group">
+                    {modalFotoCarnet.previewUrl ? (
+                      <>
+                        <img
+                          src={modalFotoCarnet.previewUrl}
+                          alt="Nueva Foto"
+                          className="w-full h-full object-cover"
+                        />
+                        <label
+                          htmlFor="input-foto-carnet-nueva"
+                          className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity"
+                        >
+                          <span className="material-symbols-outlined text-xl">edit</span>
+                          <span className="text-[10px] font-bold">Cambiar</span>
+                        </label>
+                      </>
+                    ) : (
+                      <label
+                        htmlFor="input-foto-carnet-nueva"
+                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-2 text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
+                        <span className="text-[10px] font-bold mt-1">Seleccionar</span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Selector de Archivo */}
+              <div className="space-y-1.5">
+                <input
+                  type="file"
+                  id="input-foto-carnet-nueva"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleSeleccionarFoto}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="input-foto-carnet-nueva"
+                  className="w-full py-3 px-4 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-2xl flex items-center justify-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
+                >
+                  <span className="material-symbols-outlined text-lg text-blue-500">upload_file</span>
+                  <span>
+                    {modalFotoCarnet.archivo ? `Archivo: ${modalFotoCarnet.archivo.name}` : 'Haz clic para elegir foto (JPG, PNG, WebP)'}
+                  </span>
+                </label>
+                <p className="text-[10px] text-slate-400 text-center">
+                  Recomendación: Foto de rostro de frente, bien iluminada y nítida. Máximo 10 MB.
+                </p>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={modalFotoCarnet.subiendo}
+                  onClick={() => {
+                    if (modalFotoCarnet.previewUrl) URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+                    setModalFotoCarnet({ abierto: false, alumno: null, archivo: null, previewUrl: null, subiendo: false });
+                  }}
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={modalFotoCarnet.subiendo || !modalFotoCarnet.archivo}
+                  onClick={handleGuardarFotoCarnet}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  {modalFotoCarnet.subiendo ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                      <span>Subiendo y guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">check_circle</span>
+                      <span>Guardar Nueva Foto</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal Elegante: Registrar Pago por Clase con Efectivo / Yape / Plin */}
         {modalPagoClase.abierto && (
           <div 

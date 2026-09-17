@@ -22,6 +22,11 @@ const formatFotoUrl = (url) => {
     return trimmed;
   }
 
+  if (trimmed.startsWith('/uploads/')) {
+    const apiBase = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_PRODUCTION || '';
+    return apiBase ? `${apiBase.replace(/\/$/, '')}${trimmed}` : trimmed;
+  }
+
   const fileId = getDriveFileId(trimmed);
   if (fileId) {
     return `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
