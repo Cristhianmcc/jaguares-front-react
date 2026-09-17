@@ -118,6 +118,12 @@ export default function AdminCarnets() {
   // Estados del Escáner de Puerta
   const [dniEscaneo, setDniEscaneo] = useState('');
   const [resultadoEscaneo, setResultadoEscaneo] = useState(null);
+  const [modalPagoClase, setModalPagoClase] = useState({
+    abierto: false,
+    alumno: null,
+    monto: 15,
+    metodo: 'Efectivo'
+  });
   const [cargandoEscaneo, setCargandoEscaneo] = useState(false);
   const [historialEscaneo, setHistorialEscaneo] = useState([]);
   const [usarCamara, setUsarCamara] = useState(false);
@@ -375,7 +381,7 @@ export default function AdminCarnets() {
     } catch (e) {}
   };
 
-  const procesarEscaneo = async (valorEntrada, forzarIngreso = false) => {
+  const procesarEscaneo = async (valorEntrada, forzarIngreso = false, opcionesPagoClase = null) => {
     if (cargandoEscaneo) return;
     let dni = (valorEntrada || dniEscaneo).trim();
     if (!dni) return;
@@ -393,10 +399,17 @@ export default function AdminCarnets() {
 
     setCargandoEscaneo(true);
     try {
+      const bodyData = { dni, forzar_ingreso: forzarIngreso };
+      if (opcionesPagoClase) {
+        bodyData.pago_clase = true;
+        bodyData.monto_clase = opcionesPagoClase.monto || 15;
+        bodyData.metodo_pago_clase = opcionesPagoClase.metodo || 'Efectivo';
+      }
+
       const res = await fetchWithAuth('/api/admin/carnets/validar-acceso', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dni, forzar_ingreso: forzarIngreso })
+        body: JSON.stringify(bodyData)
       });
 
       if (!res.ok) {
@@ -414,6 +427,9 @@ export default function AdminCarnets() {
           success: true,
           activo: data.activo,
           es_excepcion: esExcepcion,
+          es_pago_clase: data.es_pago_clase || (opcionesPagoClase ? true : false),
+          monto_pago_clase: data.monto_pago_clase || (opcionesPagoClase ? opcionesPagoClase.monto : null),
+          metodo_pago_clase: data.metodo_pago_clase || (opcionesPagoClase ? opcionesPagoClase.metodo : null),
           aviso: data.aviso,
           motivo: data.motivo,
           pase_entregado: data.pase_entregado,
@@ -2290,15 +2306,17 @@ export default function AdminCarnets() {
                       <div className="flex items-center gap-4">
                         <div
                           className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                            resultadoEscaneo.es_excepcion
-                              ? 'bg-amber-500 text-slate-950'
+                            resultadoEscaneo.es_pago_clase
+                              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                              : resultadoEscaneo.es_excepcion
+                                ? 'bg-amber-500 text-slate-950'
                               : resultadoEscaneo.activo
                                 ? 'bg-emerald-500 text-white'
                                 : 'bg-rose-500 text-white'
                           }`}
                         >
                           <span className="material-symbols-outlined text-4xl">
-                            {resultadoEscaneo.es_excepcion ? 'lock_open' : resultadoEscaneo.activo ? 'check_circle' : 'cancel'}
+                            {resultadoEscaneo.es_pago_clase ? 'payments' : (resultadoEscaneo.sin_clase_hoy ? 'event_busy' : (resultadoEscaneo.es_excepcion ? 'lock_open' : (resultadoEscaneo.activo ? 'check_circle' : 'cancel')))}
                           </span>
                         </div>
                         <div>
@@ -2312,11 +2330,15 @@ export default function AdminCarnets() {
                                     : 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-300'
                               }`}
                             >
-                              {resultadoEscaneo.es_excepcion
-                                ? 'PASE POR EXCEPCIÓN (DEBE MENSUALIDAD)'
-                                : resultadoEscaneo.activo
-                                  ? 'INGRESO AUTORIZADO'
-                                  : 'ACCESO DENEGADO'}
+                              {resultadoEscaneo.es_pago_clase
+                                ? 'PAGO POR CLASE INDIVIDUAL'
+                                : resultadoEscaneo.sin_clase_hoy
+                                  ? 'SIN CLASE PROGRAMADA HOY'
+                                : resultadoEscaneo.es_excepcion
+                                  ? 'PASE POR EXCEPCION (DEBE MENSUALIDAD)'
+                                  : resultadoEscaneo.activo
+                                    ? 'INGRESO AUTORIZADO'
+                                    : 'ACCESO DENEGADO'}
                             </span>
                             <span className="text-xs text-slate-400 font-mono">
                               {resultadoEscaneo.timestamp}
@@ -2332,14 +2354,29 @@ export default function AdminCarnets() {
                       </div>
 
                       {!resultadoEscaneo.activo && resultadoEscaneo.puede_autorizar && (
-                        <button
-                          onClick={() => procesarEscaneo(resultadoEscaneo.alumno?.dni, true)}
-                          disabled={cargandoEscaneo}
-                          className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center gap-1.5"
-                        >
-                          <span className="material-symbols-outlined text-base">lock_open</span>
-                          Autorizar Excepción de Ingreso
-                        </button>
+                        <div className="flex flex-col gap-2 w-full sm:w-auto min-w-[210px]">
+                          <button
+                            onClick={() => procesarEscaneo(resultadoEscaneo.alumno?.dni, true)}
+                            disabled={cargandoEscaneo}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-base">lock_open</span>
+                            Autorizar Excepción
+                          </button>
+                          <button
+                            onClick={() => setModalPagoClase({
+                              abierto: true,
+                              alumno: resultadoEscaneo.alumno,
+                              monto: 15,
+                              metodo: 'Efectivo'
+                            })}
+                            disabled={cargandoEscaneo}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-base">payments</span>
+                            Paga por Clase (S/ 15.00)
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -2404,11 +2441,19 @@ export default function AdminCarnets() {
                           }`}
                         />
                         <div>
-                          <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
-                            {item.alumno?.nombres} {item.alumno?.apellidos}
-                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
+                              {item.alumno?.nombres} {item.alumno?.apellidos}
+                            </p>
+                            {item.es_pago_clase && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                <span className="material-symbols-outlined text-xs">payments</span>
+                                Pago S/ {item.monto_pago_clase || 15} • {item.metodo_pago_clase || 'Efectivo'}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-400 font-mono">
-                            DNI: {item.alumno?.dni} • {item.es_excepcion ? 'Pase por excepción (Deuda de mensualidad pendiente)' : (item.motivo || item.aviso)}
+                            DNI: {item.alumno?.dni} • {item.es_pago_clase ? (item.motivo || 'Clase individual pagada en puerta') : item.es_excepcion ? 'Pase por excepción (Deuda de mensualidad pendiente)' : (item.motivo || item.aviso)}
                           </p>
                         </div>
                       </div>
@@ -2420,6 +2465,183 @@ export default function AdminCarnets() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {/* Modal Elegante: Registrar Pago por Clase con Efectivo / Yape / Plin */}
+        {modalPagoClase.abierto && (
+          <div 
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setModalPagoClase(prev => ({ ...prev, abierto: false }))}
+          >
+            <div 
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Encabezado */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl">payments</span>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 dark:text-white text-base leading-tight">
+                      Paga por Clase
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Entrenamiento individual extra / diario
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalPagoClase(prev => ({ ...prev, abierto: false }))}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              </div>
+
+              {/* Info Alumno */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black text-sm flex items-center justify-center flex-shrink-0">
+                  {modalPagoClase.alumno?.nombres?.charAt(0) || 'A'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                    {modalPagoClase.alumno?.nombres} {modalPagoClase.alumno?.apellidos || modalPagoClase.alumno?.nombre_completo}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                    DNI: {modalPagoClase.alumno?.dni}
+                  </p>
+                </div>
+              </div>
+
+              {/* Selección de Monto */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Monto a Cobrar (S/.)
+                </label>
+                <div className="flex items-center gap-2">
+                  {[15, 20, 10].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setModalPagoClase(prev => ({ ...prev, monto: m }))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border ${
+                        modalPagoClase.monto === m
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                          : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      S/ {m}.00
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                    S/
+                  </span>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    value={modalPagoClase.monto}
+                    onChange={(e) => setModalPagoClase(prev => ({ ...prev, monto: parseFloat(e.target.value) || 0 }))}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="15.00"
+                  />
+                </div>
+              </div>
+
+              {/* Método de Pago con Iconos Profesionales */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Método de Pago Recibido
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {/* Efectivo */}
+                  <button
+                    type="button"
+                    onClick={() => setModalPagoClase(prev => ({ ...prev, metodo: 'Efectivo' }))}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 transition-all ${
+                      modalPagoClase.metodo === 'Efectivo'
+                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-sm ring-2 ring-emerald-500/40'
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-2xl text-emerald-500">payments</span>
+                    <span className="text-xs font-black">Efectivo</span>
+                  </button>
+
+                  {/* Yape */}
+                  <button
+                    type="button"
+                    onClick={() => setModalPagoClase(prev => ({ ...prev, metodo: 'Yape' }))}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                      modalPagoClase.metodo === 'Yape'
+                        ? 'bg-purple-500/10 border-[#742284] text-[#8B2BB2] dark:text-purple-300 shadow-md ring-2 ring-[#742284]/40 scale-[1.02]'
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#742284] flex items-center justify-center shadow-xs">
+                      <img
+                        src="/assets/yape.jpg"
+                        alt="Yape"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                    <span className="text-xs font-black tracking-wide">Yape</span>
+                  </button>
+
+                  {/* Plin */}
+                  <button
+                    type="button"
+                    onClick={() => setModalPagoClase(prev => ({ ...prev, metodo: 'Plin' }))}
+                    className={`p-3 rounded-2xl border flex flex-col items-center gap-2 transition-all ${
+                      modalPagoClase.metodo === 'Plin'
+                        ? 'bg-cyan-500/10 border-[#00B4D8] text-[#0096C7] dark:text-cyan-300 shadow-md ring-2 ring-[#00B4D8]/40 scale-[1.02]'
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-xl overflow-hidden bg-white p-0.5 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-xs">
+                      <img
+                        src="/assets/plinlogo.png"
+                        alt="Plin"
+                        className="w-full h-full object-contain"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                    <span className="text-xs font-black tracking-wide">Plin</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalPagoClase(prev => ({ ...prev, abierto: false }))}
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={cargandoEscaneo || !modalPagoClase.monto || modalPagoClase.monto <= 0}
+                  onClick={async () => {
+                    const alumnoDni = modalPagoClase.alumno?.dni;
+                    const monto = modalPagoClase.monto;
+                    const metodo = modalPagoClase.metodo;
+                    setModalPagoClase(prev => ({ ...prev, abierto: false }));
+                    await procesarEscaneo(alumnoDni, true, { monto, metodo });
+                  }}
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">check_circle</span>
+                  Confirmar Ingreso (S/ {Number(modalPagoClase.monto || 0).toFixed(2)})
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
