@@ -139,10 +139,11 @@ const html = `
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     // Eliminar versión anterior para garantizar que siempre se ejecuta el código más reciente
-    const existing = document.querySelector(`script[src="${src}"]`);
+    const existing = document.querySelector(`script[data-legacy-src="${src}"]`);
     if (existing) existing.remove();
     const s = document.createElement('script');
-    s.src = src;
+    s.dataset.legacySrc = src;
+    s.src = src.includes('?') ? src : `${src}?v=${Date.now()}`;
     s.onload = () => resolve(true);
     s.onerror = reject;
     document.body.appendChild(s);
