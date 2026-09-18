@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * JavaScript para Dashboard Financiero
  */
 
@@ -52,12 +52,12 @@ async function cargarEstadisticas() {
                 ? ''
                 : 'https://api.jaguarescar.com');
         
-        // Obtener token de sesiÃ³n
+        // Obtener token de sesión
         const sessionData = JSON.parse(localStorage.getItem('adminSession'));
         const token = sessionData?.token;
         
         if (!token) {
-            throw new Error('Token no encontrado. Por favor inicia sesiÃ³n nuevamente.');
+            throw new Error('Token no encontrado. Por favor inicia sesión nuevamente.');
         }
         
         const response = await fetch(`${API_BASE}/api/admin/estadisticas-financieras`, {
@@ -78,11 +78,11 @@ async function cargarEstadisticas() {
             dashboardContainer.classList.remove('hidden');
             renderizarEstadisticas(data.estadisticas);
         } else {
-            mostrarError('Error al cargar estadÃ­Â­sticas: ' + data.error);
+            mostrarError('Error al cargar estadí­sticas: ' + data.error);
         }
     } catch (error) {
-        console.error('Error al cargar estadÃ­Â­sticas:', error);
-        mostrarError('Error de conexiÃ­Â³n. Verifica que el servidor estÃ­Â© activo.');
+        console.error('Error al cargar estadí­sticas:', error);
+        mostrarError('Error de conexií³n. Verifica que el servidor estí© activo.');
     } finally {
         loadingContainer.classList.add('hidden');
     }
@@ -107,7 +107,7 @@ function renderizarEstadisticas(stats) {
     renderizarTablaDeportes(porDeporte);
     renderizarTablaAlumnos(porAlumno);
     
-    // Renderizar grÃ­Â¡ficas
+    // Renderizar grí¡ficas
     renderizarGraficas(porDeporte, resumen);
 }
 
@@ -180,7 +180,7 @@ function renderizarTablaAlumnos(alumnos) {
 }
 
 function renderizarGraficas(deportes, resumen) {
-    // Destruir grÃ­Â¡ficas anteriores
+    // Destruir grí¡ficas anteriores
     if (chartDeportes) chartDeportes.destroy();
     if (chartDistribucion) chartDistribucion.destroy();
     
@@ -196,7 +196,7 @@ function renderizarGraficas(deportes, resumen) {
         '#CA8A04'  // Yellow
     ];
     
-    // GrÃ­Â¡fica por deporte (Barras horizontales)
+    // Grí¡fica por deporte (Barras horizontales)
     const ctxDeportes = document.getElementById('chartDeportes').getContext('2d');
     chartDeportes = new Chart(ctxDeportes, {
         type: 'bar',
@@ -246,12 +246,12 @@ function renderizarGraficas(deportes, resumen) {
         }
     });
     
-    // GrÃ­Â¡fica de distribuciÃ­Â³n (Doughnut)
+    // Grí¡fica de distribucií³n (Doughnut)
     const ctxDistribucion = document.getElementById('chartDistribucion').getContext('2d');
     chartDistribucion = new Chart(ctxDistribucion, {
         type: 'doughnut',
         data: {
-            labels: ['MatrÃ­Â­culas', 'Mensualidades'],
+            labels: ['Matrí­culas', 'Mensualidades'],
             datasets: [{
                 data: [resumen.totalMatriculas, resumen.totalMensualidades],
                 backgroundColor: ['#F59E0B', '#C59D5F'],
@@ -300,6 +300,44 @@ function mostrarError(Mensaje) {
         </div>
     `;
 }
+
+function renderizarTablaDesgloseMensual(desglose) {
+    const tbody = document.getElementById('tablaDesgloseMensual');
+    if (!tbody) return;
+
+    if (!desglose || desglose.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-4 py-8 text-center text-text-muted">
+                    Sin datos de historial mensual confirmado
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    const MESES_ES = {
+        enero: 'Enero', febrero: 'Febrero', marzo: 'Marzo', abril: 'Abril',
+        mayo: 'Mayo', junio: 'Junio', julio: 'Julio', agosto: 'Agosto',
+        septiembre: 'Septiembre', setiembre: 'Septiembre',
+        octubre: 'Octubre', noviembre: 'Noviembre', diciembre: 'Diciembre'
+    };
+
+    tbody.innerHTML = desglose.map(m => {
+        const mesLabel = MESES_ES[(m.mes || '').toLowerCase()] || m.mes;
+        const total = parseFloat(m.total_recaudado || 0);
+        const cantidad = parseInt(m.cantidad_pagos || 0);
+        const deporte = m.deporte || '-';
+        return `
+            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                <td class="px-4 py-3 font-semibold text-black dark:text-white">${mesLabel} ${m.anio || ''}</td>
+                <td class="px-4 py-3 text-text-muted dark:text-gray-300">${deporte}</td>
+                <td class="px-4 py-3 text-center font-mono">${cantidad}</td>
+                <td class="px-4 py-3 text-right font-bold font-mono text-primary">S/ ${total.toFixed(2)}</td>
+            </tr>
+        `;
+    }).join('');
+}
 // Variable global para almacenar los datos
 let estadisticasGlobales = null;
 
@@ -310,7 +348,7 @@ function prepararDatosExportacion(stats) {
         totalIngresos: resumen.totalIngresosActivos,
         ingresosMes: resumen.ingresosMes,
         totalInscritos: resumen.totalInscritos || 0,
-        matriculasPagadas: resumen.totalMatriculas / 20, // Asumiendo matrÃ­Â­cula de S/20
+        matriculasPagadas: resumen.totalMatriculas / 20, // Asumiendo matrí­cula de S/20
         MensualidadesPagadas: porAlumno.length,
         distribucion: {
             matriculas: resumen.totalMatriculas,
@@ -350,18 +388,18 @@ async function exportarDashboardExcel() {
         [''],
         ['resumen GENERAL'],
         [''],
-        ['MÃ­Â©trica', 'Valor'],
+        ['Mí©trica', 'Valor'],
         ['Total Ingresos Confirmados', `S/ ${estadisticasGlobales.totalIngresos.toFixed(2)}`],
         ['Ingresos del Mes Actual', `S/ ${estadisticasGlobales.ingresosMes.toFixed(2)}`],
         ['Total de Inscritos Activos', estadisticasGlobales.totalInscritos],
-        ['Total MatrÃ­Â­culas Cobradas', Math.floor(estadisticasGlobales.matriculasPagadas)],
+        ['Total Matrí­culas Cobradas', Math.floor(estadisticasGlobales.matriculasPagadas)],
         ['Total Mensualidades Cobradas', estadisticasGlobales.MensualidadesPagadas],
         [''],
         [''],
-        ['DISTRIBUCIÃ­â€œN DE INGRESOS'],
+        ['DISTRIBUCIí“N DE INGRESOS'],
         [''],
         ['Concepto', 'Monto (S/)', 'Porcentaje'],
-        ['MatrÃ­Â­culas', estadisticasGlobales.distribucion.matriculas.toFixed(2), `${((estadisticasGlobales.distribucion.matriculas / estadisticasGlobales.totalIngresos) * 100).toFixed(1)}%`],
+        ['Matrí­culas', estadisticasGlobales.distribucion.matriculas.toFixed(2), `${((estadisticasGlobales.distribucion.matriculas / estadisticasGlobales.totalIngresos) * 100).toFixed(1)}%`],
         ['Mensualidades', estadisticasGlobales.distribucion.Mensualidades.toFixed(2), `${((estadisticasGlobales.distribucion.Mensualidades / estadisticasGlobales.totalIngresos) * 100).toFixed(1)}%`],
         [''],
         ['TOTAL', estadisticasGlobales.totalIngresos.toFixed(2), '100.0%']
@@ -376,12 +414,12 @@ async function exportarDashboardExcel() {
         { wch: 15 }   // Columna C
     ];
     
-    // Fusionar celdas para el tÃ­Â­tulo
+    // Fusionar celdas para el tí­tulo
     wsresumen['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },  // TÃ­Â­tulo principal
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },  // Tí­tulo principal
         { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },  // Fecha
         { s: { r: 3, c: 0 }, e: { r: 3, c: 2 } },  // resumen GENERAL
-        { s: { r: 13, c: 0 }, e: { r: 13, c: 2 } } // DISTRIBUCIÃ­â€œN
+        { s: { r: 13, c: 0 }, e: { r: 13, c: 2 } } // DISTRIBUCIí“N
     ];
     
     XLSX.utils.book_append_sheet(wb, wsresumen, 'resumen General');
@@ -391,7 +429,7 @@ async function exportarDashboardExcel() {
         ['INGRESOS POR DEPORTE'],
         [`Fecha: ${fecha}`],
         [''],
-        ['Deporte', 'MatrÃ­Â­culas (S/)', 'Mensualidades (S/)', 'Total (S/)', 'Part. %']
+        ['Deporte', 'Matrí­culas (S/)', 'Mensualidades (S/)', 'Total (S/)', 'Part. %']
     ];
     
     let totalMatriculas = 0;
@@ -429,13 +467,13 @@ async function exportarDashboardExcel() {
     // Anchos de columna
     wsDeportes['!cols'] = [
         { wch: 30 },  // Deporte
-        { wch: 18 },  // MatrÃ­Â­culas
+        { wch: 18 },  // Matrí­culas
         { wch: 20 },  // Mensualidades
         { wch: 15 },  // Total
-        { wch: 12 }   // ParticipaciÃ­Â³n
+        { wch: 12 }   // Participacií³n
     ];
     
-    // Fusionar tÃ­Â­tulo
+    // Fusionar tí­tulo
     wsDeportes['!merges'] = [
         { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
         { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } }
@@ -448,7 +486,7 @@ async function exportarDashboardExcel() {
         ['TOP 10 ALUMNOS POR INGRESOS GENERADOS'],
         [`Fecha: ${fecha}`],
         [''],
-        ['Pos.', 'DNI', 'Nombres y Apellidos', 'Deportes Inscritos', 'MatrÃ­Â­culas (S/)', 'Mensualidades (S/)', 'Total (S/)']
+        ['Pos.', 'DNI', 'Nombres y Apellidos', 'Deportes Inscritos', 'Matrí­culas (S/)', 'Mensualidades (S/)', 'Total (S/)']
     ];
     
     estadisticasGlobales.topAlumnos.forEach((alumno, index) => {
@@ -491,16 +529,16 @@ async function exportarDashboardExcel() {
     
     // Anchos de columna
     wsAlumnos['!cols'] = [
-        { wch: 6 },   // PosiciÃ­Â³n
+        { wch: 6 },   // Posicií³n
         { wch: 12 },  // DNI
         { wch: 40 },  // Nombres
         { wch: 30 },  // Deportes
-        { wch: 18 },  // MatrÃ­Â­culas
+        { wch: 18 },  // Matrí­culas
         { wch: 20 },  // Mensualidades
         { wch: 15 }   // Total
     ];
     
-    // Fusionar tÃ­Â­tulo
+    // Fusionar tí­tulo
     wsAlumnos['!merges'] = [
         { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
         { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }
@@ -508,32 +546,32 @@ async function exportarDashboardExcel() {
     
     XLSX.utils.book_append_sheet(wb, wsAlumnos, 'Top 10 Alumnos');
     
-    // ==================== HOJA 4: ANÃ­ÂLISIS Y MÃ­â€°TRICAS ====================
+    // ==================== HOJA 4: ANíLISIS Y Mí‰TRICAS ====================
     const analisisData = [
-        ['ANÃ­ÂLISIS Y MÃ­â€°TRICAS ADICIONALES'],
+        ['ANíLISIS Y Mí‰TRICAS ADICIONALES'],
         [`Fecha: ${fecha}`],
         [''],
         ['INDICADORES CLAVE'],
         [''],
-        ['MÃ­Â©trica', 'Valor', 'DescripciÃ­Â³n'],
+        ['Mí©trica', 'Valor', 'Descripcií³n'],
         ['Ingreso Promedio por Alumno', `S/ ${(estadisticasGlobales.totalIngresos / Math.max(estadisticasGlobales.totalInscritos, 1)).toFixed(2)}`, 'Ingresos totales / Total inscritos'],
         ['Ingreso Promedio por Deporte', `S/ ${(estadisticasGlobales.totalIngresos / Math.max(estadisticasGlobales.deportes.length, 1)).toFixed(2)}`, 'Ingresos totales / Cantidad de deportes'],
-        ['Ratio MatrÃ­Â­cula/Mensualidad', `${((estadisticasGlobales.distribucion.matriculas / estadisticasGlobales.distribucion.Mensualidades) * 100).toFixed(1)}%`, 'ProporciÃ­Â³n de ingresos por matrÃ­Â­culas vs Mensualidades'],
+        ['Ratio Matrí­cula/Mensualidad', `${((estadisticasGlobales.distribucion.matriculas / estadisticasGlobales.distribucion.Mensualidades) * 100).toFixed(1)}%`, 'Proporcií³n de ingresos por matrí­culas vs Mensualidades'],
         ['Deportes Activos', estadisticasGlobales.deportes.length, 'Cantidad de deportes generando ingresos'],
         [''],
         [''],
-        ['DEPORTE MÃ­ÂS RENTABLE'],
+        ['DEPORTE MíS RENTABLE'],
         ['']
     ];
     
-    // Encontrar deporte mÃ­Â¡s rentable
+    // Encontrar deporte mí¡s rentable
     const deporteMasRentable = estadisticasGlobales.deportes.reduce((max, dep) => 
         dep.total > max.total ? dep : max
     , estadisticasGlobales.deportes[0]);
     
     analisisData.push(['Deporte:', deporteMasRentable.nombre]);
     analisisData.push(['Ingresos Generados:', `S/ ${deporteMasRentable.total.toFixed(2)}`]);
-    analisisData.push(['ParticipaciÃ­Â³n:', `${((deporteMasRentable.total / estadisticasGlobales.totalIngresos) * 100).toFixed(1)}%`]);
+    analisisData.push(['Participacií³n:', `${((deporteMasRentable.total / estadisticasGlobales.totalIngresos) * 100).toFixed(1)}%`]);
     
     const wsAnalisis = XLSX.utils.aoa_to_sheet(analisisData);
     
@@ -552,13 +590,13 @@ async function exportarDashboardExcel() {
         { s: { r: 12, c: 0 }, e: { r: 12, c: 2 } }
     ];
     
-    XLSX.utils.book_append_sheet(wb, wsAnalisis, 'AnÃ­Â¡lisis');
+    XLSX.utils.book_append_sheet(wb, wsAnalisis, 'Aní¡lisis');
     
     // Descargar archivo
     const nombreArchivo = `Dashboard_Financiero_Jaguares_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, nombreArchivo);
     
-    mostrarNotificacion('Ã¢Å“â€¦ Excel generado con formato profesional', 'success');
+    mostrarNotificacion('âœ… Excel generado con formato profesional', 'success');
 }
 
 function mostrarNotificacion(Mensaje, tipo = 'info') {
