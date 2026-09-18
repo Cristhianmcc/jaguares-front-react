@@ -4,7 +4,7 @@ import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { fetchWithAuth, API_BASE } from '../config/api.js';
 
-// Patrones estándar Code 128 (índices 0 al 106)
+// Patrones estÃ¡ndar Code 128 (Ã­ndices 0 al 106)
 const CODE128_PATTERNS = [
   '212222','222122','222221','121223','121322','131222','122213','122312','132212','221213',
   '221312','231212','112232','122132','122231','113222','123122','123221','223211','221132',
@@ -103,12 +103,12 @@ export default function AdminCarnets() {
   const [filtroDeporte, setFiltroDeporte] = useState('');
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  // Estados para Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
+  // Estados para Bandeja de ImpresiÃ³n Hoja A4 (4 Carnets 2x2)
   const [slotsA4, setSlotsA4] = useState([null, null, null, null]);
   const [arrastrandoCarnet, setArrastrandoCarnet] = useState(false);
   const [hoverSlotA4, setHoverSlotA4] = useState(null);
   const [generandoA4Cuadruple, setGenerandoA4Cuadruple] = useState(false);
-  // Estados para Lote de Hojas A4 (dividir categoría o grupo en tandas de 4)
+  // Estados para Lote de Hojas A4 (dividir categorÃ­a o grupo en tandas de 4)
   const [loteHojas, setLoteHojas] = useState([]);
   const [hojaActual, setHojaActual] = useState(0);
   const [procesandoLote, setProcesandoLote] = useState(false);
@@ -123,7 +123,7 @@ export default function AdminCarnets() {
   const [generandoImagen, setGenerandoImagen] = useState(false);
   const [toastMensaje, setToastMensaje] = useState('');
 
-  // Modal para Cambiar / Actualizar Foto Tamaño Carnet
+  // Modal para Cambiar / Actualizar Foto TamaÃ±o Carnet
   const [modalFotoCarnet, setModalFotoCarnet] = useState({
     abierto: false,
     alumno: null,
@@ -153,13 +153,13 @@ export default function AdminCarnets() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setToastMensaje('Selecciona un archivo de imagen válido (JPG, PNG o WebP)');
+      setToastMensaje('Selecciona un archivo de imagen vÃ¡lido (JPG, PNG o WebP)');
       setTimeout(() => setToastMensaje(''), 3500);
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setToastMensaje('La imagen supera los 10 MB. Elige una más ligera.');
+      setToastMensaje('La imagen supera los 10 MB. Elige una mÃ¡s ligera.');
       setTimeout(() => setToastMensaje(''), 3500);
       return;
     }
@@ -196,7 +196,7 @@ export default function AdminCarnets() {
         token = localStorage.getItem('admin_token') || localStorage.getItem('token') || '';
       }
 
-      // En desarrollo local usa '' (proxy de Vite a localhost:3002/3003), en producción usa https://api.jaguarescar.com
+      // En desarrollo local usa '' (proxy de Vite a localhost:3002/3003), en producciÃ³n usa https://api.jaguarescar.com
       const url = `${API_BASE}/api/admin/alumnos/${encodeURIComponent(dni)}/foto-carnet`;
 
       const res = await fetch(url, {
@@ -239,7 +239,7 @@ export default function AdminCarnets() {
         return item;
       }));
 
-      setToastMensaje('¡Foto tamaño carnet actualizada con éxito!');
+      setToastMensaje('Â¡Foto tamaÃ±o carnet actualizada con Ã©xito!');
       setTimeout(() => setToastMensaje(''), 4000);
 
       if (modalFotoCarnet.previewUrl) {
@@ -267,7 +267,7 @@ export default function AdminCarnets() {
       : 'produccion'
   );
 
-  // Estados del Escáner de Puerta
+  // Estados del EscÃ¡ner de Puerta
   const [dniEscaneo, setDniEscaneo] = useState('');
   const [resultadoEscaneo, setResultadoEscaneo] = useState(null);
   const [modalPagoClase, setModalPagoClase] = useState({
@@ -285,7 +285,7 @@ export default function AdminCarnets() {
   const [waNumero, setWaNumero] = useState('');
   const [waMensaje, setWaMensaje] = useState('');
 
-  // Estados de Autenticación
+  // Estados de AutenticaciÃ³n
   const [authError, setAuthError] = useState(false);
   const [mostrarModalLogin, setMostrarModalLogin] = useState(false);
   const [loginUser, setLoginUser] = useState('');
@@ -372,8 +372,8 @@ export default function AdminCarnets() {
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      console.warn('No se pudo acceder a la cámara:', err);
-      alert('No se pudo acceder a la cámara. Verifique los permisos de su navegador.');
+      console.warn('No se pudo acceder a la cÃ¡mara:', err);
+      alert('No se pudo acceder a la cÃ¡mara. Verifique los permisos de su navegador.');
       setUsarCamara(false);
     }
   };
@@ -470,10 +470,10 @@ export default function AdminCarnets() {
         setLoginPass('');
         await cargarAlumnos();
       } else {
-        setLoginError(data.error || 'Credenciales inválidas');
+        setLoginError(data.error || 'Credenciales invÃ¡lidas');
       }
     } catch (err) {
-      setLoginError('Error de conexión con el servidor');
+      setLoginError('Error de conexiÃ³n con el servidor');
     } finally {
       setIniciandoSesion(false);
     }
@@ -584,7 +584,7 @@ export default function AdminCarnets() {
       if (data.success && data.alumno) {
         emitirSonido(data.activo ? 'exito' : 'error');
 
-        const esExcepcion = data.aviso === 'INGRESO AUTORIZADO POR ADMINISTRACIÓN' || (data.estado_original === 'inactiva' && data.activo);
+        const esExcepcion = data.aviso === 'INGRESO AUTORIZADO POR ADMINISTRACIÃ“N' || (data.estado_original === 'inactiva' && data.activo);
 
         const nuevoResultado = {
           success: true,
@@ -621,7 +621,7 @@ export default function AdminCarnets() {
       setResultadoEscaneo({
         success: false,
         dni,
-        error: 'Error de red o conexión al servidor',
+        error: 'Error de red o conexiÃ³n al servidor',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       });
     } finally {
@@ -642,7 +642,7 @@ export default function AdminCarnets() {
     return `${primerNombre} ${primerApellido}`.toUpperCase().trim() || 'ALUMNO JAGUARES';
   };
 
-  // [DATO 3]: Año de Nacimiento
+  // [DATO 3]: AÃ±o de Nacimiento
   const getAnioNacimiento = (fecha) => {
     if (!fecha) return '----';
     const match = String(fecha).match(/(\d{4})/);
@@ -653,15 +653,15 @@ export default function AdminCarnets() {
   const limpiarTexto = (t) => {
     if (!t) return '';
     return String(t)
-      .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol')
-      .replace(/EconÃ³mico|EconÃ³m|Econ\uFFFDmico/gi, 'Económico')
-      .replace(/EstÃ¡ndar|Est\uFFFDndar/gi, 'Estándar')
-      .replace(/CategorÃ­a|Categor\uFFFD/gi, 'Categoría')
-      .replace(/BÃ¡squet|B\uFFFDsquet/gi, 'Básquet')
-      .replace(/VÃ³ley|V\uFFFDley/gi, 'Vóley');
+      .replace(/FÃƒÂºtbol|FÃƒÂ°tbol|F\uFFFDtbol/gi, 'FÃºtbol')
+      .replace(/EconÃƒÂ³mico|EconÃƒÂ³m|Econ\uFFFDmico/gi, 'EconÃ³mico')
+      .replace(/EstÃƒÂ¡ndar|Est\uFFFDndar/gi, 'EstÃ¡ndar')
+      .replace(/CategorÃƒÂ­a|Categor\uFFFD/gi, 'CategorÃ­a')
+      .replace(/BÃƒÂ¡squet|B\uFFFDsquet/gi, 'BÃ¡squet')
+      .replace(/VÃƒÂ³ley|V\uFFFDley/gi, 'VÃ³ley');
   };
 
-  // Helper para captura 100% IDÉNTICA a la pantalla usando el motor de renderizado nativo del navegador
+  // Helper para captura 100% IDÃ‰NTICA a la pantalla usando el motor de renderizado nativo del navegador
   const capturarCarnetDataUrl = async (carnetEl, formato = 'jpeg') => {
     const bgFondo = temaImpresion === 'light' ? '#ffffff' : '#0a0f1d';
     const options = {
@@ -675,7 +675,7 @@ export default function AdminCarnets() {
         if (node.dataset?.noCapture === 'true' || (node.classList && node.classList.contains('no-capture'))) {
           return false;
         }
-        // Ignorar imágenes que fallaron al cargar (404 / eliminadas) o están ocultas
+        // Ignorar imÃ¡genes que fallaron al cargar (404 / eliminadas) o estÃ¡n ocultas
         if (node.tagName === 'IMG' && (node.style.display === 'none' || node.naturalWidth === 0)) {
           return false;
         }
@@ -694,7 +694,7 @@ export default function AdminCarnets() {
         return await htmlToImage.toJpeg(carnetEl, options);
       }
     } catch (err) {
-      console.warn('htmlToImage falló, usando respaldo html2canvas:', err);
+      console.warn('htmlToImage fallÃ³, usando respaldo html2canvas:', err);
       const canvas = await html2canvas(carnetEl, {
         scale: 3,
         useCORS: true,
@@ -707,7 +707,7 @@ export default function AdminCarnets() {
     }
   };
 
-  // 1. Exportar PDF con tamaño exacto del carnet: 90mm ancho x 115mm alto (página completa carnet)
+  // 1. Exportar PDF con tamaÃ±o exacto del carnet: 90mm ancho x 115mm alto (pÃ¡gina completa carnet)
   const exportarCarnetPDF = async () => {
     const carnetEl = document.getElementById('carnetImprimible');
     if (!carnetEl || !alumnoSeleccionado) return;
@@ -722,18 +722,18 @@ export default function AdminCarnets() {
       // Captura ultra-fiel nativa sin desfase de textos
       const imgData = await capturarCarnetDataUrl(carnetEl, 'jpeg');
 
-      // PDF con medida física EXACTA de la mica: 90mm de ancho x 115mm de alto
+      // PDF con medida fÃ­sica EXACTA de la mica: 90mm de ancho x 115mm de alto
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: [90, 115]
       });
 
-      // Se dibuja en toda la página del PDF (0, 0 a 90mm x 115mm)
+      // Se dibuja en toda la pÃ¡gina del PDF (0, 0 a 90mm x 115mm)
       pdf.addImage(imgData, 'JPEG', 0, 0, 90, 115, undefined, 'FAST');
 
       pdf.save(filename);
-      setToastMensaje('¡PDF descargado en tamaño oficial 9x11.5 cm! Listo para visualizar o imprimir.');
+      setToastMensaje('Â¡PDF descargado en tamaÃ±o oficial 9x11.5 cm! Listo para visualizar o imprimir.');
       setTimeout(() => setToastMensaje(''), 5000);
     } catch (err) {
       console.error('Error generando PDF:', err);
@@ -744,9 +744,9 @@ export default function AdminCarnets() {
     }
   };
 
-  // 2. Exportar en Hoja A4 con guías de corte para imprimir en hoja común
+  // 2. Exportar en Hoja A4 con guÃ­as de corte para imprimir en hoja comÃºn
   
-  // Funciones para la Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
+  // Funciones para la Bandeja de ImpresiÃ³n Hoja A4 (4 Carnets 2x2)
   const agregarAlumnoASlot = async (slotIndex) => {
     const carnetEl = document.getElementById('carnetImprimible');
     if (!carnetEl || !alumnoSeleccionado) {
@@ -759,7 +759,7 @@ export default function AdminCarnets() {
     if (targetIndex === undefined || targetIndex === null) {
       targetIndex = slotsA4.findIndex(s => s === null);
       if (targetIndex === -1) {
-        setToastMensaje('¡La hoja A4 ya tiene los 4 espacios ocupados! Quita uno o vacía la hoja.');
+        setToastMensaje('Â¡La hoja A4 ya tiene los 4 espacios ocupados! Quita uno o vacÃ­a la hoja.');
         setTimeout(() => setToastMensaje(''), 4000);
         return;
       }
@@ -770,7 +770,7 @@ export default function AdminCarnets() {
       const al = alumnoSeleccionado.alumno || {};
       const nombre = getPrimerNombreYPrimerApellido(al.nombres, al.apellidos);
       const dni = al.dni || '';
-      const deporte = alumnoSeleccionado.inscripciones?.[0]?.deporte || 'Fútbol';
+      const deporte = alumnoSeleccionado.inscripciones?.[0]?.deporte || 'FÃºtbol';
       const plan = alumnoSeleccionado.inscripciones?.[0]?.plan || 'Oficial';
 
       setSlotsA4(prev => {
@@ -787,7 +787,7 @@ export default function AdminCarnets() {
         return copy;
       });
 
-      setToastMensaje(`¡Carnet de ${nombre} asignado al Espacio ${targetIndex + 1} de la Hoja A4!`);
+      setToastMensaje(`Â¡Carnet de ${nombre} asignado al Espacio ${targetIndex + 1} de la Hoja A4!`);
       setTimeout(() => setToastMensaje(''), 3500);
     } catch (err) {
       console.error('Error al capturar carnet para slot A4:', err);
@@ -832,9 +832,9 @@ export default function AdminCarnets() {
       const carnetW = 90;
       const carnetH = 115;
 
-      // Coordenadas exactas para cuadrícula 2x2 en A4 (210mm x 297mm):
-      // Ancho: 10mm margen + 90mm + 10mm separación + 90mm + 10mm margen = 210mm
-      // Alto:  20mm margen + 115mm + 20mm separación + 115mm + 27mm margen = 297mm
+      // Coordenadas exactas para cuadrÃ­cula 2x2 en A4 (210mm x 297mm):
+      // Ancho: 10mm margen + 90mm + 10mm separaciÃ³n + 90mm + 10mm margen = 210mm
+      // Alto:  20mm margen + 115mm + 20mm separaciÃ³n + 115mm + 27mm margen = 297mm
       const posiciones = [
         { x: 10,  y: 20 },  // Slot 0: Arriba Izquierda
         { x: 110, y: 20 },  // Slot 1: Arriba Derecha
@@ -845,21 +845,21 @@ export default function AdminCarnets() {
       // Encabezado superior oficial
       pdf.setFontSize(8.5);
       pdf.setTextColor(80, 80, 80);
-      pdf.text('CLUB DEPORTES JAGUARES - PLANTILLA OFICIAL DE IMPRESIÓN EN HOJA A4 (4 CARNETS)', 105, 10, { align: 'center' });
+      pdf.text('CLUB DEPORTES JAGUARES - PLANTILLA OFICIAL DE IMPRESIÃ“N EN HOJA A4 (4 CARNETS)', 105, 10, { align: 'center' });
       pdf.setFontSize(7);
       pdf.setTextColor(130, 130, 130);
-      pdf.text('Imprimir en escala 100% (sin ajuste de página) en papel fotográfico u opalina A4 (9 cm × 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
+      pdf.text('Imprimir en escala 100% (sin ajuste de pÃ¡gina) en papel fotogrÃ¡fico u opalina A4 (9 cm Ã— 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
 
-      // Pie de página
+      // Pie de pÃ¡gina
       pdf.setFontSize(7.5);
       pdf.setTextColor(120, 120, 120);
-      pdf.text('Líneas punteadas exteriores diseñadas para corte exacto con guillotina o tijera para mica estándar.', 105, 290, { align: 'center' });
+      pdf.text('LÃ­neas punteadas exteriores diseÃ±adas para corte exacto con guillotina o tijera para mica estÃ¡ndar.', 105, 290, { align: 'center' });
 
       // Dibujar los slots
       slotsA4.forEach((slot, index) => {
         const pos = posiciones[index];
         
-        // Línea de corte punteada
+        // LÃ­nea de corte punteada
         pdf.setDrawColor(180, 180, 180);
         pdf.setLineDashPattern([2, 2], 0);
         pdf.setLineWidth(0.25);
@@ -869,15 +869,15 @@ export default function AdminCarnets() {
           // Marcador de tijera arriba de cada carnet
           pdf.setFontSize(6.5);
           pdf.setTextColor(130, 130, 130);
-          pdf.text(`✂ Espacio ${index + 1}: ${slot.nombre} (DNI ${slot.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
+          pdf.text(`âœ‚ Espacio ${index + 1}: ${slot.nombre} (DNI ${slot.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
 
-          // Imagen del carnet en alta resolución
+          // Imagen del carnet en alta resoluciÃ³n
           pdf.addImage(slot.dataUrl, 'JPEG', pos.x, pos.y, carnetW, carnetH, undefined, 'FAST');
         } else {
-          // Espacio vacío marcado en el PDF
+          // Espacio vacÃ­o marcado en el PDF
           pdf.setFontSize(8);
           pdf.setTextColor(200, 200, 200);
-          pdf.text(`[ Espacio ${index + 1} Vacío ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
+          pdf.text(`[ Espacio ${index + 1} VacÃ­o ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
         }
       });
 
@@ -889,11 +889,11 @@ export default function AdminCarnets() {
             printWindow.print();
           });
         }
-        setToastMensaje('¡Abriendo vista de impresión de la Hoja A4!');
+        setToastMensaje('Â¡Abriendo vista de impresiÃ³n de la Hoja A4!');
       } else {
         const fechaStr = new Date().toISOString().split('T')[0];
         pdf.save(`Hoja_A4_4_Carnets_${fechaStr}.pdf`);
-        setToastMensaje('¡Hoja A4 (4 carnets) descargada con éxito!');
+        setToastMensaje('Â¡Hoja A4 (4 carnets) descargada con Ã©xito!');
       }
       setTimeout(() => setToastMensaje(''), 4500);
     } catch (err) {
@@ -918,7 +918,7 @@ export default function AdminCarnets() {
     // 1. Si no viene foto_carnet_url en el listado, consultar rapidamente los datos del alumno
     let fotoUrl = alumnoItem.foto_carnet_url || null;
     let fechaNac = alumnoItem.fecha_nacimiento || null;
-    let dep = alumnoItem.deporte || alumnoItem.deportes || 'Fútbol';
+    let dep = alumnoItem.deporte || alumnoItem.deportes || 'FÃºtbol';
     let plan = alumnoItem.plan || 'Oficial';
     let cat = alumnoItem.categoria || '';
 
@@ -1013,7 +1013,7 @@ export default function AdminCarnets() {
     }
   };
 
-  // Cargar una hoja específica del lote (índice 0, 1, 2...)
+  // Cargar una hoja especÃ­fica del lote (Ã­ndice 0, 1, 2...)
   const cargarHojaLote = async (indiceHoja, listaChunks = loteHojas) => {
     if (!listaChunks || !listaChunks[indiceHoja]) return;
     const alumnosHoja = listaChunks[indiceHoja];
@@ -1033,7 +1033,7 @@ export default function AdminCarnets() {
         alumno: a,
         nombre: getPrimerNombreYPrimerApellido(a.nombres, a.apellidos),
         dni: a.dni,
-        deporte: a.deporte || a.deportes || 'Fútbol',
+        deporte: a.deporte || a.deportes || 'FÃºtbol',
         plan: a.plan || 'Oficial',
         formato: formatoCarnet
       };
@@ -1069,7 +1069,7 @@ export default function AdminCarnets() {
     await cargarHojaLote(nuevoIndice, loteHojas);
   };
 
-  // Imprimir o descargar TODAS las hojas del lote en un solo PDF multipágina
+  // Imprimir o descargar TODAS las hojas del lote en un solo PDF multipÃ¡gina
   const exportarPdfTodoElLote = async (accion = 'descargar') => {
     let chunks = loteHojas;
     if (!chunks || chunks.length === 0) {
@@ -1123,18 +1123,18 @@ export default function AdminCarnets() {
         pdf.text('CLUB DEPORTES JAGUARES - PLANTILLA OFICIAL EN HOJA A4 (HOJA ' + (hIdx + 1) + ' DE ' + loteHojas.length + ')', 105, 10, { align: 'center' });
         pdf.setFontSize(7);
         pdf.setTextColor(130, 130, 130);
-        pdf.text('Imprimir en escala 100% (sin ajuste de página) en papel fotográfico u opalina A4 (9 cm × 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
+        pdf.text('Imprimir en escala 100% (sin ajuste de pÃ¡gina) en papel fotogrÃ¡fico u opalina A4 (9 cm Ã— 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
 
         // Pie
         pdf.setFontSize(7.5);
         pdf.setTextColor(120, 120, 120);
         const catTexto = filtroCategoria ? `Cat. ${filtroCategoria}` : 'General';
-        pdf.text(`Líneas punteadas exteriores diseñadas para corte exacto con guillotina. Lote: ${catTexto}`, 105, 290, { align: 'center' });
+        pdf.text(`LÃ­neas punteadas exteriores diseÃ±adas para corte exacto con guillotina. Lote: ${catTexto}`, 105, 290, { align: 'center' });
 
         for (let sIdx = 0; sIdx < 4; sIdx++) {
           const pos = posiciones[sIdx];
 
-          // Línea punteada
+          // LÃ­nea punteada
           pdf.setDrawColor(180, 180, 180);
           pdf.setLineDashPattern([2, 2], 0);
           pdf.setLineWidth(0.25);
@@ -1147,7 +1147,7 @@ export default function AdminCarnets() {
 
             pdf.setFontSize(6.5);
             pdf.setTextColor(130, 130, 130);
-            pdf.text(`✂ Espacio ${sIdx + 1}: ${nombre} (DNI ${al.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
+            pdf.text(`âœ‚ Espacio ${sIdx + 1}: ${nombre} (DNI ${al.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
 
             if (dataUrl) {
               pdf.addImage(dataUrl, 'JPEG', pos.x, pos.y, carnetW, carnetH, undefined, 'FAST');
@@ -1155,7 +1155,7 @@ export default function AdminCarnets() {
           } else {
             pdf.setFontSize(8);
             pdf.setTextColor(200, 200, 200);
-            pdf.text(`[ Espacio ${sIdx + 1} Vacío ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
+            pdf.text(`[ Espacio ${sIdx + 1} VacÃ­o ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
           }
         }
       }
@@ -1166,12 +1166,12 @@ export default function AdminCarnets() {
         if (printWindow) {
           printWindow.addEventListener('load', () => printWindow.print());
         }
-        setToastMensaje('Abriendo diálogo de impresión del lote completo.');
+        setToastMensaje('Abriendo diÃ¡logo de impresiÃ³n del lote completo.');
       } else {
         const catSlug = filtroCategoria ? `Cat_${filtroCategoria}` : 'Alumnos';
         const fechaStr = new Date().toISOString().split('T')[0];
         pdf.save(`Lote_${catSlug}_${loteHojas.length}_Hojas_${fechaStr}.pdf`);
-        setToastMensaje(`Lote de ${loteHojas.length} hojas descargado con éxito.`);
+        setToastMensaje(`Lote de ${loteHojas.length} hojas descargado con Ã©xito.`);
       }
       setTimeout(() => setToastMensaje(''), 4500);
     } catch (err) {
@@ -1209,7 +1209,7 @@ export default function AdminCarnets() {
       const posX = (210 - carnetW) / 2; // 60mm centrado
       const posY = 35; // Centrado verticalmente arriba
 
-      // Líneas de corte punteadas
+      // LÃ­neas de corte punteadas
       pdf.setDrawColor(180, 180, 180);
       pdf.setLineDashPattern([2, 2], 0);
       pdf.setLineWidth(0.3);
@@ -1217,17 +1217,17 @@ export default function AdminCarnets() {
 
       pdf.setFontSize(9);
       pdf.setTextColor(80, 80, 80);
-      pdf.text('CARNET OFICIAL CLUB DEPORTES JAGUARES (9 cm de ancho × 11.5 cm de alto)', 105, posY - 8, { align: 'center' });
+      pdf.text('CARNET OFICIAL CLUB DEPORTES JAGUARES (9 cm de ancho Ã— 11.5 cm de alto)', 105, posY - 8, { align: 'center' });
       pdf.setFontSize(7.5);
       pdf.setTextColor(130, 130, 130);
-      pdf.text('Recorte por la línea de puntos exterior para colocar directamente dentro de la mica.', 105, posY - 3.5, { align: 'center' });
+      pdf.text('Recorte por la lÃ­nea de puntos exterior para colocar directamente dentro de la mica.', 105, posY - 3.5, { align: 'center' });
 
       pdf.addImage(imgData, 'JPEG', posX, posY, carnetW, carnetH, undefined, 'FAST');
 
-      pdf.text('Imprimir al 100% de escala en papel fotográfico u opalina (sin ajuste de página)', 105, posY + carnetH + 8, { align: 'center' });
+      pdf.text('Imprimir al 100% de escala en papel fotogrÃ¡fico u opalina (sin ajuste de pÃ¡gina)', 105, posY + carnetH + 8, { align: 'center' });
 
       pdf.save(filename);
-      setToastMensaje('¡Hoja A4 generada con guías de corte listas!');
+      setToastMensaje('Â¡Hoja A4 generada con guÃ­as de corte listas!');
       setTimeout(() => setToastMensaje(''), 5000);
     } catch (err) {
       console.error('Error generando Hoja A4:', err);
@@ -1236,7 +1236,7 @@ export default function AdminCarnets() {
     }
   };
 
-  // 3. Exportar carnet como imagen JPG o PNG 100% IDÉNTICA A LA PANTALLA
+  // 3. Exportar carnet como imagen JPG o PNG 100% IDÃ‰NTICA A LA PANTALLA
   const exportarCarnetImagen = async (formato = 'jpg', descargar = true, copiar = true) => {
     const carnetEl = document.getElementById('carnetImprimible');
     if (!carnetEl || !alumnoSeleccionado) return;
@@ -1268,10 +1268,10 @@ export default function AdminCarnets() {
           await navigator.clipboard.write([
             new ClipboardItem({ 'image/png': blob })
           ]);
-          setToastMensaje(`¡Carnet (${extension.toUpperCase()}) descargado y copiado al portapapeles! Puedes pegarlo (Ctrl + V) en WhatsApp.`);
+          setToastMensaje(`Â¡Carnet (${extension.toUpperCase()}) descargado y copiado al portapapeles! Puedes pegarlo (Ctrl + V) en WhatsApp.`);
           setTimeout(() => setToastMensaje(''), 5000);
         } catch (clipErr) {
-          setToastMensaje(`¡Carnet (${extension.toUpperCase()}) descargado en tu computadora!`);
+          setToastMensaje(`Â¡Carnet (${extension.toUpperCase()}) descargado en tu computadora!`);
           setTimeout(() => setToastMensaje(''), 4000);
         }
       }
@@ -1297,9 +1297,9 @@ export default function AdminCarnets() {
 
     const nombreAlumno = getPrimerNombreYPrimerApellido(al.nombres, al.apellidos);
     const plan = limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.plan || 'Oficial');
-    const deporte = limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.deporte || 'Fútbol');
+    const deporte = limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.deporte || 'FÃºtbol');
 
-    const textoDefault = `Estimado(a) apoderado(a):\n\nLe hacemos entrega del Carnet Oficial de Membresía 2026 para el alumno(a): *${nombreAlumno}* (${deporte} - Plan ${plan}).\n\nAdjuntamos su carnet digital oficial. Por favor consérvelo en su teléfono o preséntelo impreso en portería para el control de acceso a los entrenamientos.\n\nAtentamente,\nJAGUARES`;
+    const textoDefault = `Estimado(a) apoderado(a):\n\nLe hacemos entrega del Carnet Oficial de MembresÃ­a 2026 para el alumno(a): *${nombreAlumno}* (${deporte} - Plan ${plan}).\n\nAdjuntamos su carnet digital oficial. Por favor consÃ©rvelo en su telÃ©fono o presÃ©ntelo impreso en porterÃ­a para el control de acceso a los entrenamientos.\n\nAtentamente,\nJAGUARES`;
 
     setWaNumero(numClean);
     setWaMensaje(textoDefault);
@@ -1308,7 +1308,7 @@ export default function AdminCarnets() {
 
   const enviarPorWhatsApp = async () => {
     if (!waNumero || waNumero.trim().length < 8) {
-      alert('Por favor ingrese un número de WhatsApp válido.');
+      alert('Por favor ingrese un nÃºmero de WhatsApp vÃ¡lido.');
       return;
     }
     
@@ -1320,17 +1320,17 @@ export default function AdminCarnets() {
     setMostrarModalWhatsApp(false);
   };
 
-      // Normalizar acentos y mayúsculas en deportes para evitar Ãº, Ã¡, etc.
+      // Normalizar acentos y mayÃºsculas en deportes para evitar ÃƒÂº, ÃƒÂ¡, etc.
   const normalizarDeporte = (dep) => {
     if (!dep) return '';
     let s = String(dep)
-      .replace(/Ãº/gi, 'ú')
-      .replace(/Ã¡/gi, 'á')
-      .replace(/Ã³/gi, 'ó')
-      .replace(/Ã©/gi, 'é')
-      .replace(/Ã­/gi, 'í')
-      .replace(/Ã±/gi, 'ñ')
-      .replace(/Â/g, '')
+      .replace(/ÃƒÂº/gi, 'Ãº')
+      .replace(/ÃƒÂ¡/gi, 'Ã¡')
+      .replace(/ÃƒÂ³/gi, 'Ã³')
+      .replace(/ÃƒÂ©/gi, 'Ã©')
+      .replace(/ÃƒÂ­/gi, 'Ã­')
+      .replace(/ÃƒÂ±/gi, 'Ã±')
+      .replace(/Ã‚/g, '')
       .trim();
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
@@ -1449,10 +1449,7 @@ export default function AdminCarnets() {
         let matchCat = false;
         if (a.categoria) {
           const catsAlumno = a.categoria.split(',').map(c => c.trim().toLowerCase());
-          matchCat = catsAlumno.includes(targetCat) || a.categoria.toLowerCase().includes(targetCat);
-        } else if (a.fecha_nacimiento) {
-          const aAnio = getAnioNacimiento(a.fecha_nacimiento);
-          matchCat = aAnio && targetCat.includes(aAnio);
+          matchCat = catsAlumno.includes(targetCat);
         }
         if (!matchCat) return false;
       }
@@ -1482,7 +1479,7 @@ export default function AdminCarnets() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-12">
-      {/* Estilos para impresión exacta: 90mm ancho x 115mm alto para la mica */}
+      {/* Estilos para impresiÃ³n exacta: 90mm ancho x 115mm alto para la mica */}
       <style>{`
         @media print {
           @page {
@@ -1585,7 +1582,7 @@ export default function AdminCarnets() {
         >
           <span className="material-symbols-outlined text-lg text-emerald-400 flex-shrink-0">check_circle</span>
           <p className="text-xs font-bold text-slate-100 leading-tight m-0">
-            {toastMensaje.replace(/[✅⚡🎉]/g, '').trim()}
+            {toastMensaje.replace(/[âœ…âš¡ðŸŽ‰]/g, '').trim()}
           </p>
         </div>
       )}
@@ -1621,7 +1618,7 @@ export default function AdminCarnets() {
             <div className="space-y-4">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Número de WhatsApp (con código de país ej: 51999888777)
+                  NÃºmero de WhatsApp (con cÃ³digo de paÃ­s ej: 51999888777)
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
@@ -1640,7 +1637,7 @@ export default function AdminCarnets() {
                     {waNumero ? 'check_circle' : 'info'}
                   </span>
                   <span>
-                    {waNumero ? 'Número registrado detectado automáticamente.' : 'Ingrese el número del apoderado manualmente.'}
+                    {waNumero ? 'NÃºmero registrado detectado automÃ¡ticamente.' : 'Ingrese el nÃºmero del apoderado manualmente.'}
                   </span>
                 </div>
               </div>
@@ -1660,7 +1657,7 @@ export default function AdminCarnets() {
               <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-2.5">
                 <span className="material-symbols-outlined text-emerald-500 text-xl mt-0.5 flex-shrink-0">auto_awesome</span>
                 <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed">
-                  <strong>Envío directo:</strong> Al pulsar <strong>"Abrir WhatsApp"</strong>, el carnet se descarga automáticamente y se copia a tu portapapeles. Solo presiona <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border rounded font-mono font-bold">Ctrl + V</kbd> en WhatsApp Web o arrastra el archivo descargado para enviarlo como imagen adjunta.
+                  <strong>EnvÃ­o directo:</strong> Al pulsar <strong>"Abrir WhatsApp"</strong>, el carnet se descarga automÃ¡ticamente y se copia a tu portapapeles. Solo presiona <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border rounded font-mono font-bold">Ctrl + V</kbd> en WhatsApp Web o arrastra el archivo descargado para enviarlo como imagen adjunta.
                 </p>
               </div>
 
@@ -1697,11 +1694,11 @@ export default function AdminCarnets() {
               Carnets & <span className="text-amber-500">Control de Acceso</span>
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Credenciales oficiales con código de barras adaptadas al porta fotocheck del club (9 cm × 11.5 cm).
+              Credenciales oficiales con cÃ³digo de barras adaptadas al porta fotocheck del club (9 cm Ã— 11.5 cm).
             </p>
           </div>
 
-          {/* Selector de Pestañas */}
+          {/* Selector de PestaÃ±as */}
           <div className="inline-flex p-1 bg-slate-200/80 dark:bg-slate-800/80 rounded-2xl">
             <button
               onClick={() => setActiveTab('carnets')}
@@ -1726,17 +1723,17 @@ export default function AdminCarnets() {
               }`}
             >
               <span className="material-symbols-outlined text-lg">qr_code_scanner</span>
-              Control de Puerta (Escáner)
+              Control de Puerta (EscÃ¡ner)
             </button>
           </div>
         </div>
 
-        {/* PESTAÑA 1: GENERADOR DE CARNETS */}
+        {/* PESTAÃ‘A 1: GENERADOR DE CARNETS */}
         {activeTab === 'carnets' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start">
             {/* Buscador y Lista de Alumnos */}
             <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-              {/* Encabezado con contador y botón Limpiar */}
+              {/* Encabezado con contador y botÃ³n Limpiar */}
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-amber-500">group</span>
@@ -1759,7 +1756,7 @@ export default function AdminCarnets() {
                 )}
               </div>
 
-              {/* Input de Búsqueda */}
+              {/* Input de BÃºsqueda */}
               <div className="relative mb-2 flex gap-2">
                 <div className="relative flex-1">
                   <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
@@ -1781,7 +1778,7 @@ export default function AdminCarnets() {
                       onClick={() => setBusqueda('')}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold p-1"
                     >
-                      ✕
+                      âœ•
                     </button>
                   )}
                 </div>
@@ -1795,9 +1792,9 @@ export default function AdminCarnets() {
                 </button>
               </div>
 
-              {/* Filtros Dropdowns por Categoría y Deporte */}
+              {/* Filtros Dropdowns por CategorÃ­a y Deporte */}
               <div className="grid grid-cols-2 gap-2 mb-2.5">
-                {/* Selector Categoría */}
+                {/* Selector CategorÃ­a */}
                 <div className="relative">
                   <select
                     value={filtroCategoria}
@@ -1809,7 +1806,7 @@ export default function AdminCarnets() {
                     }`}
                     style={{ colorScheme: 'dark' }}
                   >
-                    <option value="" className="bg-slate-900 text-white py-1">Todas las categorías</option>
+                    <option value="" className="bg-slate-900 text-white py-1">Todas las categorÃ­as</option>
                     {categoriasDisponibles.map((c) => (
                       <option key={c.valor} value={c.valor} className="bg-slate-900 text-white py-1">
                         {c.label} ({c.total})
@@ -1846,7 +1843,7 @@ export default function AdminCarnets() {
                 </div>
               </div>
 
-              {/* Botón Compacto para Cargar Lote en Hoja A4 */}
+              {/* BotÃ³n Compacto para Cargar Lote en Hoja A4 */}
               {alumnosFiltrados.length > 0 && (
                 <div className="mb-3">
                   <button
@@ -1861,7 +1858,7 @@ export default function AdminCarnets() {
                     <span className="truncate">
                       {procesandoLote
                         ? (progresoLote || 'Cargando lote...')
-                        : `Cargar en Hoja A4 (${alumnosFiltrados.length} alumnos • ${Math.ceil(alumnosFiltrados.length / 4)} ${Math.ceil(alumnosFiltrados.length / 4) === 1 ? 'hoja' : 'hojas'})`}
+                        : `Cargar en Hoja A4 (${alumnosFiltrados.length} alumnos â€¢ ${Math.ceil(alumnosFiltrados.length / 4)} ${Math.ceil(alumnosFiltrados.length / 4) === 1 ? 'hoja' : 'hojas'})`}
                     </span>
                   </button>
                 </div>
@@ -1873,10 +1870,10 @@ export default function AdminCarnets() {
                     <span className="material-symbols-outlined text-amber-500 text-2xl mt-0.5">lock_clock</span>
                     <div className="flex-1">
                       <h4 className="font-bold text-sm text-amber-800 dark:text-amber-200">
-                        Sesión Expirada o No Iniciada
+                        SesiÃ³n Expirada o No Iniciada
                       </h4>
                       <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                        Inicia sesión para cargar la lista completa de alumnos.
+                        Inicia sesiÃ³n para cargar la lista completa de alumnos.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -1884,7 +1881,7 @@ export default function AdminCarnets() {
                           className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                         >
                           <span className="material-symbols-outlined text-base">login</span>
-                          Iniciar Sesión Rápido
+                          Iniciar SesiÃ³n RÃ¡pido
                         </button>
                       </div>
                     </div>
@@ -1928,7 +1925,7 @@ export default function AdminCarnets() {
                               <span className="text-xs text-slate-500 font-mono">
                                 DNI: {a.dni}
                               </span>
-                              <span className="text-[10px] text-slate-400">•</span>
+                              <span className="text-[10px] text-slate-400">â€¢</span>
                               <span className="text-xs text-slate-400 font-medium truncate max-w-[90px]">
                                 {limpiarTexto(a.deporte || a.deportes)}
                               </span>
@@ -1948,13 +1945,13 @@ export default function AdminCarnets() {
               )}
             </div>
 
-            {/* Previsualización del Carnet Oficial */}
+            {/* PrevisualizaciÃ³n del Carnet Oficial */}
             <div className="col-span-12 lg:col-span-8 xl:col-span-5 flex flex-col items-center">
               <div className="w-full mb-3 flex flex-col gap-2.5">
-                {/* Fila 1: Título de Formato y Selectores de Configuración */}
+                {/* Fila 1: TÃ­tulo de Formato y Selectores de ConfiguraciÃ³n */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    {formatoCarnet === 'vertical' ? 'Carnet Vertical (9 × 11.5 cm)' : 'Carnet Horizontal (CR80)'}
+                    {formatoCarnet === 'vertical' ? 'Carnet Vertical (9 Ã— 11.5 cm)' : 'Carnet Horizontal (CR80)'}
                   </span>
 
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -1986,7 +1983,7 @@ export default function AdminCarnets() {
                       </button>
                     </div>
 
-                    {/* Selector de Tipo de Código */}
+                    {/* Selector de Tipo de CÃ³digo */}
                     <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
                       <button
                         onClick={() => setTipoCodigo('barcode')}
@@ -1995,7 +1992,7 @@ export default function AdminCarnets() {
                             ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
-                        title="Código de Barras Code 128: Para pistola lectora USB en portería"
+                        title="CÃ³digo de Barras Code 128: Para pistola lectora USB en porterÃ­a"
                       >
                         <span className="material-symbols-outlined text-sm">barcode</span>
                         Barras
@@ -2007,7 +2004,7 @@ export default function AdminCarnets() {
                             ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
-                        title="Código QR: Para cámara de celular"
+                        title="CÃ³digo QR: Para cÃ¡mara de celular"
                       >
                         <span className="material-symbols-outlined text-sm">qr_code_2</span>
                         QR
@@ -2058,7 +2055,7 @@ export default function AdminCarnets() {
                       onClick={exportarCarnetPDF}
                       disabled={generandoImagen}
                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black transition-all shadow-xs hover:shadow cursor-pointer active:scale-95"
-                      title="Descargar PDF con tamaño exacto de la mica (9cm x 11.5cm)"
+                      title="Descargar PDF con tamaÃ±o exacto de la mica (9cm x 11.5cm)"
                     >
                       <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
                       <span>{generandoImagen ? 'Generando...' : 'PDF Carnet'}</span>
@@ -2068,7 +2065,7 @@ export default function AdminCarnets() {
                       onClick={exportarCarnetHojaA4}
                       disabled={generandoImagen}
                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
-                      title="Descargar PDF en hoja A4 centrado con guías para recortar (1 carnet)"
+                      title="Descargar PDF en hoja A4 centrado con guÃ­as para recortar (1 carnet)"
                     >
                       <span className="material-symbols-outlined text-sm">content_cut</span>
                       <span>Hoja A4 (1)</span>
@@ -2078,7 +2075,7 @@ export default function AdminCarnets() {
                       onClick={() => exportarCarnetImagen('jpg', true, true)}
                       disabled={generandoImagen}
                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"
-                      title="Descargar carnet en alta definición como JPG"
+                      title="Descargar carnet en alta definiciÃ³n como JPG"
                     >
                       <span className="material-symbols-outlined text-sm">image</span>
                       <span>JPG</span>
@@ -2097,7 +2094,7 @@ export default function AdminCarnets() {
                     <button
                       onClick={() => abrirModalCambiarFoto()}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-95"
-                      title="Actualizar o cambiar la foto tamaño carnet del alumno"
+                      title="Actualizar o cambiar la foto tamaÃ±o carnet del alumno"
                     >
                       <span className="material-symbols-outlined text-sm">photo_camera</span>
                       <span>Cambiar Foto</span>
@@ -2124,7 +2121,7 @@ export default function AdminCarnets() {
                 </div>
               ) : alumnoSeleccionado ? (
                 <>
-                  {/* Barra compacta de asignación a Hoja A4 y Drag & Drop */}
+                  {/* Barra compacta de asignaciÃ³n a Hoja A4 y Drag & Drop */}
                   <div className="flex items-center justify-between w-full max-w-[360px] mb-2 px-1 gap-2">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold select-none leading-none">
                       <span className="material-symbols-outlined text-sm text-amber-500 animate-pulse">drag_indicator</span>
@@ -2137,7 +2134,7 @@ export default function AdminCarnets() {
                         type="button"
                         onClick={() => abrirModalCambiarFoto()}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-xs active:scale-95 flex-shrink-0 cursor-pointer leading-none"
-                        title="Cambiar foto tamaño carnet"
+                        title="Cambiar foto tamaÃ±o carnet"
                       >
                         <span className="material-symbols-outlined text-sm">photo_camera</span>
                         <span>Foto</span>
@@ -2254,7 +2251,7 @@ export default function AdminCarnets() {
                             </p>
                           </div>
                         </div>
-                        {/* Badge Temporada 2026 - SVG nativo para centrado matemático perfecto en pantalla, JPG y PDF */}
+                        {/* Badge Temporada 2026 - SVG nativo para centrado matemÃ¡tico perfecto en pantalla, JPG y PDF */}
                         <svg
                           width="104"
                           height="22"
@@ -2287,7 +2284,7 @@ export default function AdminCarnets() {
                         </svg>
                       </div>
 
-                      {/* 2. CUERPO CENTRAL CON LOS 5 DATOS — gap fijo para centrado perfecto */}
+                      {/* 2. CUERPO CENTRAL CON LOS 5 DATOS â€” gap fijo para centrado perfecto */}
                       <div
                         style={{
                           flex: 1,
@@ -2303,7 +2300,7 @@ export default function AdminCarnets() {
                           boxSizing: 'border-box',
                         }}
                       >
-                        {/* [DATO 2 + DATO 3]: Foto + Año de Nacimiento */}
+                        {/* [DATO 2 + DATO 3]: Foto + AÃ±o de Nacimiento */}
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
                           <div
                             style={{
@@ -2321,7 +2318,7 @@ export default function AdminCarnets() {
                             }}
                             className="group relative cursor-pointer"
                             onClick={() => abrirModalCambiarFoto()}
-                            title="Haz clic para cambiar la foto tamaño carnet"
+                            title="Haz clic para cambiar la foto tamaÃ±o carnet"
                           >
                             {/* Overlay interactivo en la foto para cambiarla */}
                             <div
@@ -2336,11 +2333,11 @@ export default function AdminCarnets() {
                               </span>
                             </div>
 
-                            {/* Badge flotante de cámara en la esquina para indicar que es clickeable */}
+                            {/* Badge flotante de cÃ¡mara en la esquina para indicar que es clickeable */}
                             <div
                               data-no-capture="true"
                               className="no-capture absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md z-20 pointer-events-none group-hover:scale-110 transition-transform"
-                              title="Cambiar foto tamaño carnet"
+                              title="Cambiar foto tamaÃ±o carnet"
                             >
                               <span className="material-symbols-outlined text-[13px] font-bold">photo_camera</span>
                             </div>
@@ -2388,7 +2385,7 @@ export default function AdminCarnets() {
                             </div>
                           </div>
 
-                          {/* [DATO 3]: Año de Nacimiento - SVG nativo con cápsula redondeada perfecta a ambos extremos */}
+                          {/* [DATO 3]: AÃ±o de Nacimiento - SVG nativo con cÃ¡psula redondeada perfecta a ambos extremos */}
                           <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <svg
                               width="224"
@@ -2417,7 +2414,7 @@ export default function AdminCarnets() {
                                 fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
                                 letterSpacing="0.02em"
                               >
-                                AÑO DE NACIMIENTO: {getAnioNacimiento(alumnoSeleccionado.alumno?.fecha_nacimiento)}
+                                AÃ‘O DE NACIMIENTO: {getAnioNacimiento(alumnoSeleccionado.alumno?.fecha_nacimiento)}
                               </text>
                             </svg>
                           </div>
@@ -2516,7 +2513,7 @@ export default function AdminCarnets() {
                                 textAlign: 'center',
                               }}
                             >
-                              {limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.deporte || 'Fútbol')}
+                              {limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.deporte || 'FÃºtbol')}
                             </span>
                           </div>
 
@@ -2566,12 +2563,12 @@ export default function AdminCarnets() {
                                 textAlign: 'center',
                               }}
                             >
-                              {limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.plan || 'Económico')}
+                              {limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.plan || 'EconÃ³mico')}
                             </span>
                           </div>
                         </div>
 
-                        {/* [DATO 5]: Código de Barras */}
+                        {/* [DATO 5]: CÃ³digo de Barras */}
                         <div style={{ width: '100%' }}>
                           {tipoCodigo === 'barcode' ? (
                             <div
@@ -2607,7 +2604,7 @@ export default function AdminCarnets() {
                                   margin: 0,
                                 }}
                               >
-                                CÓDIGO DE CONTROL EN PORTERÍA
+                                CÃ“DIGO DE CONTROL EN PORTERÃA
                               </p>
                             </div>
                           ) : (
@@ -2630,10 +2627,10 @@ export default function AdminCarnets() {
                                     temaImpresion === 'light' ? 'text-slate-800' : 'text-amber-400'
                                   }`}
                                 >
-                                  QR Oficial de Portería
+                                  QR Oficial de PorterÃ­a
                                 </p>
                                 <p className="text-[7.5px] text-slate-400 truncate leading-tight">
-                                  Escaneo para validar membresía
+                                  Escaneo para validar membresÃ­a
                                 </p>
                               </div>
                             </div>
@@ -2655,7 +2652,7 @@ export default function AdminCarnets() {
                           flexShrink: 0,
                         }}
                       >
-                        <span style={{ fontSize: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, color: temaImpresion === 'light' ? '#64748b' : '#94a3b8' }}>Válido Temporada 2026</span>
+                        <span style={{ fontSize: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, color: temaImpresion === 'light' ? '#64748b' : '#94a3b8' }}>VÃ¡lido Temporada 2026</span>
                       </div>
                     </div>
                   ) : (
@@ -2684,7 +2681,7 @@ export default function AdminCarnets() {
                           <img src="/assets/logo.ico" alt="Logo" className="h-6 w-auto drop-shadow" />
                           <div>
                             <p className="font-black text-[11px] tracking-wider uppercase text-amber-500">JAGUARES</p>
-                            <p className="text-[7.5px] font-semibold text-slate-400 uppercase">Carnet Oficial de Membresía</p>
+                            <p className="text-[7.5px] font-semibold text-slate-400 uppercase">Carnet Oficial de MembresÃ­a</p>
                           </div>
                         </div>
                         <span className="px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
@@ -2728,11 +2725,11 @@ export default function AdminCarnets() {
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
                               <p className="text-[8px] uppercase font-bold text-slate-400">Deporte</p>
-                              <p className="font-bold truncate text-amber-300">{limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.deporte || 'Fútbol')}</p>
+                              <p className="font-bold truncate text-amber-300">{limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.deporte || 'FÃºtbol')}</p>
                             </div>
                             <div>
                               <p className="text-[8px] uppercase font-bold text-slate-400">Plan</p>
-                              <p className="font-bold truncate text-slate-300">{limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.plan || 'Económico')}</p>
+                              <p className="font-bold truncate text-slate-300">{limpiarTexto(alumnoSeleccionado.inscripciones?.[0]?.plan || 'EconÃ³mico')}</p>
                             </div>
                           </div>
 
@@ -2750,7 +2747,7 @@ export default function AdminCarnets() {
                       </div>
 
                       <div className="px-4 py-1 flex items-center justify-between text-[8px] border-t bg-black/50 text-slate-400">
-                        <span>Válido temporada 2026</span>
+                        <span>VÃ¡lido temporada 2026</span>
                         <span></span>
                       </div>
                     </div>
@@ -2879,7 +2876,7 @@ export default function AdminCarnets() {
                 </div>
               )}
 
-              {/* Representación visual de la Hoja A4 física (Proporción exacta 210 x 297 mm) */}
+              {/* RepresentaciÃ³n visual de la Hoja A4 fÃ­sica (ProporciÃ³n exacta 210 x 297 mm) */}
               <div className="flex-1 flex justify-center items-center py-1">
                 <div
                   className="w-full max-w-[420px] bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700/80 rounded-2xl p-3 shadow-inner relative flex flex-col justify-between"
@@ -2887,14 +2884,14 @@ export default function AdminCarnets() {
                     aspectRatio: '210 / 297',
                   }}
                 >
-                  {/* Encabezado guía de corte superior */}
+                  {/* Encabezado guÃ­a de corte superior */}
                   <div className="flex items-center justify-between pb-1.5 border-b border-dashed border-slate-300 dark:border-slate-800 text-[9px] font-mono text-slate-600 dark:text-slate-400">
-                    <span>✂ 210 mm (ANCHO A4)</span>
-                    <span className="font-bold text-amber-500">2 × 2 CARNETS (9 × 11.5 cm)</span>
-                    <span>297 mm ✂</span>
+                    <span>âœ‚ 210 mm (ANCHO A4)</span>
+                    <span className="font-bold text-amber-500">2 Ã— 2 CARNETS (9 Ã— 11.5 cm)</span>
+                    <span>297 mm âœ‚</span>
                   </div>
 
-                  {/* Cuadrícula 2x2 con los 4 espacios de corte */}
+                  {/* CuadrÃ­cula 2x2 con los 4 espacios de corte */}
                   <div className="grid grid-cols-2 gap-2.5 my-auto">
                     {slotsA4.map((slot, index) => {
                       const isHovered = hoverSlotA4 === index;
@@ -2930,7 +2927,7 @@ export default function AdminCarnets() {
                               : 'bg-white/60 dark:bg-slate-900/60 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-500/5 cursor-pointer'
                           }`}
                           style={{
-                            aspectRatio: '90 / 115', // Medida física oficial proporcional
+                            aspectRatio: '90 / 115', // Medida fÃ­sica oficial proporcional
                           }}
                         >
                           {slot ? (
@@ -2941,7 +2938,7 @@ export default function AdminCarnets() {
                                 alt={slot.nombre}
                                 className="w-full h-full object-cover"
                               />
-                              {/* Overlay con datos y botón quitar */}
+                              {/* Overlay con datos y botÃ³n quitar */}
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/70 p-2 flex flex-col justify-between opacity-90 group-hover:opacity-100 transition-opacity">
                                 <div className="flex items-center justify-between">
                                   <span className="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[9px] font-black uppercase">
@@ -2964,13 +2961,13 @@ export default function AdminCarnets() {
                                     {slot.nombre}
                                   </p>
                                   <p className="text-[8.5px] text-amber-300 font-mono truncate">
-                                    DNI: {slot.dni} • {slot.deporte}
+                                    DNI: {slot.dni} â€¢ {slot.deporte}
                                   </p>
                                 </div>
                               </div>
                             </div>
                           ) : (
-                            // Espacio Vacío
+                            // Espacio VacÃ­o
                             <div className="p-2 text-center flex flex-col items-center justify-center gap-1 select-none">
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                                 isHovered
@@ -2987,7 +2984,7 @@ export default function AdminCarnets() {
                                 </span>
                                 <span className="text-[8.5px] font-medium text-slate-400 dark:text-slate-500 block leading-tight">
                                   {isHovered
-                                    ? '¡Suelta aquí!'
+                                    ? 'Â¡Suelta aquÃ­!'
                                     : alumnoSeleccionado
                                     ? 'Clic para poner'
                                     : posNombre}
@@ -3000,13 +2997,13 @@ export default function AdminCarnets() {
                     })}
                   </div>
 
-                  {/* Guía inferior con porcentaje de ahorro de papel */}
+                  {/* GuÃ­a inferior con porcentaje de ahorro de papel */}
                   <div className="pt-1.5 border-t border-dashed border-slate-300 dark:border-slate-800 flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs text-amber-500">eco</span>
                       Ahorro de papel: 75%
                     </span>
-                    <span>Guías punteadas de corte</span>
+                    <span>GuÃ­as punteadas de corte</span>
                   </div>
                 </div>
               </div>
@@ -3015,7 +3012,7 @@ export default function AdminCarnets() {
           </div>
         )}
 
-        {/* PESTAÑA 2: CONTROL DE PUERTA / ESCÁNER EN TIEMPO REAL */}
+        {/* PESTAÃ‘A 2: CONTROL DE PUERTA / ESCÃNER EN TIEMPO REAL */}
         {activeTab === 'scanner' && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm text-center">
@@ -3023,10 +3020,10 @@ export default function AdminCarnets() {
                 <span className="material-symbols-outlined text-3xl">barcode_reader</span>
               </div>
               <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                Control de Puerta — Escáner en Tiempo Real
+                Control de Puerta â€” EscÃ¡ner en Tiempo Real
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-                Escanee el carnet con su lector de código de barras USB/inalámbrico, active la cámara web, o ingrese el DNI para verificar al instante la membresía del alumno.
+                Escanee el carnet con su lector de cÃ³digo de barras USB/inalÃ¡mbrico, active la cÃ¡mara web, o ingrese el DNI para verificar al instante la membresÃ­a del alumno.
               </p>
 
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 rounded-2xl text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-xs">
@@ -3049,7 +3046,7 @@ export default function AdminCarnets() {
                   <span className="material-symbols-outlined text-base">
                     {usarCamara ? 'videocam_off' : 'photo_camera'}
                   </span>
-                  {usarCamara ? 'Apagar Cámara' : 'Escanear con Cámara Web / Celular'}
+                  {usarCamara ? 'Apagar CÃ¡mara' : 'Escanear con CÃ¡mara Web / Celular'}
                 </button>
               </div>
 
@@ -3172,7 +3169,7 @@ export default function AdminCarnets() {
                             className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
                           >
                             <span className="material-symbols-outlined text-base">lock_open</span>
-                            Autorizar Excepción
+                            Autorizar ExcepciÃ³n
                           </button>
                           <button
                             onClick={() => setModalPagoClase({
@@ -3205,7 +3202,7 @@ export default function AdminCarnets() {
                           {resultadoEscaneo.es_excepcion ? 'lock_open' : resultadoEscaneo.activo ? 'verified' : 'warning'}
                         </span>
                         {resultadoEscaneo.es_excepcion
-                          ? 'Ingreso autorizado por excepción de administración. La mensualidad sigue pendiente de pago en el sistema.'
+                          ? 'Ingreso autorizado por excepciÃ³n de administraciÃ³n. La mensualidad sigue pendiente de pago en el sistema.'
                           : (resultadoEscaneo.motivo || resultadoEscaneo.aviso)}
                       </p>
                       {resultadoEscaneo.asistencia_puerta_registrada && (
@@ -3219,7 +3216,7 @@ export default function AdminCarnets() {
                       <div className="p-3 bg-slate-100 dark:bg-slate-800/60 rounded-2xl text-xs flex items-center justify-between">
                         <span className="text-slate-500">Clase de hoy:</span>
                         <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {resultadoEscaneo.horario_hoy.deporte} • {resultadoEscaneo.horario_hoy.dias} ({resultadoEscaneo.horario_hoy.hora_inicio} - {resultadoEscaneo.horario_hoy.hora_fin})
+                          {resultadoEscaneo.horario_hoy.deporte} â€¢ {resultadoEscaneo.horario_hoy.dias} ({resultadoEscaneo.horario_hoy.hora_inicio} - {resultadoEscaneo.horario_hoy.hora_fin})
                         </span>
                       </div>
                     )}
@@ -3240,7 +3237,7 @@ export default function AdminCarnets() {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                 <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-lg">history</span>
-                  Últimos Alumnos Escaneados en Puerta
+                  Ãšltimos Alumnos Escaneados en Puerta
                 </h3>
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {historialEscaneo.map((item, idx) => (
@@ -3259,12 +3256,12 @@ export default function AdminCarnets() {
                             {item.es_pago_clase && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                 <span className="material-symbols-outlined text-xs">payments</span>
-                                Pago S/ {item.monto_pago_clase || 15} • {item.metodo_pago_clase || 'Efectivo'}
+                                Pago S/ {item.monto_pago_clase || 15} â€¢ {item.metodo_pago_clase || 'Efectivo'}
                               </span>
                             )}
                           </div>
                           <p className="text-xs text-slate-400 font-mono">
-                            DNI: {item.alumno?.dni} • {item.es_pago_clase ? (item.motivo || 'Clase individual pagada en puerta') : item.es_excepcion ? 'Pase por excepción (Deuda de mensualidad pendiente)' : (item.motivo || item.aviso)}
+                            DNI: {item.alumno?.dni} â€¢ {item.es_pago_clase ? (item.motivo || 'Clase individual pagada en puerta') : item.es_excepcion ? 'Pase por excepciÃ³n (Deuda de mensualidad pendiente)' : (item.motivo || item.aviso)}
                           </p>
                         </div>
                       </div>
@@ -3278,7 +3275,7 @@ export default function AdminCarnets() {
             )}
           </div>
         )}
-        {/* Modal Elegante: Cambiar / Actualizar Foto Tamaño Carnet */}
+        {/* Modal Elegante: Cambiar / Actualizar Foto TamaÃ±o Carnet */}
         {modalFotoCarnet.abierto && (
           <div
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -3301,10 +3298,10 @@ export default function AdminCarnets() {
                   </div>
                   <div>
                     <h4 className="font-black text-slate-900 dark:text-white text-base leading-tight">
-                      Cambiar Foto Tamaño Carnet
+                      Cambiar Foto TamaÃ±o Carnet
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Actualiza la fotografía oficial del alumno para su credencial
+                      Actualiza la fotografÃ­a oficial del alumno para su credencial
                     </p>
                   </div>
                 </div>
@@ -3414,11 +3411,11 @@ export default function AdminCarnets() {
                   </span>
                 </label>
                 <p className="text-[10px] text-slate-400 text-center">
-                  Recomendación: Foto de rostro de frente, bien iluminada y nítida. Máximo 10 MB.
+                  RecomendaciÃ³n: Foto de rostro de frente, bien iluminada y nÃ­tida. MÃ¡ximo 10 MB.
                 </p>
               </div>
 
-              {/* Botones de Acción */}
+              {/* Botones de AcciÃ³n */}
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="button"
@@ -3502,7 +3499,7 @@ export default function AdminCarnets() {
                 </div>
               </div>
 
-              {/* Selección de Monto */}
+              {/* SelecciÃ³n de Monto */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Monto a Cobrar (S/.)
@@ -3546,10 +3543,10 @@ export default function AdminCarnets() {
                 </div>
               </div>
 
-              {/* Método de Pago con Iconos Profesionales */}
+              {/* MÃ©todo de Pago con Iconos Profesionales */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Método de Pago Recibido
+                  MÃ©todo de Pago Recibido
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
                   {/* Efectivo */}
@@ -3610,7 +3607,7 @@ export default function AdminCarnets() {
                 </div>
               </div>
 
-              {/* Botones de Acción */}
+              {/* Botones de AcciÃ³n */}
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="button"
