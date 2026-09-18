@@ -2198,3 +2198,184 @@ async function quitarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHo
     alert('Error al quitar horario: ' + err.message);
   }
 }
+
+// ==================== ACCESO ESPECIAL ADMIN EN MODAL (OVERRIDE HORARIOS) ====================
+
+function getOverrideApiBaseModal() {
+    if (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%')) {
+        return window.API_BASE_OVERRIDE;
+    }
+    if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))) {
+        return '';
+    }
+    return (window.location.origin && window.location.origin.includes('coopsol')) ? 'https://api.coopsolcar.com' : 'https://api.jaguarescar.com';
+}
+
+function togglePanelAccesoEspecialModal(inscripcionId, deporteNombre, dni) {
+    const panel = document.getElementById('panelAccesoEspecialModal_' + inscripcionId);
+    if (!panel) return;
+
+    if (!panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+    } else {
+        panel.classList.remove('hidden');
+        cargarHorariosParaPanelModal(inscripcionId, deporteNombre, dni);
+    }
+}
+
+function cerrarPanelAccesoEspecialModal(inscripcionId) {
+    const panel = document.getElementById('panelAccesoEspecialModal_' + inscripcionId);
+    if (panel) panel.classList.add('hidden');
+}
+
+async function cargarHorariosParaPanelModal(inscripcionId, deporteNombre, dni) {
+    const lista = document.getElementById('listaHorariosEspecialesModal_' + inscripcionId);
+    const msg = document.getElementById('msgEspecialModal_' + inscripcionId);
+    if (!lista) return;
+
+    lista.innerHTML = '<div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#92400e; padding:6px 0;"><span>⏳</span> Cargando horarios de ' + deporteNombre + '...</div>';
+    if (msg) msg.innerHTML = '';
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const token = session ? JSON.parse(session).token : '';
+        const apiBase = getOverrideApiBaseModal();
+
+        const res = await fetch(apiBase + '/api/horarios?refresh=true', {
+            headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+        });
+        const data = await res.json();
+        const todosHorarios = data.horarios || [];
+
+        const normalizarDeporte = (str) => {
+            if (!str) return '';
+            return String(str)
+                .replace(/Fútbol|Fút|F\uFFFDtbol/gi, 'futbol')
+                .replace(/Básquet|B\uFFFDsquet/gi, 'basquet')
+                .replace(/Vóley|V\uFFFDley/gi, 'voley')
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                .trim().toLowerCase();
+        };
+
+        const depNormal = normalizarDeporte(deporteNombre);
+        const filtrados = todosHorarios.filter(h => {
+            return normalizarDeporte(h.deporte) === depNormal;
+        });
+
+        if (filtrados.length === 0) {
+            lista.innerHTML = '<span style="font-size:12px; color:#78350f;">No se encontraron horarios para este deporte.</span>';
+            return;
+        }
+
+        let asignadosIds = [];
+        try {
+            const resDetalle = await fetch(apiBase + '/api/consultar/' + dni + '?incluir_inactivos=1&t=' + Date.now());
+            const dataDetalle = await resDetalle.json();
+            if (dataDetalle.horarios) {
+                asignadosIds = dataDetalle.horarios
+                    .filter(h => h.inscripcion_id === inscripcionId)
+                    .map(h => parseInt(h.horario_id));
+            }
+        } catch (e) {
+            console.warn('Pre-check asignados modal:', e);
+        }
+
+        const limpiarTildes = (t) => {
+            if (!t) return '';
+            return String(t)
+                .replace(/Económico|Económ|Econ\uFFFDmico/gi, 'Económico')
+                .replace(/Estándar|Est\uFFFDndar/gi, 'Estándar')
+                .replace(/Categoría|Categor\uFFFD/gi, 'Categoría');
+        };
+
+        lista.innerHTML = '';
+        filtrados.forEach(h => {
+            const yaAsignado = asignadosIds.includes(parseInt(h.horario_id));
+            const btn = document.createElement('button');
+            btn.type = 'button';
+
+            const planLimpio = limpiarTildes(h.plan || 'Plan');
+            const catLimpia = limpiarTildes(h.categoria || '');
+
+            if (yaAsignado) {
+                btn.style.cssText = 'padding:6px 10px; border-radius:7px; background:#f3f4f6; border:1px solid #d1d5db; color:#9ca3af; font-size:11px; font-weight:500; cursor:not-allowed; display:inline-flex; align-items:center; gap:5px; opacity:0.75;';
+                btn.innerHTML = '<span>✓</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:9.5px; background:#e5e7eb; padding:1px 5px; border-radius:4px; color:#6b7280;">(Ya asignado)</span>';
+            } else {
+                btn.style.cssText = 'padding:6px 11px; border-radius:7px; background:#ffffff; border:1.5px solid #f59e0b; color:#92400e; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:all 0.15s;';
+                btn.onmouseover = () => { btn.style.background = '#fef3c7'; btn.style.borderColor = '#d97706'; };
+                btn.onmouseout = () => { btn.style.background = '#ffffff'; btn.style.borderColor = '#f59e0b'; };
+                btn.innerHTML = '<span style="color:#d97706; font-size:13px; font-weight:900;">+</span> <span>' + h.dia + ' ' + h.hora_inicio + ' - ' + h.hora_fin + '</span> <span style="font-size:9.5px; background:#fef3c7; border:1px solid #fde68a; padding:1px 5px; border-radius:4px; color:#b45309; font-weight:600;">' + planLimpio + (catLimpia ? ' • ' + catLimpia : '') + '</span>';
+                btn.onclick = () => ejecutarAgregarHorarioEspecialModal(inscripcionId, h.horario_id, dni, h.dia + ' ' + h.hora_inicio, btn);
+            }
+
+            lista.appendChild(btn);
+        });
+
+    } catch (err) {
+        lista.innerHTML = '<span style="font-size:11px; color:#dc2626; font-weight:600;">Error al cargar horarios: ' + err.message + '</span>';
+    }
+}
+
+async function ejecutarAgregarHorarioEspecialModal(inscripcionId, horarioId, dni, labelHorario, btnEl) {
+    const msg = document.getElementById('msgEspecialModal_' + inscripcionId);
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.style.opacity = '0.6';
+    }
+    if (msg) msg.innerHTML = '<span style="color:#2563eb; font-weight:600;">⏳ Guardando ' + labelHorario + '...</span>';
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const token = session ? JSON.parse(session).token : '';
+        const apiBase = getOverrideApiBaseModal();
+
+        const res = await fetch(apiBase + '/api/admin/inscripciones/' + inscripcionId + '/override-horario', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ horario_id: parseInt(horarioId) })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            if (msg) msg.innerHTML = '<span style="color:#15803d; font-weight:700;">✓ ' + (data.mensaje || 'Horario agregado correctamente') + '</span>';
+            setTimeout(async () => {
+                if (typeof verDetalleInscripcion === 'function') {
+                    await verDetalleInscripcion(dni);
+                }
+                if (typeof buscarPorDNI === 'function') {
+                    buscarPorDNI(dni);
+                }
+                if (typeof cargarInscritos === 'function') {
+                    cargarInscritos();
+                }
+            }, 600);
+        } else {
+            if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">❌ ' + (data.error || 'Error al asignar') + '</span>';
+            if (btnEl) {
+                btnEl.disabled = false;
+                btnEl.style.opacity = '1';
+            }
+        }
+    } catch (err) {
+        if (msg) msg.innerHTML = '<span style="color:#dc2626; font-weight:600;">❌ Error: ' + err.message + '</span>';
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.style.opacity = '1';
+        }
+    }
+}
+
+// Exponer explícitamente en window para que los botones onclick siempre funcionen
+window.togglePanelAccesoEspecialModal = togglePanelAccesoEspecialModal;
+window.cerrarPanelAccesoEspecialModal = cerrarPanelAccesoEspecialModal;
+window.cargarHorariosParaPanelModal = cargarHorariosParaPanelModal;
+window.ejecutarAgregarHorarioEspecialModal = ejecutarAgregarHorarioEspecialModal;
+window.quitarHorarioEspecialModal = quitarHorarioEspecialModal;
+
+// Alias para redundancia
+window.togglePanelAccesoEspecial = typeof togglePanelAccesoEspecial !== 'undefined' ? togglePanelAccesoEspecial : togglePanelAccesoEspecialModal;
+window.cerrarPanelAccesoEspecial = typeof cerrarPanelAccesoEspecial !== 'undefined' ? cerrarPanelAccesoEspecial : cerrarPanelAccesoEspecialModal;
