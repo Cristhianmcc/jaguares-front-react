@@ -2486,9 +2486,9 @@ function getOverrideApiBase() {
         return window.API_BASE_OVERRIDE;
     }
     if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))) {
-        return 'http://localhost:3003';
+        return '';
     }
-    return 'https://api.jaguarescar.com';
+    return (window.location.origin && window.location.origin.includes('coopsol')) ? 'https://api.coopsolcar.com' : 'https://api.jaguarescar.com';
 }
 
 function togglePanelAccesoEspecial(inscripcionId, deporteNombre, dni) {
@@ -2801,4 +2801,19 @@ function mostrarToastError(msg) {
 
 async function quitarHorarioEspecial(inscripcionId, horarioId, dni, labelHorario, esUltimo) {
     mostrarModalQuitarHorario(inscripcionId, horarioId, dni, labelHorario, esUltimo);
+}
+
+// Exponer explícitamente en window para que los botones onclick siempre funcionen
+window.togglePanelAccesoEspecial = togglePanelAccesoEspecial;
+window.cerrarPanelAccesoEspecial = cerrarPanelAccesoEspecial;
+window.cargarHorariosParaPanel = cargarHorariosParaPanel;
+window.ejecutarAgregarHorarioEspecial = ejecutarAgregarHorarioEspecial;
+window.quitarHorarioEspecial = quitarHorarioEspecial;
+window.mostrarModalQuitarHorario = mostrarModalQuitarHorario;
+
+// Alias para el modal de inscripciones
+if (typeof togglePanelAccesoEspecialModal !== 'undefined') {
+    window.togglePanelAccesoEspecialModal = togglePanelAccesoEspecialModal;
+} else {
+    window.togglePanelAccesoEspecialModal = togglePanelAccesoEspecial;
 }

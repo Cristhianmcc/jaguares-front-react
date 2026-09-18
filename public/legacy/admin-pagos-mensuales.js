@@ -38,6 +38,17 @@ function getDriveViewUrl(url) {
     return url;
 }
 
+function getDriveDownloadUrl(url) {
+    if (!url) return '#';
+    let fileId = null;
+    const m1 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m1) fileId = m1[1];
+    const m2 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m2) fileId = m2[1];
+    if (fileId) return 'https://drive.google.com/uc?export=download&id=' + fileId;
+    return url;
+}
+
 function verificarSesionPagos() {
     const session = localStorage.getItem('adminSession');
     if (!session) {
@@ -291,9 +302,14 @@ function renderizarPagos(pagos) {
         ` : '';
 
         const comprobanteBtn = p.comprobante_url ? `
-            <a href="${getDriveViewUrl(p.comprobante_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold transition-colors">
-                <span class="material-symbols-outlined text-sm">open_in_new</span> Ver
-            </a>
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <a href="${getDriveViewUrl(p.comprobante_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold transition-colors" title="Ver en Google Drive">
+                    <span class="material-symbols-outlined text-sm">open_in_new</span> Ver
+                </a>
+                <a href="${getDriveDownloadUrl(p.comprobante_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold transition-colors" title="Descargar comprobante">
+                    <span class="material-symbols-outlined text-sm">download</span> Descargar
+                </a>
+            </div>
         ` : '<span class="text-xs text-gray-400">-</span>';
 
         // Desglose de deportes inscritos
@@ -314,7 +330,10 @@ function renderizarPagos(pagos) {
             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                 <td class="px-4 py-3">
                     <p class="font-bold text-black dark:text-white text-sm">${p.nombres} ${p.apellidos}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">${p.dni}</p>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                        <span>DNI: ${p.dni}</span>
+                        ${p.numero_operacion ? `<span class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded font-semibold text-[11px]">Op: ${p.numero_operacion}</span>` : ''}
+                    </div>
                     ${deportesHTML}
                     ${observacionBadge}
                 </td>

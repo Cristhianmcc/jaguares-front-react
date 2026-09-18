@@ -103,6 +103,7 @@ function renderizarEstadisticas(stats) {
     document.getElementById('timestampActualizacion').textContent = fecha.toLocaleString('es-PE');
     
     // Renderizar tablas
+    renderizarTablaDesgloseMensual(stats.desgloseMensual);
     renderizarTablaDeportes(porDeporte);
     renderizarTablaAlumnos(porAlumno);
     

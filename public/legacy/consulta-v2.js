@@ -1401,6 +1401,13 @@ function renderizarSeccionPagoMensual() {
             
             <!-- Zona de subida -->
             <div class="flex flex-col">
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                        Número de Operación <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="inputNumeroOperacionMensual" placeholder="Ej: 123456" 
+                           class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-black dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                </div>
                 <div id="zonaPagoMensual" class="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-primary dark:hover:border-primary transition-colors cursor-pointer"
                      onclick="document.getElementById('inputPagoMensual').click()">
                     <input type="file" id="inputPagoMensual" accept="image/*" class="hidden" onchange="previsualizarPagoMensual(event)">
@@ -1478,6 +1485,14 @@ async function subirPagoMensual() {
         return;
     }
 
+    const inputNumOp = document.getElementById('inputNumeroOperacionMensual');
+    const numOp = inputNumOp ? inputNumOp.value.trim() : '';
+    if (!numOp) {
+        mostrarNotificacion('Debes ingresar el número de operación de tu comprobante', 'error');
+        if (inputNumOp) inputNumOp.focus();
+        return;
+    }
+
     _subiendoPagoMensual = true;
 
     const btn = document.getElementById('btnSubirPagoMensual');
@@ -1500,7 +1515,8 @@ async function subirPagoMensual() {
             imagen: base64,
             nombre_archivo: `PAGO_${mesAnio}_${file.name}`,
             mes: mesAnio,
-            monto: datosUsuario.pago.monto
+            monto: datosUsuario.pago.monto,
+            numero_operacion: numOp
         });
 
         if (resultado.success) {
