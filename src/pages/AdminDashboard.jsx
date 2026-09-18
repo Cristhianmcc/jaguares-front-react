@@ -283,7 +283,7 @@ export default function AdminDashboard() {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
         await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
-        const freshlyLoaded = await loadScript('/legacy/admin-dashboard.js?v=2');
+        const freshlyLoaded = await loadScript('/legacy/admin-dashboard.js?v=3');
         // Si el script ya estaba en el DOM (navegaci�n de vuelta), llamar init manualmente
         if (!cancelled && !freshlyLoaded && typeof window.initAdminDashboard === 'function') {
           window.initAdminDashboard();
