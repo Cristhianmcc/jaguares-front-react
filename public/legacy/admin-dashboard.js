@@ -4,9 +4,34 @@
 
 let chartDeportes = null;
 let chartDistribucion = null;
+let filtrosActivos = { anio: '', mes: '', deporte: '' };
 
 function initAdminDashboard() {
     verificarSesion();
+    cargarEstadisticas();
+}
+
+function aplicarFiltros() {
+    const elAnio    = document.getElementById('filtroAnio');
+    const elMes     = document.getElementById('filtroMes');
+    const elDeporte = document.getElementById('filtroDeporte');
+    filtrosActivos.anio    = elAnio    ? elAnio.value    : '';
+    filtrosActivos.mes     = elMes     ? elMes.value     : '';
+    filtrosActivos.deporte = elDeporte ? elDeporte.value : '';
+    const hayFiltro = filtrosActivos.anio || filtrosActivos.mes || filtrosActivos.deporte;
+    const btn = document.getElementById('btnLimpiarFiltros');
+    if (btn) btn.classList.toggle('hidden', !hayFiltro);
+    cargarEstadisticas();
+}
+
+function limpiarFiltros() {
+    filtrosActivos = { anio: '', mes: '', deporte: '' };
+    ['filtroAnio', 'filtroMes', 'filtroDeporte'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    var btn = document.getElementById('btnLimpiarFiltros');
+    if (btn) btn.classList.add('hidden');
     cargarEstadisticas();
 }
 
@@ -60,7 +85,12 @@ async function cargarEstadisticas() {
             throw new Error('Token no encontrado. Por favor inicia sesi�n nuevamente.');
         }
         
-        const response = await fetch(`${API_BASE}/api/admin/estadisticas-financieras`, {
+        var _fp = new URLSearchParams();
+        if (filtrosActivos.mes)     _fp.set('mes',     filtrosActivos.mes);
+        if (filtrosActivos.anio)    _fp.set('anio',    String(filtrosActivos.anio));
+        if (filtrosActivos.deporte) _fp.set('deporte', filtrosActivos.deporte);
+        var _fq = _fp.toString() ? '?' + _fp.toString() : '';
+        const response = await fetch(`${API_BASE}/api/admin/estadisticas-financieras${_fq}`, {
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
