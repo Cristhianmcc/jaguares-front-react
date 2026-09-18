@@ -1761,33 +1761,23 @@ export default function AdminCarnets() {
                 </div>
               </div>
 
-              {/* Botones de Impresión en Masa / Lote por Categoría */}
+              {/* Botón Compacto para Cargar Lote en Hoja A4 */}
               {alumnosFiltrados.length > 0 && (
-                <div className="mb-3 flex flex-col gap-1.5">
+                <div className="mb-3">
                   <button
                     type="button"
                     onClick={cargarTodaLaCategoriaEnHojas}
                     disabled={procesandoLote}
-                    className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
-                    title="Cargar en la bandeja A4 los carnets divididos en hojas de 4"
+                    style={{ maxHeight: '36px', height: '36px' }}
+                    className="w-full px-3 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-400 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    title="Cargar los 4 primeros alumnos en la bandeja A4 y activar el paginador de hojas"
                   >
-                    <span className="material-symbols-outlined text-base">auto_awesome_motion</span>
-                    <span className="truncate font-black">
+                    <span className="material-symbols-outlined text-base text-amber-500">auto_awesome_motion</span>
+                    <span className="truncate">
                       {procesandoLote
                         ? (progresoLote || 'Cargando lote...')
-                        : `⚡ Cargar en Hoja A4 (${alumnosFiltrados.length} al • ${Math.ceil(alumnosFiltrados.length / 4)} ${Math.ceil(alumnosFiltrados.length / 4) === 1 ? 'hoja' : 'hojas'})`}
+                        : `Cargar en Hoja A4 (${alumnosFiltrados.length} alumnos • ${Math.ceil(alumnosFiltrados.length / 4)} ${Math.ceil(alumnosFiltrados.length / 4) === 1 ? 'hoja' : 'hojas'})`}
                     </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => exportarPdfTodoElLote('imprimir')}
-                    disabled={procesandoLote || generandoA4Cuadruple}
-                    className="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                    title={`Imprimir directamente las ${Math.ceil(alumnosFiltrados.length / 4)} hojas de este grupo`}
-                  >
-                    <span className="material-symbols-outlined text-sm">print</span>
-                    <span>Imprimir Todo ({alumnosFiltrados.length} Alumnos en PDF)</span>
                   </button>
                 </div>
               )}
