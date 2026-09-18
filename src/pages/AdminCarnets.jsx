@@ -985,7 +985,7 @@ export default function AdminCarnets() {
     setSlotsA4(nuevosSlots);
     setProcesandoLote(false);
     setProgresoLote('');
-    setToastMensaje(`✅ Hoja ${indiceHoja + 1} de ${listaChunks.length} cargada en la bandeja.`);
+    setToastMensaje(`Hoja ${indiceHoja + 1} de ${listaChunks.length} cargada en la bandeja.`);
     setTimeout(() => setToastMensaje(''), 3000);
   };
 
@@ -1109,12 +1109,12 @@ export default function AdminCarnets() {
         if (printWindow) {
           printWindow.addEventListener('load', () => printWindow.print());
         }
-        setToastMensaje('✅ Abriendo diálogo de impresión del lote completo.');
+        setToastMensaje('Abriendo diálogo de impresión del lote completo.');
       } else {
         const catSlug = filtroCategoria ? `Cat_${filtroCategoria}` : 'Alumnos';
         const fechaStr = new Date().toISOString().split('T')[0];
         pdf.save(`Lote_${catSlug}_${loteHojas.length}_Hojas_${fechaStr}.pdf`);
-        setToastMensaje(`✅ Lote de ${loteHojas.length} hojas descargado con éxito.`);
+        setToastMensaje(`Lote de ${loteHojas.length} hojas descargado con éxito.`);
       }
       setTimeout(() => setToastMensaje(''), 4500);
     } catch (err) {
@@ -1497,11 +1497,16 @@ export default function AdminCarnets() {
         </div>
       </header>
 
-      {/* Toast Notification */}
+      {/* Toast Notification (Compacto, elegante y seguro) */}
       {toastMensaje && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
-          <span className="material-symbols-outlined text-2xl">check_circle</span>
-          <p className="text-sm font-bold">{toastMensaje}</p>
+        <div
+          style={{ maxWidth: '340px' }}
+          className="fixed bottom-5 right-5 z-50 bg-slate-900/95 border border-emerald-500/50 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-3 duration-200 backdrop-blur-md"
+        >
+          <span className="material-symbols-outlined text-lg text-emerald-400 flex-shrink-0">check_circle</span>
+          <p className="text-xs font-bold text-slate-100 leading-tight m-0">
+            {toastMensaje.replace(/[✅⚡🎉]/g, '').trim()}
+          </p>
         </div>
       )}
 
