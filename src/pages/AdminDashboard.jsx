@@ -50,18 +50,6 @@ const html = `
                 <select id="filtroMes" onchange="aplicarFiltros()"
                     class="px-3 py-2 rounded-lg border border-border-color bg-white dark:bg-gray-900 text-sm font-semibold text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors">
                     <option value="">Todos los meses</option>
-                    <option value="Enero">Enero</option>
-                    <option value="Febrero">Febrero</option>
-                    <option value="Marzo">Marzo</option>
-                    <option value="Abril">Abril</option>
-                    <option value="Mayo">Mayo</option>
-                    <option value="Junio">Junio</option>
-                    <option value="Julio">Julio</option>
-                    <option value="Agosto">Agosto</option>
-                    <option value="Septiembre">Septiembre</option>
-                    <option value="Octubre">Octubre</option>
-                    <option value="Noviembre">Noviembre</option>
-                    <option value="Diciembre">Diciembre</option>
                 </select>
                 <select id="filtroDeporte" onchange="aplicarFiltros()"
                     class="px-3 py-2 rounded-lg border border-border-color bg-white dark:bg-gray-900 text-sm font-semibold text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors">
@@ -283,7 +271,7 @@ export default function AdminDashboard() {
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
         await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
-        const freshlyLoaded = await loadScript('/legacy/admin-dashboard.js?v=4');
+        const freshlyLoaded = await loadScript('/legacy/admin-dashboard.js?v=5');
         // Si el script ya estaba en el DOM (navegaci�n de vuelta), llamar init manualmente
         if (!cancelled && !freshlyLoaded && typeof window.initAdminDashboard === 'function') {
           window.initAdminDashboard();
