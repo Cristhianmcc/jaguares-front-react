@@ -126,14 +126,20 @@ export default function AdminCarnets() {
   const [generandoImagen, setGenerandoImagen] = useState(false);
   const [toastMensaje, setToastMensaje] = useState('');
 
-  // Modal para Cambiar / Actualizar Foto Tamaño Carnet
+  // Modal para Centrar / Cambiar / Actualizar Foto Tamaño Carnet
   const [modalFotoCarnet, setModalFotoCarnet] = useState({
     abierto: false,
     alumno: null,
     archivo: null,
     previewUrl: null,
-    subiendo: false
+    urlEdicion: null,
+    subiendo: false,
+    zoom: 1,
+    offset: { x: 0, y: 0 }
   });
+  const [isDraggingFoto, setIsDraggingFoto] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [dimensionesFoto, setDimensionesFoto] = useState({ w: 240, h: 264 });
 
   const abrirModalCambiarFoto = (alumnoTarget = null) => {
     const al = alumnoTarget || alumnoSeleccionado?.alumno;
@@ -142,13 +148,18 @@ export default function AdminCarnets() {
       setTimeout(() => setToastMensaje(''), 3000);
       return;
     }
+    const fotoActual = al.foto_carnet_url ? formatFotoUrl(al.foto_carnet_url) : null;
     setModalFotoCarnet({
       abierto: true,
       alumno: al,
       archivo: null,
       previewUrl: null,
-      subiendo: false
+      urlEdicion: fotoActual,
+      subiendo: false,
+      zoom: 1,
+      offset: { x: 0, y: 0 }
     });
+    setDimensionesFoto({ w: 240, h: 264 });
   };
 
   const handleSeleccionarFoto = (e) => {
@@ -161,8 +172,8 @@ export default function AdminCarnets() {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setToastMensaje('La imagen supera los 10 MB. Elige una más ligera.');
+    if (file.size > 15 * 1024 * 1024) {
+      setToastMensaje('La imagen supera los 15 MB. Elige una más ligera.');
       setTimeout(() => setToastMensaje(''), 3500);
       return;
     }
@@ -171,20 +182,130 @@ export default function AdminCarnets() {
     setModalFotoCarnet(prev => ({
       ...prev,
       archivo: file,
-      previewUrl: preview
+      previewUrl: preview,
+      urlEdicion: preview,
+      zoom: 1,
+      offset: { x: 0, y: 0 }
+    }));
+  };
+
+  const handleDescargarFotoOriginal = async () => {
+    const al = modalFotoCarnet.alumno;
+    const url = modalFotoCarnet.urlEdicion || (al?.foto_carnet_url ? formatFotoUrl(al.foto_carnet_url) : null);
+    if (!url) {
+      setToastMensaje('No hay foto disponible para descargar');
+      setTimeout(() => setToastMensaje(''), 3000);
+      return;
+    }
+
+    try {
+      setToastMensaje('Descargando fotografía original...');
+      setTimeout(() => setToastMensaje(''), 2500);
+
+      if (url.startsWith('blob:') || url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `foto_${(al?.nombres || 'alumno').replace(/[^a-zA-Z0-9]/g, '_')}_${al?.dni || ''}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      let token = '';
+      const session = localStorage.getItem('adminSession');
+      if (session) {
+        try { token = JSON.parse(session).token || JSON.parse(session).admin_token || ''; } catch(_) { token = session; }
+      }
+      if (!token) token = localStorage.getItem('admin_token') || localStorage.getItem('token') || '';
+
+      const fetchUrl = url.startsWith('/uploads/')
+        ? `${API_BASE}${url}`
+        : `${API_BASE}/api/admin/proxy-image?url=${encodeURIComponent(url)}`;
+
+      const res = await fetch(fetchUrl, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+
+      if (!res.ok) throw new Error('Error al descargar archivo');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `foto_${(al?.nombres || 'alumno').replace(/[^a-zA-Z0-9]/g, '_')}_${al?.dni || ''}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+    } catch (err) {
+      console.warn('Fallo descarga directa, abriendo enlace:', err);
+      window.open(url, '_blank');
+    }
+  };
+
+  const handleMouseDownFoto = (e) => {
+    e.preventDefault();
+    setIsDraggingFoto(true);
+    setDragStartPos({
+      x: e.clientX - modalFotoCarnet.offset.x,
+      y: e.clientY - modalFotoCarnet.offset.y
+    });
+  };
+
+  const handleMouseMoveFoto = (e) => {
+    if (!isDraggingFoto) return;
+    e.preventDefault();
+    setModalFotoCarnet(prev => ({
+      ...prev,
+      offset: {
+        x: e.clientX - dragStartPos.x,
+        y: e.clientY - dragStartPos.y
+      }
+    }));
+  };
+
+  const handleMouseUpFoto = () => {
+    setIsDraggingFoto(false);
+  };
+
+  const handleTouchStartFoto = (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    setIsDraggingFoto(true);
+    setDragStartPos({
+      x: t.clientX - modalFotoCarnet.offset.x,
+      y: t.clientY - modalFotoCarnet.offset.y
+    });
+  };
+
+  const handleTouchMoveFoto = (e) => {
+    if (!isDraggingFoto || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    setModalFotoCarnet(prev => ({
+      ...prev,
+      offset: {
+        x: t.clientX - dragStartPos.x,
+        y: t.clientY - dragStartPos.y
+      }
+    }));
+  };
+
+  const handleWheelFoto = (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    setModalFotoCarnet(prev => ({
+      ...prev,
+      zoom: Math.min(3.5, Math.max(1, +(prev.zoom + delta).toFixed(2)))
     }));
   };
 
   const handleGuardarFotoCarnet = async () => {
-    if (!modalFotoCarnet.archivo || !modalFotoCarnet.alumno) return;
+    if (!modalFotoCarnet.alumno || !modalFotoCarnet.urlEdicion) return;
     const dni = modalFotoCarnet.alumno.dni;
     if (!dni) return;
 
     setModalFotoCarnet(prev => ({ ...prev, subiendo: true }));
     try {
-      const formData = new FormData();
-      formData.append('foto', modalFotoCarnet.archivo);
-
       let token = '';
       const session = localStorage.getItem('adminSession');
       if (session) {
@@ -199,9 +320,85 @@ export default function AdminCarnets() {
         token = localStorage.getItem('admin_token') || localStorage.getItem('token') || '';
       }
 
-      // En desarrollo local usa '' (proxy de Vite a localhost:3002/3003), en producción usa https://api.jaguarescar.com
-      const url = `${API_BASE}/api/admin/alumnos/${encodeURIComponent(dni)}/foto-carnet`;
+      // Obtener imagen como Blob local para que el Canvas NUNCA esté 'tainted'
+      let srcAUsar = modalFotoCarnet.urlEdicion;
+      let blobUrlTemporal = null;
 
+      if (!srcAUsar.startsWith('blob:') && !srcAUsar.startsWith('data:')) {
+        const fetchUrl = srcAUsar.startsWith('/uploads/')
+          ? `${API_BASE}${srcAUsar}`
+          : `${API_BASE}/api/admin/proxy-image?url=${encodeURIComponent(srcAUsar)}`;
+
+        try {
+          const resImg = await fetch(fetchUrl, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (resImg.ok) {
+            const b = await resImg.blob();
+            blobUrlTemporal = URL.createObjectURL(b);
+            srcAUsar = blobUrlTemporal;
+          }
+        } catch (e) {
+          console.warn('Error obteniendo imagen por proxy, usando URL directa:', e);
+        }
+      }
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen para centrar'));
+        img.src = srcAUsar;
+      });
+
+      // Dimensiones de pantalla vs alta resolución para impresión (300 DPI)
+      const Vw = 240;
+      const Vh = 264; // Relación 10:11 carnet
+      const Cw = 600;
+      const Ch = 660;
+      const K = Cw / Vw; // 2.5
+
+      const naturalW = img.naturalWidth || dimensionesFoto.w || 240;
+      const naturalH = img.naturalHeight || dimensionesFoto.h || 264;
+
+      const scaleCover = Math.max(Vw / naturalW, Vh / naturalH);
+      const baseWidth = naturalW * scaleCover;
+      const baseHeight = naturalH * scaleCover;
+
+      const zoom = modalFotoCarnet.zoom || 1;
+      const offset = modalFotoCarnet.offset || { x: 0, y: 0 };
+
+      const dispW = baseWidth * zoom;
+      const dispH = baseHeight * zoom;
+
+      const drawW = dispW * K;
+      const drawH = dispH * K;
+      const drawX = (Cw / 2) - (drawW / 2) + (offset.x * K);
+      const drawY = (Ch / 2) - (drawH / 2) + (offset.y * K);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Cw;
+      canvas.height = Ch;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, Cw, Ch);
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      if (blobUrlTemporal) {
+        URL.revokeObjectURL(blobUrlTemporal);
+      }
+
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/jpeg', 0.95);
+      });
+
+      if (!blob) throw new Error('No se pudo generar el recorte de la imagen');
+
+      const formData = new FormData();
+      formData.append('foto', blob, `carnet-${dni}-${Date.now()}.jpg`);
+
+      const url = `${API_BASE}/api/admin/alumnos/${encodeURIComponent(dni)}/foto-carnet`;
       const res = await fetch(url, {
         method: 'POST',
         headers: {
@@ -242,10 +439,10 @@ export default function AdminCarnets() {
         return item;
       }));
 
-      setToastMensaje('¡Foto tamaño carnet actualizada con éxito!');
+      setToastMensaje('¡Foto centrada y actualizada con éxito!');
       setTimeout(() => setToastMensaje(''), 4000);
 
-      if (modalFotoCarnet.previewUrl) {
+      if (modalFotoCarnet.previewUrl && modalFotoCarnet.previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(modalFotoCarnet.previewUrl);
       }
 
@@ -254,7 +451,10 @@ export default function AdminCarnets() {
         alumno: null,
         archivo: null,
         previewUrl: null,
-        subiendo: false
+        urlEdicion: null,
+        subiendo: false,
+        zoom: 1,
+        offset: { x: 0, y: 0 }
       });
     } catch (err) {
       console.error('Error al subir foto:', err);
@@ -3339,125 +3539,241 @@ export default function AdminCarnets() {
             )}
           </div>
         )}
-        {/* Modal Elegante: Cambiar / Actualizar Foto Tamaño Carnet */}
-        {modalFotoCarnet.abierto && (
-          <div
-            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => {
-              if (!modalFotoCarnet.subiendo) {
-                if (modalFotoCarnet.previewUrl) URL.revokeObjectURL(modalFotoCarnet.previewUrl);
-                setModalFotoCarnet({ abierto: false, alumno: null, archivo: null, previewUrl: null, subiendo: false });
-              }
-            }}
-          >
+        {/* Modal Elegante: Centrar, Ajustar y Cambiar Foto de Carnet */}
+        {modalFotoCarnet.abierto && (() => {
+          const Vw = 240;
+          const Vh = 264;
+          const naturalW = dimensionesFoto.w || 240;
+          const naturalH = dimensionesFoto.h || 264;
+          const scaleCover = Math.max(Vw / naturalW, Vh / naturalH);
+          const baseW = naturalW * scaleCover;
+          const baseH = naturalH * scaleCover;
+
+          return (
             <div
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200"
+              onClick={() => {
+                if (!modalFotoCarnet.subiendo) {
+                  if (modalFotoCarnet.previewUrl && modalFotoCarnet.previewUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+                  }
+                  setModalFotoCarnet({
+                    abierto: false,
+                    alumno: null,
+                    archivo: null,
+                    previewUrl: null,
+                    urlEdicion: null,
+                    subiendo: false,
+                    zoom: 1,
+                    offset: { x: 0, y: 0 }
+                  });
+                }
+              }}
             >
-              {/* Encabezado */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-2xl">photo_camera</span>
+              <div
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Encabezado */}
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/25 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-2xl">crop</span>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 dark:text-white text-base leading-tight">
+                        Ajustar / Centrar Foto
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Acerca o mueve la foto para encuadrar el rostro
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 dark:text-white text-base leading-tight">
-                      Cambiar Foto Tamaño Carnet
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Actualiza la fotografía oficial del alumno para su credencial
+                  <button
+                    disabled={modalFotoCarnet.subiendo}
+                    onClick={() => {
+                      if (modalFotoCarnet.previewUrl && modalFotoCarnet.previewUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+                      }
+                      setModalFotoCarnet({
+                        abierto: false,
+                        alumno: null,
+                        archivo: null,
+                        previewUrl: null,
+                        urlEdicion: null,
+                        subiendo: false,
+                        zoom: 1,
+                        offset: { x: 0, y: 0 }
+                      });
+                    }}
+                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-lg">close</span>
+                  </button>
+                </div>
+
+                {/* Info Alumno */}
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center flex-shrink-0 shadow-xs">
+                    {modalFotoCarnet.alumno?.nombres?.charAt(0) || 'A'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                      {modalFotoCarnet.alumno?.nombres} {modalFotoCarnet.alumno?.apellidos || modalFotoCarnet.alumno?.apellido_paterno || ''}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      DNI: {modalFotoCarnet.alumno?.dni}
                     </p>
                   </div>
                 </div>
-                <button
-                  disabled={modalFotoCarnet.subiendo}
-                  onClick={() => {
-                    if (modalFotoCarnet.previewUrl) URL.revokeObjectURL(modalFotoCarnet.previewUrl);
-                    setModalFotoCarnet({ abierto: false, alumno: null, archivo: null, previewUrl: null, subiendo: false });
-                  }}
-                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">close</span>
-                </button>
-              </div>
 
-              {/* Info Alumno */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center flex-shrink-0">
-                  {modalFotoCarnet.alumno?.nombres?.charAt(0) || 'A'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                    {modalFotoCarnet.alumno?.nombres} {modalFotoCarnet.alumno?.apellidos || modalFotoCarnet.alumno?.apellido_paterno || ''}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    DNI: {modalFotoCarnet.alumno?.dni}
-                  </p>
-                </div>
-              </div>
-
-              {/* Comparativa: Foto Actual vs Nueva Foto */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Foto Actual */}
-                <div className="flex flex-col items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Foto Actual
-                  </span>
-                  <div className="w-28 h-32 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700/60 border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center shadow-xs">
-                    {modalFotoCarnet.alumno?.foto_carnet_url ? (
-                      <img
-                        src={formatFotoUrl(modalFotoCarnet.alumno.foto_carnet_url)}
-                        alt="Foto Actual"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="text-center p-2">
-                        <span className="material-symbols-outlined text-3xl text-slate-400">person</span>
-                        <p className="text-[10px] text-slate-400 font-bold mt-1">Sin foto</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Nueva Foto */}
-                <div className="flex flex-col items-center gap-2 p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-800/60">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
-                    Nueva Foto (3:4)
-                  </span>
-                  <div className="w-28 h-32 rounded-xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-blue-500 flex items-center justify-center shadow-xs relative group">
-                    {modalFotoCarnet.previewUrl ? (
+                {/* Área interactiva de Encuadre / Centrado */}
+                <div className="flex flex-col items-center gap-3">
+                  <div
+                    className="relative overflow-hidden rounded-2xl border-4 border-amber-500 bg-slate-950 shadow-xl select-none flex items-center justify-center cursor-grab active:cursor-grabbing"
+                    style={{ width: '240px', height: '264px' }}
+                    onMouseDown={handleMouseDownFoto}
+                    onMouseMove={handleMouseMoveFoto}
+                    onMouseUp={handleMouseUpFoto}
+                    onMouseLeave={handleMouseUpFoto}
+                    onTouchStart={handleTouchStartFoto}
+                    onTouchMove={handleTouchMoveFoto}
+                    onTouchEnd={handleMouseUpFoto}
+                    onWheel={handleWheelFoto}
+                  >
+                    {modalFotoCarnet.urlEdicion ? (
                       <>
                         <img
-                          src={modalFotoCarnet.previewUrl}
-                          alt="Nueva Foto"
-                          className="w-full h-full object-cover"
+                          src={modalFotoCarnet.urlEdicion}
+                          alt="Foto Alumno"
+                          draggable={false}
+                          crossOrigin="anonymous"
+                          onLoad={(e) => {
+                            const nw = e.currentTarget.naturalWidth || 240;
+                            const nh = e.currentTarget.naturalHeight || 264;
+                            setDimensionesFoto({ w: nw, h: nh });
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            width: `${baseW * modalFotoCarnet.zoom}px`,
+                            height: `${baseH * modalFotoCarnet.zoom}px`,
+                            transform: `translate(calc(-50% + ${modalFotoCarnet.offset.x}px), calc(-50% + ${modalFotoCarnet.offset.y}px))`,
+                            maxWidth: 'none',
+                            maxHeight: 'none',
+                            userSelect: 'none',
+                            pointerEvents: 'none',
+                            transition: isDraggingFoto ? 'none' : 'transform 0.1s ease-out'
+                          }}
                         />
-                        <label
-                          htmlFor="input-foto-carnet-nueva"
-                          className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity"
-                        >
-                          <span className="material-symbols-outlined text-xl">edit</span>
-                          <span className="text-[10px] font-bold">Cambiar</span>
-                        </label>
+
+                        {/* Guías de ayuda visual para encuadrar el rostro */}
+                        <div className="absolute inset-0 pointer-events-none border border-white/20 rounded-2xl">
+                          {/* Óvalo de referencia para cara */}
+                          <div className="absolute top-[14%] left-[20%] right-[20%] bottom-[28%] rounded-full border-2 border-dashed border-amber-400/50 flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-amber-300/60 uppercase tracking-widest">
+                              Rostro
+                            </span>
+                          </div>
+                          {/* Línea horizontal para hombros */}
+                          <div className="absolute bottom-[20%] left-[10%] right-[10%] border-t border-dashed border-amber-400/30" />
+                        </div>
+
+                        {/* Badge indicador de interacción */}
+                        <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white/90 text-[10px] font-semibold px-2 py-0.5 rounded-md pointer-events-none flex items-center gap-1 border border-white/10">
+                          <span className="material-symbols-outlined text-xs text-amber-400">pan_tool</span>
+                          <span>Arrastra para centrar</span>
+                        </div>
                       </>
                     ) : (
                       <label
                         htmlFor="input-foto-carnet-nueva"
-                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-2 text-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                        className="w-full h-full flex flex-col items-center justify-center p-4 text-center cursor-pointer text-slate-400 hover:text-amber-400 hover:bg-slate-900 transition-colors"
                       >
-                        <span className="material-symbols-outlined text-3xl">add_photo_alternate</span>
-                        <span className="text-[10px] font-bold mt-1">Seleccionar</span>
+                        <span className="material-symbols-outlined text-4xl mb-2 text-amber-500">add_photo_alternate</span>
+                        <span className="text-xs font-bold">Seleccionar foto</span>
+                        <span className="text-[10px] text-slate-500 mt-1">JPG, PNG o WebP</span>
                       </label>
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Selector de Archivo */}
-              <div className="space-y-1.5">
+                  {/* Controles: Zoom y Herramientas */}
+                  {modalFotoCarnet.urlEdicion && (
+                    <div className="w-full space-y-2.5 pt-0.5">
+                      {/* Control de Zoom */}
+                      <div className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+                        <button
+                          type="button"
+                          onClick={() => setModalFotoCarnet(prev => ({ ...prev, zoom: Math.max(1, +(prev.zoom - 0.15).toFixed(2)) }))}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors shadow-xs cursor-pointer"
+                          title="Alejar"
+                        >
+                          <span className="material-symbols-outlined text-sm">zoom_out</span>
+                        </button>
+
+                        <div className="flex-1 flex items-center">
+                          <input
+                            type="range"
+                            min="1"
+                            max="3.5"
+                            step="0.05"
+                            value={modalFotoCarnet.zoom}
+                            onChange={(e) => setModalFotoCarnet(prev => ({ ...prev, zoom: parseFloat(e.target.value) }))}
+                            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setModalFotoCarnet(prev => ({ ...prev, zoom: Math.min(3.5, +(prev.zoom + 0.15).toFixed(2)) }))}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 transition-colors shadow-xs cursor-pointer"
+                          title="Acercar"
+                        >
+                          <span className="material-symbols-outlined text-sm">zoom_in</span>
+                        </button>
+
+                        <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400 w-11 text-right">
+                          {Math.round(modalFotoCarnet.zoom * 100)}%
+                        </span>
+                      </div>
+
+                      {/* Botones de acción rápida */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setModalFotoCarnet(prev => ({ ...prev, zoom: 1, offset: { x: 0, y: 0 } }))}
+                          className="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                          title="Restablecer posición y zoom"
+                        >
+                          <span className="material-symbols-outlined text-sm">restart_alt</span>
+                          <span>Centrar</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDescargarFotoOriginal}
+                          className="px-2 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                          title="Descargar la foto original a tu computadora"
+                        >
+                          <span className="material-symbols-outlined text-sm">download</span>
+                          <span>Bajar</span>
+                        </button>
+
+                        <label
+                          htmlFor="input-foto-carnet-nueva"
+                          className="px-2 py-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                          title="Elegir otro archivo de imagen de tu equipo"
+                        >
+                          <span className="material-symbols-outlined text-sm">upload_file</span>
+                          <span>Cambiar</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input de archivo oculto */}
                 <input
                   type="file"
                   id="input-foto-carnet-nueva"
@@ -3465,55 +3781,54 @@ export default function AdminCarnets() {
                   onChange={handleSeleccionarFoto}
                   className="hidden"
                 />
-                <label
-                  htmlFor="input-foto-carnet-nueva"
-                  className="w-full py-3 px-4 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 rounded-2xl flex items-center justify-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all"
-                >
-                  <span className="material-symbols-outlined text-lg text-blue-500">upload_file</span>
-                  <span>
-                    {modalFotoCarnet.archivo ? `Archivo: ${modalFotoCarnet.archivo.name}` : 'Haz clic para elegir foto (JPG, PNG, WebP)'}
-                  </span>
-                </label>
-                <p className="text-[10px] text-slate-400 text-center">
-                  Recomendación: Foto de rostro de frente, bien iluminada y nítida. Máximo 10 MB.
-                </p>
-              </div>
 
-              {/* Botones de Acción */}
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  disabled={modalFotoCarnet.subiendo}
-                  onClick={() => {
-                    if (modalFotoCarnet.previewUrl) URL.revokeObjectURL(modalFotoCarnet.previewUrl);
-                    setModalFotoCarnet({ abierto: false, alumno: null, archivo: null, previewUrl: null, subiendo: false });
-                  }}
-                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={modalFotoCarnet.subiendo || !modalFotoCarnet.archivo}
-                  onClick={handleGuardarFotoCarnet}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 active:scale-[0.98]"
-                >
-                  {modalFotoCarnet.subiendo ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-                      <span>Subiendo y guardando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-base">check_circle</span>
-                      <span>Guardar Nueva Foto</span>
-                    </>
-                  )}
-                </button>
+                {/* Botones principales de pie */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={modalFotoCarnet.subiendo}
+                    onClick={() => {
+                      if (modalFotoCarnet.previewUrl && modalFotoCarnet.previewUrl.startsWith('blob:')) {
+                        URL.revokeObjectURL(modalFotoCarnet.previewUrl);
+                      }
+                      setModalFotoCarnet({
+                        abierto: false,
+                        alumno: null,
+                        archivo: null,
+                        previewUrl: null,
+                        urlEdicion: null,
+                        subiendo: false,
+                        zoom: 1,
+                        offset: { x: 0, y: 0 }
+                      });
+                    }}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={modalFotoCarnet.subiendo || !modalFotoCarnet.urlEdicion}
+                    onClick={handleGuardarFotoCarnet}
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+                  >
+                    {modalFotoCarnet.subiendo ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                        <span>Guardando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-base">check_circle</span>
+                        <span>Guardar y Aplicar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Modal Elegante: Registrar Pago por Clase con Efectivo / Yape / Plin */}
         {modalPagoClase.abierto && (
