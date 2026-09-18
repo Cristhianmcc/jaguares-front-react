@@ -30,7 +30,7 @@ const html = `
                     <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tight text-black dark:text-white">
                         Dashboard <span class="text-primary">Financiero</span>
                     </h1>
-                    <p class="text-text-muted dark:text-gray-400 mt-2">An�lisis de ingresos y m�tricas econ�micas</p>
+                    <p class="text-text-muted dark:text-gray-400 mt-2">Análisis de ingresos y métricas económicas</p>
                 </div>
                 <button onclick="exportarDashboardExcel()" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2">
                     <span class="material-symbols-outlined">download</span>
@@ -38,9 +38,69 @@ const html = `
                 </button>
             </div>
 
+            <div id="filtrosBar" class="flex flex-wrap gap-3 items-center mb-6 p-4 bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-color">
+                <span class="flex items-center gap-1 text-sm font-bold uppercase tracking-tight text-text-muted mr-1">
+                    <span class="material-symbols-outlined text-base">filter_list</span>
+                    Filtrar por:
+                </span>
+                <select id="filtroAnio" onchange="aplicarFiltros()"
+                    class="px-3 py-2 rounded-lg border border-border-color bg-white dark:bg-gray-900 text-sm font-semibold text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors">
+                    <option value="">Todos los años</option>
+                </select>
+                <select id="filtroMes" onchange="aplicarFiltros()"
+                    class="px-3 py-2 rounded-lg border border-border-color bg-white dark:bg-gray-900 text-sm font-semibold text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors">
+                    <option value="">Todos los meses</option>
+                    <option value="Enero">Enero</option>
+                    <option value="Febrero">Febrero</option>
+                    <option value="Marzo">Marzo</option>
+                    <option value="Abril">Abril</option>
+                    <option value="Mayo">Mayo</option>
+                    <option value="Junio">Junio</option>
+                    <option value="Julio">Julio</option>
+                    <option value="Agosto">Agosto</option>
+                    <option value="Septiembre">Septiembre</option>
+                    <option value="Octubre">Octubre</option>
+                    <option value="Noviembre">Noviembre</option>
+                    <option value="Diciembre">Diciembre</option>
+                </select>
+                <select id="filtroDeporte" onchange="aplicarFiltros()"
+                    class="px-3 py-2 rounded-lg border border-border-color bg-white dark:bg-gray-900 text-sm font-semibold text-text-main dark:text-white focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors">
+                    <option value="">Todos los deportes</option>
+                </select>
+                <button onclick="limpiarFiltros()" id="btnLimpiarFiltros"
+                    class="hidden flex items-center gap-1 px-3 py-2 rounded-lg border border-border-color text-sm font-semibold text-text-muted hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <span class="material-symbols-outlined text-sm">close</span>
+                    Limpiar filtros
+                </button>
+            </div>
+
+            <!-- Card de período filtrado — visible solo con filtros activos -->
+            <div id="cardResumenFiltrado" class="hidden mb-6">
+                <div class="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/10 border-2 border-primary/40 rounded-xl p-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <p class="flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-primary mb-2">
+                                <span class="material-symbols-outlined text-sm">query_stats</span>
+                                Período seleccionado
+                            </p>
+                            <p id="labelPeriodoFiltrado" class="text-xl font-black text-black dark:text-white"></p>
+                            <p class="text-xs text-text-muted mt-1">
+                                <span id="filtradoPagos" class="font-bold text-black dark:text-white">0</span> pagos confirmados
+                                &nbsp;·&nbsp;
+                                <span id="filtradoAlumnos" class="font-bold text-black dark:text-white">0</span> alumnos distintos
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-text-muted uppercase tracking-wide mb-1">Total recaudado</p>
+                            <p id="filtradoTotal" class="text-4xl font-black text-primary">S/ 0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="loadingContainer" class="text-center py-20">
                 <span class="material-symbols-outlined animate-spin text-6xl text-primary">progress_activity</span>
-                <p class="text-text-muted mt-4">Cargando estadf�sticas...</p>
+                <p class="text-text-muted mt-4">Cargando estadísticas...</p>
             </div>
 
             <div id="dashboardContainer" class="hidden space-y-8">
