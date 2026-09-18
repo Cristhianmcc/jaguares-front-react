@@ -109,6 +109,59 @@ function renderizarEstadisticas(stats) {
     
     // Renderizar gr�ficas
     renderizarGraficas(porDeporte, resumen);
+
+    // Actualizar UI de filtros con los datos recibidos
+    poblarDropdownAnios(stats.desgloseMensual || []);
+    poblarDropdownDeportes(porDeporte || []);
+    renderizarResumenFiltrado(stats.resumenFiltrado);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUNCIONES DE FILTROS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function poblarDropdownAnios(desglose) {
+    const el = document.getElementById('filtroAnio');
+    if (!el) return;
+    const anioActual = el.value;
+    const anios = [...new Set(desglose.map(d => d.anio).filter(Boolean))].sort((a, b) => b - a);
+    el.innerHTML = '<option value="">Todos los años</option>' +
+        anios.map(a => `<option value="${a}"${String(a) === anioActual ? ' selected' : ''}>${a}</option>`).join('');
+}
+
+function poblarDropdownDeportes(deportes) {
+    const el = document.getElementById('filtroDeporte');
+    if (!el) return;
+    const depActual = el.value;
+    el.innerHTML = '<option value="">Todos los deportes</option>' +
+        deportes
+            .filter(d => d.deporte && d.totalInscritos > 0)
+            .map(d => `<option value="${d.deporte}"${d.deporte === depActual ? ' selected' : ''}>${d.deporte}</option>`)
+            .join('');
+}
+
+function renderizarResumenFiltrado(rf) {
+    const card = document.getElementById('cardResumenFiltrado');
+    if (!card) return;
+    if (!rf) { card.classList.add('hidden'); return; }
+
+    const { totalMonto, cantidadPagos, cantidadAlumnos, filtros } = rf;
+    const partes = [];
+    if (filtros.mes)     partes.push(filtros.mes);
+    if (filtros.anio)    partes.push(filtros.anio);
+    if (filtros.deporte) partes.push(filtros.deporte);
+    const texto = partes.join(' · ') || 'Período seleccionado';
+
+    const elPeriodo = document.getElementById('labelPeriodoFiltrado');
+    const elTotal   = document.getElementById('filtradoTotal');
+    const elPagos   = document.getElementById('filtradoPagos');
+    const elAlumnos = document.getElementById('filtradoAlumnos');
+
+    if (elPeriodo)  elPeriodo.textContent  = texto;
+    if (elTotal)    elTotal.textContent    = 'S/ ' + totalMonto.toFixed(2);
+    if (elPagos)    elPagos.textContent    = cantidadPagos;
+    if (elAlumnos)  elAlumnos.textContent  = cantidadAlumnos;
+    card.classList.remove('hidden');
 }
 
 function renderizarTablaDeportes(deportes) {
