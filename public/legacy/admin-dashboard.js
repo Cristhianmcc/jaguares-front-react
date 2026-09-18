@@ -5,6 +5,7 @@
 let chartDeportes = null;
 let chartDistribucion = null;
 let filtrosActivos = { anio: '', mes: '', deporte: '' };
+let _abortCtrl = null; // AbortController para cancelar fetch anterior
 
 function initAdminDashboard() {
     verificarSesion();
@@ -67,9 +68,16 @@ async function cargarEstadisticas() {
     const loadingContainer = document.getElementById('loadingContainer');
     const dashboardContainer = document.getElementById('dashboardContainer');
     
+    // Abortar fetch anterior para evitar race condition
+    if (_abortCtrl) { try { _abortCtrl.abort(); } catch(e) {} }
+    _abortCtrl = new AbortController();
+    var _signal = _abortCtrl.signal;
+
     loadingContainer.classList.remove('hidden');
-    dashboardContainer.classList.add('hidden');
-    
+    // Solo ocultar el dashboard en la carga inicial (sin filtros activos)
+    var _hayFiltros = filtrosActivos.anio || filtrosActivos.mes || filtrosActivos.deporte;
+    if (!_hayFiltros) { dashboardContainer.classList.add('hidden'); }
+
     try {
         const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
             ? window.API_BASE_OVERRIDE
@@ -91,6 +99,7 @@ async function cargarEstadisticas() {
         if (filtrosActivos.deporte) _fp.set('deporte', filtrosActivos.deporte);
         var _fq = _fp.toString() ? '?' + _fp.toString() : '';
         const response = await fetch(`${API_BASE}/api/admin/estadisticas-financieras${_fq}`, {
+            signal: _signal,
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -111,6 +120,7 @@ async function cargarEstadisticas() {
             mostrarError('Error al cargar estad�sticas: ' + data.error);
         }
     } catch (error) {
+        if (error && error.name === 'AbortError') return; // fetch cancelado intencionalmente
         console.error('Error al cargar estad�sticas:', error);
         mostrarError('Error de conexi�n. Verifica que el servidor est� activo.');
     } finally {
@@ -142,6 +152,7 @@ function renderizarEstadisticas(stats) {
 
     // Actualizar UI de filtros con los datos recibidos
     poblarDropdownAnios(stats.desgloseMensual || []);
+    poblarDropdownMeses(stats.desgloseMensual || []);
     poblarDropdownDeportes(porDeporte || []);
     renderizarResumenFiltrado(stats.resumenFiltrado);
 }
@@ -168,6 +179,33 @@ function poblarDropdownDeportes(deportes) {
             .filter(d => d.deporte && d.totalInscritos > 0)
             .map(d => `<option value="${d.deporte}"${d.deporte === depActual ? ' selected' : ''}>${d.deporte}</option>`)
             .join('');
+}
+
+function poblarDropdownMeses(desglose) {
+    var el = document.getElementById('filtroMes');
+    if (!el) return;
+    var mesActual = (el.value || '').toLowerCase();
+    var ORDEN = ['enero','febrero','marzo','abril','mayo','junio',
+                 'julio','agosto','septiembre','setiembre','octubre','noviembre','diciembre'];
+    var CAP = { enero:'Enero',febrero:'Febrero',marzo:'Marzo',abril:'Abril',
+                mayo:'Mayo',junio:'Junio',julio:'Julio',agosto:'Agosto',
+                septiembre:'Septiembre',setiembre:'Septiembre',
+                octubre:'Octubre',noviembre:'Noviembre',diciembre:'Diciembre' };
+    var unicos = [];
+    desglose.forEach(function(d) {
+        var m = (d.mes || '').toLowerCase();
+        if (m && unicos.indexOf(m) === -1) unicos.push(m);
+    });
+    var ordenados = ORDEN.filter(function(m) { return unicos.indexOf(m) !== -1; });
+    // añadir meses fuera del orden estándar
+    unicos.forEach(function(m) { if (ordenados.indexOf(m) === -1) ordenados.push(m); });
+    var opts = '<option value="">Todos los meses</option>';
+    ordenados.forEach(function(m) {
+        var display = CAP[m] || (m.charAt(0).toUpperCase() + m.slice(1));
+        var sel = (m === mesActual) ? ' selected' : '';
+        opts += '<option value="' + m + '"' + sel + '>' + display + '</option>';
+    });
+    el.innerHTML = opts;
 }
 
 function renderizarResumenFiltrado(rf) {
@@ -264,8 +302,15 @@ function renderizarTablaAlumnos(alumnos) {
 
 function renderizarGraficas(deportes, resumen) {
     // Destruir gr�ficas anteriores
-    if (chartDeportes) chartDeportes.destroy();
-    if (chartDistribucion) chartDistribucion.destroy();
+    // Destruir graficas anteriores de forma segura
+    if (chartDeportes && typeof chartDeportes.destroy === 'function') {
+        try { chartDeportes.destroy(); } catch(e) { console.warn('destroy chartDeportes:', e); }
+    }
+    chartDeportes = null;
+    if (chartDistribucion && typeof chartDistribucion.destroy === 'function') {
+        try { chartDistribucion.destroy(); } catch(e) { console.warn('destroy chartDistribucion:', e); }
+    }
+    chartDistribucion = null;
     
     // Colores profesionales
     const colores = [
