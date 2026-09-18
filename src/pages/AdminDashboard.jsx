@@ -30,7 +30,7 @@ const html = `
                     <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tight text-black dark:text-white">
                         Dashboard <span class="text-primary">Financiero</span>
                     </h1>
-                    <p class="text-text-muted dark:text-gray-400 mt-2">Análisis de ingresos y métricas económicas</p>
+                    <p class="text-text-muted dark:text-gray-400 mt-2">Anï¿½lisis de ingresos y mï¿½tricas econï¿½micas</p>
                 </div>
                 <button onclick="exportarDashboardExcel()" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2">
                     <span class="material-symbols-outlined">download</span>
@@ -40,7 +40,7 @@ const html = `
 
             <div id="loadingContainer" class="text-center py-20">
                 <span class="material-symbols-outlined animate-spin text-6xl text-primary">progress_activity</span>
-                <p class="text-text-muted mt-4">Cargando estadf­sticas...</p>
+                <p class="text-text-muted mt-4">Cargando estadfï¿½sticas...</p>
             </div>
 
             <div id="dashboardContainer" class="hidden space-y-8">
@@ -50,7 +50,7 @@ const html = `
                             <div>
                                 <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Ingresos Totales</p>
                                 <p id="totalIngresos" class="text-4xl font-black text-black dark:text-white mt-2">S/ 0</p>
-                                <p class="text-xs text-text-muted mt-2">Matrf­culas + Mensualidades</p>
+                                <p class="text-xs text-text-muted mt-2">Matrfï¿½culas + Mensualidades</p>
                             </div>
                             <span class="material-symbols-outlined text-5xl text-primary">account_balance_wallet</span>
                         </div>
@@ -83,9 +83,9 @@ const html = `
                     <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md border-l-4 border-amber-600">
                         <div class="flex items-start justify-between">
                             <div>
-                                <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Total Matrf­culas</p>
+                                <p class="text-sm font-semibold text-text-muted dark:text-gray-400 uppercase">Total Matrfï¿½culas</p>
                                 <p id="totalMatriculas" class="text-4xl font-black text-black dark:text-white mt-2">S/ 0</p>
-                                <p class="text-xs text-text-muted mt-2">Cobro único por deporte</p>
+                                <p class="text-xs text-text-muted mt-2">Cobro ï¿½nico por deporte</p>
                             </div>
                             <span class="material-symbols-outlined text-5xl text-amber-600">badge</span>
                         </div>
@@ -112,7 +112,7 @@ const html = `
                     </div>
 
                     <div class="bg-white dark:bg-surface-dark p-6 rounded-xl shadow-md">
-                        <h3 class="text-xl font-bold text-black dark:text-white mb-6 uppercase tracking-tight">Distribución de Ingresos</h3>
+                        <h3 class="text-xl font-bold text-black dark:text-white mb-6 uppercase tracking-tight">Distribuciï¿½n de Ingresos</h3>
                         <div class="h-96 flex items-center justify-center">
                             <canvas id="chartDistribucion"></canvas>
                         </div>
@@ -120,12 +120,12 @@ const html = `
                 </div>
 
                 <div class="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-xl">
-                    <h3 class="text-xl font-bold text-black dark:text-white mb-6 uppercase tracking-tight">Historial de Recaudación por Mes y Deporte</h3>
+                    <h3 class="text-xl font-bold text-black dark:text-white mb-6 uppercase tracking-tight">Historial de Recaudaciï¿½n por Mes y Deporte</h3>
                     <div class="overflow-x-auto">
                         <table class="min-w-full">
                             <thead>
                                 <tr class="border-b-2 border-primary">
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Mes / Año</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Mes / Aï¿½o</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Deporte</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Pagos Confirmados</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Total Recaudado</th>
@@ -144,7 +144,7 @@ const html = `
                             <thead>
                                 <tr class="border-b-2 border-primary">
                                     <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Deporte</th>
-                                    <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Matrf­culas</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Matrfï¿½culas</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Mensualidades</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Total</th>
                                 </tr>
@@ -164,7 +164,7 @@ const html = `
                                     <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">DNI</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Nombres</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Deportes</th>
-                                    <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Matrf­culas</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Matrfï¿½culas</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Mensualidades</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Total</th>
                                 </tr>
@@ -186,7 +186,7 @@ const html = `
                 JAGUARES - Dashboard Financiero
             </p>
             <p class="text-xs text-text-muted dark:text-gray-500 mt-1">
-                Última actualización: <span id="timestampActualizacion">-</span>
+                ï¿½ltima actualizaciï¿½n: <span id="timestampActualizacion">-</span>
             </p>
         </div>
     </footer>
@@ -196,7 +196,7 @@ function loadScript(src) {
   return new Promise((resolve, reject) => {
     const existing = document.querySelector(`script[data-src="${src}"]`);
     if (existing) {
-      resolve(false); // ya existía
+      resolve(false); // ya existï¿½a
       return;
     }
     const script = document.createElement('script');
@@ -204,7 +204,7 @@ function loadScript(src) {
     script.async = false;
     script.defer = false;
     script.dataset.src = src;
-    script.onload = () => resolve(true); // recién cargado
+    script.onload = () => resolve(true); // reciï¿½n cargado
     script.onerror = () => reject(new Error(`Failed to load ${src}`));
     document.body.appendChild(script);
   });
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
         await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
         await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
         const freshlyLoaded = await loadScript('/legacy/admin-dashboard.js?v=2');
-        // Si el script ya estaba en el DOM (navegación de vuelta), llamar init manualmente
+        // Si el script ya estaba en el DOM (navegaciï¿½n de vuelta), llamar init manualmente
         if (!cancelled && !freshlyLoaded && typeof window.initAdminDashboard === 'function') {
           window.initAdminDashboard();
         }
