@@ -400,7 +400,7 @@ export default function AdminCarnets() {
   const cargarAlumnos = async () => {
     setLoading(true);
     try {
-      const res = await fetchWithAuth('/api/admin/inscritos');
+      const res = await fetchWithAuth('/api/admin/inscritos?refresh=true');
       if (res.status === 401 || res.status === 403) {
         setAuthError(true);
         setLoading(false);
@@ -893,7 +893,7 @@ export default function AdminCarnets() {
     }
   };
 
-  // Helper para capturar carnet de cualquier alumno (usando carnetImprimible temporalmente con caché)
+  // Helper para capturar carnet de cualquier alumno (usando carnetImprimible temporalmente con cache)
   const capturarCarnetDeAlumno = async (alumnoItem) => {
     if (!alumnoItem || !alumnoItem.dni) return null;
     const dni = String(alumnoItem.dni);
@@ -903,6 +903,33 @@ export default function AdminCarnets() {
       return carnetsCacheRef.current[cacheKey];
     }
 
+    // 1. Si no viene foto_carnet_url en el listado, consultar rapidamente los datos del alumno
+    let fotoUrl = alumnoItem.foto_carnet_url || null;
+    let fechaNac = alumnoItem.fecha_nacimiento || null;
+    let dep = alumnoItem.deporte || alumnoItem.deportes || 'Fútbol';
+    let plan = alumnoItem.plan || 'Oficial';
+    let cat = alumnoItem.categoria || '';
+
+    if (!fotoUrl) {
+      try {
+        const res = await fetchWithAuth(`/api/consultar/${encodeURIComponent(dni)}?incluir_inactivos=1&t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.alumno) {
+            fotoUrl = data.alumno.foto_carnet_url || null;
+            if (!fechaNac) fechaNac = data.alumno.fecha_nacimiento;
+            if (data.inscripciones && data.inscripciones[0]) {
+              dep = data.inscripciones[0].deporte || dep;
+              plan = data.inscripciones[0].plan || plan;
+              cat = data.inscripciones[0].categoria || cat;
+            }
+            alumnoItem.foto_carnet_url = fotoUrl;
+            alumnoItem.fecha_nacimiento = fechaNac;
+          }
+        }
+      } catch (_) {}
+    }
+
     const alData = {
       success: true,
       alumno: {
@@ -910,15 +937,15 @@ export default function AdminCarnets() {
         nombres: alumnoItem.nombres || '',
         apellidos: alumnoItem.apellidos || '',
         dni: alumnoItem.dni,
-        fecha_nacimiento: alumnoItem.fecha_nacimiento || null,
-        foto_carnet_url: alumnoItem.foto_carnet_url || null,
+        fecha_nacimiento: fechaNac || alumnoItem.fecha_nacimiento || null,
+        foto_carnet_url: fotoUrl || null,
         telefono_apoderado: alumnoItem.telefono_apoderado || alumnoItem.telefono || '',
       },
       inscripciones: [
         {
-          deporte: alumnoItem.deporte || alumnoItem.deportes || 'Fútbol',
-          plan: alumnoItem.plan || 'Oficial',
-          categoria: alumnoItem.categoria || ''
+          deporte: dep,
+          plan: plan,
+          categoria: cat
         }
       ],
       pago: {
@@ -926,29 +953,47 @@ export default function AdminCarnets() {
       }
     };
 
-    // Si tiene foto, pre-cargarla para evitar capturar cuadro vacío
-    if (alumnoItem.foto_carnet_url) {
+    // 2. Pre-cargar imagen en memoria si existe
+    if (fotoUrl) {
       try {
         await new Promise((resolve) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = resolve;
           img.onerror = resolve;
-          img.src = formatFotoUrl(alumnoItem.foto_carnet_url);
-          setTimeout(resolve, 250);
+          img.src = formatFotoUrl(fotoUrl);
+          setTimeout(resolve, 350);
         });
       } catch (_) {}
     }
 
     setAlumnoSeleccionado(alData);
-    await new Promise(r => setTimeout(r, 70));
+    await new Promise(r => setTimeout(r, 80));
 
     const carnetEl = document.getElementById('carnetImprimible');
     if (!carnetEl) return null;
 
+    // 3. Esperar que la imagen en el DOM termine de decodificar (naturalWidth > 0)
+    if (fotoUrl) {
+      await new Promise((resolve) => {
+        const imgEl = carnetEl.querySelector('img[alt="Foto alumno"]') || carnetEl.querySelector('img[alt="Foto"]');
+        if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+          resolve();
+        } else if (imgEl) {
+          imgEl.onload = resolve;
+          imgEl.onerror = resolve;
+          setTimeout(resolve, 350);
+        } else {
+          setTimeout(resolve, 100);
+        }
+      });
+    }
+
     try {
       const dataUrl = await capturarCarnetDataUrl(carnetEl, 'jpeg');
-      carnetsCacheRef.current[cacheKey] = dataUrl;
+      if (dataUrl) {
+        carnetsCacheRef.current[cacheKey] = dataUrl;
+      }
       return dataUrl;
     } catch (err) {
       console.error(`Error capturando carnet de ${dni}:`, err);
