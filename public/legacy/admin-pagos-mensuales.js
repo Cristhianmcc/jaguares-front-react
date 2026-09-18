@@ -301,7 +301,8 @@ function renderizarPagos(pagos) {
             </div>
         ` : '';
 
-        const comprobanteBtn = p.comprobante_url ? `
+        const tieneComprobante = p.comprobante_url && typeof p.comprobante_url === 'string' && p.comprobante_url.trim() !== '' && p.comprobante_url !== '-' && p.comprobante_url !== 'null' && p.comprobante_url !== 'undefined';
+        const comprobanteBtn = tieneComprobante ? `
             <div class="flex items-center gap-1.5 flex-wrap">
                 <a href="${getDriveViewUrl(p.comprobante_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold transition-colors" title="Ver en Google Drive">
                     <span class="material-symbols-outlined text-sm">open_in_new</span> Ver
