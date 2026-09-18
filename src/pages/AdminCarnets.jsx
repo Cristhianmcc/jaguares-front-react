@@ -98,6 +98,8 @@ export default function AdminCarnets() {
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [filtroDeporte, setFiltroDeporte] = useState('');
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   // Estados para Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
@@ -105,6 +107,12 @@ export default function AdminCarnets() {
   const [arrastrandoCarnet, setArrastrandoCarnet] = useState(false);
   const [hoverSlotA4, setHoverSlotA4] = useState(null);
   const [generandoA4Cuadruple, setGenerandoA4Cuadruple] = useState(false);
+  // Estados para Lote de Hojas A4 (dividir categoría o grupo en tandas de 4)
+  const [loteHojas, setLoteHojas] = useState([]);
+  const [hojaActual, setHojaActual] = useState(0);
+  const [procesandoLote, setProcesandoLote] = useState(false);
+  const [progresoLote, setProgresoLote] = useState('');
+  const carnetsCacheRef = useRef({});
 
   
   // Opciones de Carnet
@@ -885,6 +893,241 @@ export default function AdminCarnets() {
     }
   };
 
+  // Helper para capturar carnet de cualquier alumno (usando carnetImprimible temporalmente con caché)
+  const capturarCarnetDeAlumno = async (alumnoItem) => {
+    if (!alumnoItem || !alumnoItem.dni) return null;
+    const dni = String(alumnoItem.dni);
+    const cacheKey = `${dni}_${formatoCarnet}_${temaImpresion}_${tipoCodigo}`;
+
+    if (carnetsCacheRef.current[cacheKey]) {
+      return carnetsCacheRef.current[cacheKey];
+    }
+
+    const alData = {
+      success: true,
+      alumno: {
+        ...alumnoItem,
+        nombres: alumnoItem.nombres || '',
+        apellidos: alumnoItem.apellidos || '',
+        dni: alumnoItem.dni,
+        fecha_nacimiento: alumnoItem.fecha_nacimiento || null,
+        foto_carnet_url: alumnoItem.foto_carnet_url || null,
+        telefono_apoderado: alumnoItem.telefono_apoderado || alumnoItem.telefono || '',
+      },
+      inscripciones: [
+        {
+          deporte: alumnoItem.deporte || alumnoItem.deportes || 'Fútbol',
+          plan: alumnoItem.plan || 'Oficial',
+          categoria: alumnoItem.categoria || ''
+        }
+      ],
+      pago: {
+        estado: alumnoItem.estado_pago || 'confirmado'
+      }
+    };
+
+    // Si tiene foto, pre-cargarla para evitar capturar cuadro vacío
+    if (alumnoItem.foto_carnet_url) {
+      try {
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = formatFotoUrl(alumnoItem.foto_carnet_url);
+          setTimeout(resolve, 250);
+        });
+      } catch (_) {}
+    }
+
+    setAlumnoSeleccionado(alData);
+    await new Promise(r => setTimeout(r, 70));
+
+    const carnetEl = document.getElementById('carnetImprimible');
+    if (!carnetEl) return null;
+
+    try {
+      const dataUrl = await capturarCarnetDataUrl(carnetEl, 'jpeg');
+      carnetsCacheRef.current[cacheKey] = dataUrl;
+      return dataUrl;
+    } catch (err) {
+      console.error(`Error capturando carnet de ${dni}:`, err);
+      return null;
+    }
+  };
+
+  // Cargar una hoja específica del lote (índice 0, 1, 2...)
+  const cargarHojaLote = async (indiceHoja, listaChunks = loteHojas) => {
+    if (!listaChunks || !listaChunks[indiceHoja]) return;
+    const alumnosHoja = listaChunks[indiceHoja];
+    setHojaActual(indiceHoja);
+    setProcesandoLote(true);
+    setProgresoLote(`Cargando Hoja ${indiceHoja + 1} de ${listaChunks.length} (${alumnosHoja.length} alumnos)...`);
+
+    const nuevosSlots = [null, null, null, null];
+
+    for (let i = 0; i < alumnosHoja.length; i++) {
+      const a = alumnosHoja[i];
+      setProgresoLote(`Generando carnet ${i + 1} de ${alumnosHoja.length} (DNI ${a.dni})...`);
+      const dataUrl = await capturarCarnetDeAlumno(a);
+
+      nuevosSlots[i] = {
+        dataUrl,
+        alumno: a,
+        nombre: getPrimerNombreYPrimerApellido(a.nombres, a.apellidos),
+        dni: a.dni,
+        deporte: a.deporte || a.deportes || 'Fútbol',
+        plan: a.plan || 'Oficial',
+        formato: formatoCarnet
+      };
+    }
+
+    setSlotsA4(nuevosSlots);
+    setProcesandoLote(false);
+    setProgresoLote('');
+    setToastMensaje(`Hoja ${indiceHoja + 1} de ${listaChunks.length} cargada en la bandeja.`);
+    setTimeout(() => setToastMensaje(''), 3000);
+  };
+
+  // Dividir todos los alumnos filtrados en hojas de 4 y cargar la primera
+  const cargarTodaLaCategoriaEnHojas = async () => {
+    if (alumnosFiltrados.length === 0) {
+      setToastMensaje('No hay alumnos en la lista filtrada.');
+      setTimeout(() => setToastMensaje(''), 3000);
+      return;
+    }
+
+    const chunks = [];
+    for (let i = 0; i < alumnosFiltrados.length; i += 4) {
+      chunks.push(alumnosFiltrados.slice(i, i + 4));
+    }
+
+    setLoteHojas(chunks);
+    await cargarHojaLote(0, chunks);
+  };
+
+  // Cambiar de hoja en el lote actual
+  const cambiarHojaLote = async (nuevoIndice) => {
+    if (nuevoIndice < 0 || nuevoIndice >= loteHojas.length || procesandoLote) return;
+    await cargarHojaLote(nuevoIndice, loteHojas);
+  };
+
+  // Imprimir o descargar TODAS las hojas del lote en un solo PDF multipágina
+  const exportarPdfTodoElLote = async (accion = 'descargar') => {
+    let chunks = loteHojas;
+    if (!chunks || chunks.length === 0) {
+      if (alumnosFiltrados.length === 0) {
+        setToastMensaje('No hay alumnos para imprimir.');
+        setTimeout(() => setToastMensaje(''), 3000);
+        return;
+      }
+      chunks = [];
+      for (let i = 0; i < alumnosFiltrados.length; i += 4) {
+        chunks.push(alumnosFiltrados.slice(i, i + 4));
+      }
+      setLoteHojas(chunks);
+    }
+    if (!loteHojas || loteHojas.length === 0) {
+      setToastMensaje('Primero carga un lote en hojas.');
+      setTimeout(() => setToastMensaje(''), 3500);
+      return;
+    }
+
+    setGenerandoA4Cuadruple(true);
+    setProcesandoLote(true);
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const carnetW = 90;
+      const carnetH = 115;
+      const posiciones = [
+        { x: 10,  y: 20 },
+        { x: 110, y: 20 },
+        { x: 10,  y: 155 },
+        { x: 110, y: 155 },
+      ];
+
+      for (let hIdx = 0; hIdx < loteHojas.length; hIdx++) {
+        if (hIdx > 0) {
+          pdf.addPage('a4', 'portrait');
+        }
+
+        const chunk = loteHojas[hIdx];
+        setProgresoLote(`Procesando Hoja ${hIdx + 1} de ${loteHojas.length}...`);
+
+        // Encabezado
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(80, 80, 80);
+        pdf.text('CLUB DEPORTES JAGUARES - PLANTILLA OFICIAL EN HOJA A4 (HOJA ' + (hIdx + 1) + ' DE ' + loteHojas.length + ')', 105, 10, { align: 'center' });
+        pdf.setFontSize(7);
+        pdf.setTextColor(130, 130, 130);
+        pdf.text('Imprimir en escala 100% (sin ajuste de página) en papel fotográfico u opalina A4 (9 cm × 11.5 cm por carnet).', 105, 14.5, { align: 'center' });
+
+        // Pie
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(120, 120, 120);
+        const catTexto = filtroCategoria ? `Cat. ${filtroCategoria}` : 'General';
+        pdf.text(`Líneas punteadas exteriores diseñadas para corte exacto con guillotina. Lote: ${catTexto}`, 105, 290, { align: 'center' });
+
+        for (let sIdx = 0; sIdx < 4; sIdx++) {
+          const pos = posiciones[sIdx];
+
+          // Línea punteada
+          pdf.setDrawColor(180, 180, 180);
+          pdf.setLineDashPattern([2, 2], 0);
+          pdf.setLineWidth(0.25);
+          pdf.rect(pos.x - 0.5, pos.y - 0.5, carnetW + 1, carnetH + 1);
+
+          const al = chunk[sIdx];
+          if (al) {
+            const dataUrl = await capturarCarnetDeAlumno(al);
+            const nombre = getPrimerNombreYPrimerApellido(al.nombres, al.apellidos);
+
+            pdf.setFontSize(6.5);
+            pdf.setTextColor(130, 130, 130);
+            pdf.text(`✂ Espacio ${sIdx + 1}: ${nombre} (DNI ${al.dni})`, pos.x + carnetW / 2, pos.y - 2, { align: 'center' });
+
+            if (dataUrl) {
+              pdf.addImage(dataUrl, 'JPEG', pos.x, pos.y, carnetW, carnetH, undefined, 'FAST');
+            }
+          } else {
+            pdf.setFontSize(8);
+            pdf.setTextColor(200, 200, 200);
+            pdf.text(`[ Espacio ${sIdx + 1} Vacío ]`, pos.x + carnetW / 2, pos.y + carnetH / 2, { align: 'center' });
+          }
+        }
+      }
+
+      if (accion === 'imprimir') {
+        const blobUrl = pdf.output('bloburl');
+        const printWindow = window.open(blobUrl, '_blank');
+        if (printWindow) {
+          printWindow.addEventListener('load', () => printWindow.print());
+        }
+        setToastMensaje('Abriendo diálogo de impresión del lote completo.');
+      } else {
+        const catSlug = filtroCategoria ? `Cat_${filtroCategoria}` : 'Alumnos';
+        const fechaStr = new Date().toISOString().split('T')[0];
+        pdf.save(`Lote_${catSlug}_${loteHojas.length}_Hojas_${fechaStr}.pdf`);
+        setToastMensaje(`Lote de ${loteHojas.length} hojas descargado con éxito.`);
+      }
+      setTimeout(() => setToastMensaje(''), 4500);
+    } catch (err) {
+      console.error('Error generando PDF de lote:', err);
+      setToastMensaje('Hubo un error al generar el PDF del lote.');
+      setTimeout(() => setToastMensaje(''), 4000);
+    } finally {
+      setGenerandoA4Cuadruple(false);
+      setProcesandoLote(false);
+      setProgresoLote('');
+    }
+  };
+
   const exportarCarnetHojaA4 = async () => {
     const carnetEl = document.getElementById('carnetImprimible');
     if (!carnetEl || !alumnoSeleccionado) return;
@@ -1020,16 +1263,131 @@ export default function AdminCarnets() {
     setMostrarModalWhatsApp(false);
   };
 
-  const alumnosFiltrados = alumnos.filter(a => {
-    const q = busqueda.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      (a.dni && String(a.dni).toLowerCase().includes(q)) ||
-      (a.nombres && String(a.nombres).toLowerCase().includes(q)) ||
-      (a.apellidos && String(a.apellidos).toLowerCase().includes(q)) ||
-      (a.deporte && String(a.deporte).toLowerCase().includes(q))
-    );
-  });
+      // Normalizar acentos y mayúsculas en deportes para evitar Ãº, Ã¡, etc.
+  const normalizarDeporte = (dep) => {
+    if (!dep) return '';
+    let s = String(dep)
+      .replace(/Ãº/gi, 'ú')
+      .replace(/Ã¡/gi, 'á')
+      .replace(/Ã³/gi, 'ó')
+      .replace(/Ã©/gi, 'é')
+      .replace(/Ã­/gi, 'í')
+      .replace(/Ã±/gi, 'ñ')
+      .replace(/Â/g, '')
+      .trim();
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  // Categorías basadas en el año de nacimiento (Cat. 2012, Cat. 2015...) cruzadas con el filtro de deporte
+  const categoriasDisponibles = React.useMemo(() => {
+    const mapa = new Map();
+    // Si hay deporte seleccionado, cruzar conteo
+    const baseAlumnos = filtroDeporte
+      ? alumnos.filter(a => {
+          const depStr = normalizarDeporte(a.deporte || a.deportes || '').toLowerCase();
+          const target = normalizarDeporte(filtroDeporte).toLowerCase().trim();
+          return depStr.includes(target);
+        })
+      : alumnos;
+
+    baseAlumnos.forEach(a => {
+      const anio = getAnioNacimiento(a.fecha_nacimiento);
+      if (anio && anio !== '----') {
+        const key = String(anio);
+        if (!mapa.has(key)) {
+          mapa.set(key, { valor: anio, label: `Cat. ${anio}`, total: 0, sortKey: Number(anio) || 0 });
+        }
+        mapa.get(key).total += 1;
+      } else {
+        // Alumnos sin fecha de nacimiento pero con categoría textual
+        const catRaw = (a.categoria || '').trim();
+        if (catRaw) {
+          const m = catRaw.match(/\b(20\d{2})\b/);
+          if (m) {
+            const yr = m[1];
+            if (!mapa.has(yr)) {
+              mapa.set(yr, { valor: yr, label: `Cat. ${yr}`, total: 0, sortKey: Number(yr) || 0 });
+            }
+            mapa.get(yr).total += 1;
+          } else if (!catRaw.includes(',')) {
+            if (!mapa.has(catRaw)) {
+              mapa.set(catRaw, { valor: catRaw, label: catRaw, total: 0, sortKey: 0 });
+            }
+            mapa.get(catRaw).total += 1;
+          }
+        }
+      }
+    });
+
+    return Array.from(mapa.values()).sort((a, b) => b.sortKey - a.sortKey);
+  }, [alumnos, filtroDeporte]);
+
+  // Deportes disponibles con acentos limpios y cruzados con la categoría seleccionada
+  const deportesDisponibles = React.useMemo(() => {
+    const mapa = new Map();
+    const baseAlumnos = filtroCategoria
+      ? alumnos.filter(a => {
+          const anio = getAnioNacimiento(a.fecha_nacimiento);
+          const cat = (a.categoria || '').toLowerCase();
+          return anio === filtroCategoria || cat.includes(filtroCategoria.toLowerCase());
+        })
+      : alumnos;
+
+    baseAlumnos.forEach(a => {
+      const raw = a.deporte || a.deportes || '';
+      const list = raw.split(',').map(s => normalizarDeporte(s)).filter(Boolean);
+      const uniqueDeps = Array.from(new Set(list));
+      uniqueDeps.forEach(depName => {
+        const cleanName = depName.charAt(0).toUpperCase() + depName.slice(1);
+        mapa.set(cleanName, (mapa.get(cleanName) || 0) + 1);
+      });
+    });
+
+    return Array.from(mapa.entries())
+      .map(([nombre, total]) => ({ nombre, total }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [alumnos, filtroCategoria]);
+
+  // Filtrado reactivo combinado con soporte para múltiples deportes por alumno
+  const alumnosFiltrados = React.useMemo(() => {
+    return alumnos.filter(a => {
+      const anio = getAnioNacimiento(a.fecha_nacimiento);
+      const cat = (a.categoria || '').toLowerCase();
+      const depRaw = normalizarDeporte(a.deporte || a.deportes || '').toLowerCase();
+
+      // 1. Filtro texto libre
+      const q = busqueda.toLowerCase().trim();
+      if (q) {
+        const match =
+          (a.dni && String(a.dni).toLowerCase().includes(q)) ||
+          (a.nombres && String(a.nombres).toLowerCase().includes(q)) ||
+          (a.apellidos && String(a.apellidos).toLowerCase().includes(q)) ||
+          (depRaw && depRaw.includes(q)) ||
+          (cat && cat.includes(q)) ||
+          (anio && anio.includes(q)) ||
+          (`cat ${anio}`.includes(q)) ||
+          (`cat. ${anio}`.includes(q));
+        if (!match) return false;
+      }
+
+      // 2. Filtro Categoría
+      if (filtroCategoria) {
+        const matchCat = (anio === filtroCategoria) || 
+                         (cat.includes(filtroCategoria.toLowerCase()));
+        if (!matchCat) return false;
+      }
+
+      // 3. Filtro Deporte (comprueba si practica el deporte seleccionado aunque tenga varios)
+      if (filtroDeporte) {
+        const target = normalizarDeporte(filtroDeporte).toLowerCase().trim();
+        const deps = depRaw.split(',').map(d => d.trim());
+        const matchDep = deps.some(d => d.includes(target) || target.includes(d));
+        if (!matchDep) return false;
+      }
+
+      return true;
+    });
+  }, [alumnos, busqueda, filtroCategoria, filtroDeporte]);
 
   const getQrVerificationUrl = (dni) => {
     if (destinoQr === 'produccion') {
@@ -1139,11 +1497,16 @@ export default function AdminCarnets() {
         </div>
       </header>
 
-      {/* Toast Notification */}
+      {/* Toast Notification (Compacto, elegante y seguro) */}
       {toastMensaje && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
-          <span className="material-symbols-outlined text-2xl">check_circle</span>
-          <p className="text-sm font-bold">{toastMensaje}</p>
+        <div
+          style={{ maxWidth: '340px' }}
+          className="fixed bottom-5 right-5 z-50 bg-slate-900/95 border border-emerald-500/50 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-3 duration-200 backdrop-blur-md"
+        >
+          <span className="material-symbols-outlined text-lg text-emerald-400 flex-shrink-0">check_circle</span>
+          <p className="text-xs font-bold text-slate-100 leading-tight m-0">
+            {toastMensaje.replace(/[✅⚡🎉]/g, '').trim()}
+          </p>
         </div>
       )}
 
@@ -1293,15 +1656,33 @@ export default function AdminCarnets() {
           <div className="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start">
             {/* Buscador y Lista de Alumnos */}
             <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Buscar Alumno ({alumnosFiltrados.length})
+              {/* Encabezado con contador y botón Limpiar */}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base text-amber-500">group</span>
+                  <span>Alumnos ({alumnosFiltrados.length})</span>
                 </h3>
+                {(filtroCategoria || filtroDeporte || busqueda) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusqueda('');
+                      setFiltroCategoria('');
+                      setFiltroDeporte('');
+                    }}
+                    className="text-xs font-bold text-amber-500 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Restablecer todos los filtros"
+                  >
+                    <span className="material-symbols-outlined text-sm">filter_alt_off</span>
+                    <span>Limpiar</span>
+                  </button>
+                )}
               </div>
 
-              <div className="relative mb-4 flex gap-2">
+              {/* Input de Búsqueda */}
+              <div className="relative mb-2 flex gap-2">
                 <div className="relative flex-1">
-                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
                     search
                   </span>
                   <input
@@ -1311,18 +1692,100 @@ export default function AdminCarnets() {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') buscarDirectoDni();
                     }}
-                    placeholder="Buscar por DNI, nombre o disciplina..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-amber-500"
+                    placeholder="Buscar DNI, nombre, cat o deporte..."
+                    className="w-full pl-10 pr-7 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                   />
+                  {busqueda && (
+                    <button
+                      type="button"
+                      onClick={() => setBusqueda('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold p-1"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => buscarDirectoDni()}
                   title="Buscar DNI directamente en base de datos"
-                  className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-colors flex items-center justify-center shadow-sm"
+                  className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-colors flex items-center justify-center shadow-sm cursor-pointer active:scale-95"
                 >
                   <span className="material-symbols-outlined text-lg">search</span>
                 </button>
               </div>
+
+              {/* Filtros Dropdowns por Categoría y Deporte */}
+              <div className="grid grid-cols-2 gap-2 mb-2.5">
+                {/* Selector Categoría */}
+                <div className="relative">
+                  <select
+                    value={filtroCategoria}
+                    onChange={(e) => setFiltroCategoria(e.target.value)}
+                    className={`w-full py-2 pl-2 pr-6 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate bg-slate-900 text-white ${
+                      filtroCategoria
+                        ? 'border-amber-500 text-amber-400 ring-1 ring-amber-500/50 shadow-xs'
+                        : 'border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`}
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="" className="bg-slate-900 text-white py-1">Todas las Categorías</option>
+                    {categoriasDisponibles.map((c) => (
+                      <option key={c.valor} value={c.valor} className="bg-slate-900 text-white py-1">
+                        {c.label} ({c.total})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
+                    expand_more
+                  </span>
+                </div>
+
+                {/* Selector Deporte */}
+                <div className="relative">
+                  <select
+                    value={filtroDeporte}
+                    onChange={(e) => setFiltroDeporte(e.target.value)}
+                    className={`w-full py-2 pl-2 pr-6 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate bg-slate-900 text-white ${
+                      filtroDeporte
+                        ? 'border-amber-500 text-amber-400 ring-1 ring-amber-500/50 shadow-xs'
+                        : 'border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`}
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="" className="bg-slate-900 text-white py-1">Todos los Deportes</option>
+                    {deportesDisponibles.map((d) => (
+                      <option key={d.nombre} value={d.nombre} className="bg-slate-900 text-white py-1">
+                        {d.nombre} ({d.total})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
+                    expand_more
+                  </span>
+                </div>
+              </div>
+
+              {/* Botón Compacto para Cargar Lote en Hoja A4 */}
+              {alumnosFiltrados.length > 0 && (
+                <div className="mb-3">
+                  <button
+                    type="button"
+                    onClick={cargarTodaLaCategoriaEnHojas}
+                    disabled={procesandoLote}
+                    style={{ maxHeight: '36px', height: '36px' }}
+                    className="w-full px-3 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-400 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    title="Cargar los 4 primeros alumnos en la bandeja A4 y activar el paginador de hojas"
+                  >
+                    <span className="material-symbols-outlined text-base text-amber-500">auto_awesome_motion</span>
+                    <span className="truncate">
+                      {procesandoLote
+                        ? (progresoLote || 'Cargando lote...')
+                        : `Cargar en Hoja A4 (${alumnosFiltrados.length} alumnos • ${Math.ceil(alumnosFiltrados.length / 4)} ${Math.ceil(alumnosFiltrados.length / 4) === 1 ? 'hoja' : 'hojas'})`}
+                    </span>
+                  </button>
+                </div>
+              )}
 
               {authError && (
                 <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-left animate-in fade-in duration-200">
@@ -1381,9 +1844,20 @@ export default function AdminCarnets() {
                             <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
                               {a.nombres} {a.apellidos}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5 font-mono">
-                              DNI: {a.dni} • {limpiarTexto(a.deporte || a.deportes)}
-                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className="text-xs text-slate-500 font-mono">
+                                DNI: {a.dni}
+                              </span>
+                              <span className="text-[10px] text-slate-400">•</span>
+                              <span className="text-xs text-slate-400 font-medium truncate max-w-[90px]">
+                                {limpiarTexto(a.deporte || a.deportes)}
+                              </span>
+                              {getAnioNacimiento(a.fecha_nacimiento) !== '----' && (
+                                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 whitespace-nowrap">
+                                  Cat. {getAnioNacimiento(a.fecha_nacimiento)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <span className="material-symbols-outlined text-slate-400 text-lg">chevron_right</span>
@@ -2240,10 +2714,10 @@ export default function AdminCarnets() {
                         ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:shadow cursor-pointer'
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                     }`}
-                    title="Imprimir directamente la hoja A4 con los carnets asignados"
+                    title="Imprimir directamente la hoja A4 actual con los carnets asignados"
                   >
                     <span className="material-symbols-outlined text-sm">print</span>
-                    Imprimir A4
+                    Imprimir Hoja
                   </button>
 
                   <button
@@ -2254,11 +2728,23 @@ export default function AdminCarnets() {
                         ? 'bg-rose-600 hover:bg-rose-500 text-white hover:shadow cursor-pointer'
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                     }`}
-                    title="Descargar PDF A4 oficial con guías de corte listas"
+                    title="Descargar PDF de esta hoja A4"
                   >
                     <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                    {generandoA4Cuadruple ? 'Generando...' : 'PDF A4'}
+                    {generandoA4Cuadruple ? 'Generando...' : 'PDF Hoja'}
                   </button>
+
+                  {alumnosFiltrados.length > 0 && (
+                    <button
+                      onClick={() => exportarPdfTodoElLote('imprimir')}
+                      disabled={procesandoLote || generandoA4Cuadruple}
+                      className="px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 cursor-pointer disabled:opacity-50"
+                      title={`Imprimir directamente todas las hojas (${Math.ceil(alumnosFiltrados.length / 4)} hojas) del grupo filtrado`}
+                    >
+                      <span className="material-symbols-outlined text-sm font-bold">local_printshop</span>
+                      <span>{procesandoLote ? 'Procesando...' : `Imprimir Todo (${alumnosFiltrados.length})`}</span>
+                    </button>
+                  )}
 
                   {slotsA4.some(Boolean) && (
                     <button
@@ -2268,9 +2754,50 @@ export default function AdminCarnets() {
                     >
                       <span className="material-symbols-outlined text-base">delete_sweep</span>
                     </button>
-                  )}
-                </div>
+                  )}</div>
               </div>
+
+              {/* Navegador de Hojas del Lote */}
+              {loteHojas.length > 1 && (
+                <div className="flex items-center justify-between bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl px-3 py-2 mb-2 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => cambiarHojaLote(hojaActual - 1)}
+                    disabled={hojaActual === 0 || procesandoLote}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:hover:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    title="Ir a la hoja anterior del lote"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                    <span>Anterior</span>
+                  </button>
+                  <div className="text-center">
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                      Hoja {hojaActual + 1} de {loteHojas.length}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
+                      ({loteHojas[hojaActual]?.length || 0} alumnos en esta hoja)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => cambiarHojaLote(hojaActual + 1)}
+                    disabled={hojaActual === loteHojas.length - 1 || procesandoLote}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:hover:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    title="Ir a la siguiente hoja del lote"
+                  >
+                    <span>Siguiente</span>
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Barra de progreso de lote */}
+              {procesandoLote && (
+                <div className="mb-2 p-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-center flex items-center justify-center gap-2 animate-pulse">
+                  <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{progresoLote}</span>
+                </div>
+              )}
 
               {/* Representación visual de la Hoja A4 física (Proporción exacta 210 x 297 mm) */}
               <div className="flex-1 flex justify-center items-center py-1">
