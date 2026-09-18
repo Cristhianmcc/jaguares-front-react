@@ -96,6 +96,7 @@ const formatFotoUrl = (url) => {
 export default function AdminCarnets() {
   const [activeTab, setActiveTab] = useState('carnets');
   const [alumnos, setAlumnos] = useState([]);
+  const [horariosBd, setHorariosBd] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
@@ -423,6 +424,17 @@ export default function AdminCarnets() {
       const alumnosUnicos = Array.from(mapUnicos.values());
 
       setAlumnos(alumnosUnicos);
+
+      // Cargar lista oficial de horarios y categorias desde la BD (igual que en Pagos Mensuales)
+      try {
+        const resH = await fetchWithAuth('/api/horarios?refresh=false');
+        if (resH.ok) {
+          const dataH = await resH.json();
+          if (Array.isArray(dataH.horarios)) {
+            setHorariosBd(dataH.horarios);
+          }
+        }
+      } catch (_) {}
       if (alumnosUnicos.length > 0 && !alumnoSeleccionado) {
         cargarDetalleCarnet(alumnosUnicos[0].dni);
       }
@@ -1323,58 +1335,74 @@ export default function AdminCarnets() {
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
 
-  // Categorías basadas en el año de nacimiento (Cat. 2012, Cat. 2015...) cruzadas con el filtro de deporte
+  // Categorias oficiales de la base de datos (igual que en Pagos Mensuales) cruzadas con el filtro de deporte
   const categoriasDisponibles = React.useMemo(() => {
-    const mapa = new Map();
-    // Si hay deporte seleccionado, cruzar conteo
+    // 1. Obtener categorias oficiales de horarios de la BD
+    let listaHorarios = horariosBd || [];
+    if (filtroDeporte) {
+      const depTarget = normalizarDeporte(filtroDeporte).toLowerCase().trim();
+      listaHorarios = listaHorarios.filter(h => {
+        const hDep = normalizarDeporte(h.deporte || '').toLowerCase().trim();
+        return hDep.includes(depTarget) || depTarget.includes(hDep);
+      });
+    }
+
+    const setCategorias = new Set();
+    listaHorarios.forEach(h => {
+      const c = (h.categoria || '').trim();
+      if (c) setCategorias.add(c);
+    });
+
+    // 2. Base de alumnos (filtrada por deporte si aplica)
     const baseAlumnos = filtroDeporte
       ? alumnos.filter(a => {
           const depStr = normalizarDeporte(a.deporte || a.deportes || '').toLowerCase();
           const target = normalizarDeporte(filtroDeporte).toLowerCase().trim();
-          return depStr.includes(target);
+          return depStr.includes(target) || target.includes(depStr);
         })
       : alumnos;
 
+    // Incluir cualquier categoria asignada directamente a alumnos
     baseAlumnos.forEach(a => {
-      const anio = getAnioNacimiento(a.fecha_nacimiento);
-      if (anio && anio !== '----') {
-        const key = String(anio);
-        if (!mapa.has(key)) {
-          mapa.set(key, { valor: anio, label: `Cat. ${anio}`, total: 0, sortKey: Number(anio) || 0 });
-        }
-        mapa.get(key).total += 1;
-      } else {
-        // Alumnos sin fecha de nacimiento pero con categoría textual
-        const catRaw = (a.categoria || '').trim();
-        if (catRaw) {
-          const m = catRaw.match(/\b(20\d{2})\b/);
-          if (m) {
-            const yr = m[1];
-            if (!mapa.has(yr)) {
-              mapa.set(yr, { valor: yr, label: `Cat. ${yr}`, total: 0, sortKey: Number(yr) || 0 });
-            }
-            mapa.get(yr).total += 1;
-          } else if (!catRaw.includes(',')) {
-            if (!mapa.has(catRaw)) {
-              mapa.set(catRaw, { valor: catRaw, label: catRaw, total: 0, sortKey: 0 });
-            }
-            mapa.get(catRaw).total += 1;
-          }
-        }
+      if (a.categoria) {
+        a.categoria.split(',').forEach(c => {
+          const cTrim = c.trim();
+          if (cTrim) setCategorias.add(cTrim);
+        });
       }
     });
 
-    return Array.from(mapa.values()).sort((a, b) => b.sortKey - a.sortKey);
-  }, [alumnos, filtroDeporte]);
+    // 3. Conteo de alumnos por categoria oficial de la BD
+    const resultado = Array.from(setCategorias).map(catName => {
+      const catLower = catName.toLowerCase();
+      const total = baseAlumnos.filter(a => {
+        if (!a.categoria) return false;
+        const catsAlumno = a.categoria.split(',').map(c => c.trim().toLowerCase());
+        return catsAlumno.includes(catLower) || a.categoria.toLowerCase().includes(catLower);
+      }).length;
 
-  // Deportes disponibles con acentos limpios y cruzados con la categoría seleccionada
+      return {
+        valor: catName,
+        label: catName,
+        total
+      };
+    });
+
+    // Ordenar exactamente como en Pagos Mensuales (alfanumerico natural)
+    return resultado.sort((a, b) => a.valor.localeCompare(b.valor, undefined, { numeric: true }));
+  }, [horariosBd, alumnos, filtroDeporte]);
+
+  // Deportes disponibles con acentos limpios y cruzados con la categoria seleccionada
   const deportesDisponibles = React.useMemo(() => {
     const mapa = new Map();
     const baseAlumnos = filtroCategoria
       ? alumnos.filter(a => {
-          const anio = getAnioNacimiento(a.fecha_nacimiento);
-          const cat = (a.categoria || '').toLowerCase();
-          return anio === filtroCategoria || cat.includes(filtroCategoria.toLowerCase());
+          const targetCat = filtroCategoria.toLowerCase().trim();
+          if (a.categoria) {
+            const catsAlumno = a.categoria.split(',').map(c => c.trim().toLowerCase());
+            return catsAlumno.includes(targetCat) || a.categoria.toLowerCase().includes(targetCat);
+          }
+          return false;
         })
       : alumnos;
 
@@ -1393,7 +1421,7 @@ export default function AdminCarnets() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [alumnos, filtroCategoria]);
 
-  // Filtrado reactivo combinado con soporte para múltiples deportes por alumno
+  // Filtrado reactivo combinado con categorias oficiales de la BD
   const alumnosFiltrados = React.useMemo(() => {
     return alumnos.filter(a => {
       const anio = getAnioNacimiento(a.fecha_nacimiento);
@@ -1415,10 +1443,17 @@ export default function AdminCarnets() {
         if (!match) return false;
       }
 
-      // 2. Filtro Categoría
+      // 2. Filtro Categoria oficial de la BD
       if (filtroCategoria) {
-        const matchCat = (anio === filtroCategoria) || 
-                         (cat.includes(filtroCategoria.toLowerCase()));
+        const targetCat = filtroCategoria.toLowerCase().trim();
+        let matchCat = false;
+        if (a.categoria) {
+          const catsAlumno = a.categoria.split(',').map(c => c.trim().toLowerCase());
+          matchCat = catsAlumno.includes(targetCat) || a.categoria.toLowerCase().includes(targetCat);
+        } else if (a.fecha_nacimiento) {
+          const aAnio = getAnioNacimiento(a.fecha_nacimiento);
+          matchCat = aAnio && targetCat.includes(aAnio);
+        }
         if (!matchCat) return false;
       }
 
@@ -1774,7 +1809,7 @@ export default function AdminCarnets() {
                     }`}
                     style={{ colorScheme: 'dark' }}
                   >
-                    <option value="" className="bg-slate-900 text-white py-1">Todas las Categorías</option>
+                    <option value="" className="bg-slate-900 text-white py-1">Todas las categorías</option>
                     {categoriasDisponibles.map((c) => (
                       <option key={c.valor} value={c.valor} className="bg-slate-900 text-white py-1">
                         {c.label} ({c.total})
