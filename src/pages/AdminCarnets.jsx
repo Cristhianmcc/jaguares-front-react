@@ -101,6 +101,9 @@ export default function AdminCarnets() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroDeporte, setFiltroDeporte] = useState('');
+  const [filtroMes, setFiltroMes] = useState('');
+  const [pagosMesConfirmados, setPagosMesConfirmados] = useState(null); // null = sin filtro activo
+  const [cargandoPagosMes, setCargandoPagosMes] = useState(false);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   // Estados para Bandeja de Impresión Hoja A4 (4 Carnets 2x2)
@@ -317,6 +320,36 @@ export default function AdminCarnets() {
     }
     return () => detenerCamara();
   }, [activeTab, usarCamara]);
+
+  // Cargar DNIs con pago confirmado cuando cambia el filtro de mes
+  useEffect(() => {
+    if (!filtroMes) {
+      setPagosMesConfirmados(null);
+      return;
+    }
+    const cargarPagosMes = async () => {
+      setCargandoPagosMes(true);
+      try {
+        const params = new URLSearchParams({ mes: filtroMes, estado: 'confirmado' });
+        if (filtroDeporte) params.set('deporte', filtroDeporte);
+        const res = await fetchWithAuth(`/api/admin/pagos-mensuales?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          const lista = data.pagos || data.data || [];
+          const dnis = new Set(lista.map(p => String(p.dni)));
+          setPagosMesConfirmados(dnis);
+        } else {
+          setPagosMesConfirmados(new Set());
+        }
+      } catch (e) {
+        console.error('Error cargando pagos del mes:', e);
+        setPagosMesConfirmados(new Set());
+      } finally {
+        setCargandoPagosMes(false);
+      }
+    };
+    cargarPagosMes();
+  }, [filtroMes, filtroDeporte]);
 
   useEffect(() => {
     if (activeTab !== 'scanner') return;
@@ -1462,9 +1495,14 @@ export default function AdminCarnets() {
         if (!matchDep) return false;
       }
 
+      // 4. Filtro Mes: solo alumnos con pago confirmado en el mes seleccionado
+      if (pagosMesConfirmados !== null) {
+        if (!pagosMesConfirmados.has(String(a.dni))) return false;
+      }
+
       return true;
     });
-  }, [alumnos, busqueda, filtroCategoria, filtroDeporte]);
+  }, [alumnos, busqueda, filtroCategoria, filtroDeporte, pagosMesConfirmados]);
 
   const getQrVerificationUrl = (dni) => {
     if (destinoQr === 'produccion') {
@@ -1792,8 +1830,8 @@ export default function AdminCarnets() {
                 </button>
               </div>
 
-              {/* Filtros Dropdowns por Categoría y Deporte */}
-              <div className="grid grid-cols-2 gap-2 mb-2.5">
+              {/* Filtros Dropdowns por Categoría, Deporte y Mes */}
+              <div className="grid grid-cols-3 gap-2 mb-2.5">
                 {/* Selector Categoría */}
                 <div className="relative">
                   <select
@@ -1839,6 +1877,32 @@ export default function AdminCarnets() {
                   </select>
                   <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
                     expand_more
+                  </span>
+                </div>
+
+                {/* Selector Mes — filtra solo alumnos con pago confirmado */}
+                <div className="relative">
+                  <select
+                    value={filtroMes}
+                    onChange={(e) => setFiltroMes(e.target.value)}
+                    className={`w-full py-2 pl-2 pr-6 rounded-xl text-xs font-bold border appearance-none transition-all cursor-pointer truncate bg-slate-900 text-white ${
+                      filtroMes
+                        ? 'border-green-500 text-green-400 ring-1 ring-green-500/50 shadow-xs'
+                        : 'border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`}
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="" className="bg-slate-900 text-white py-1">
+                      Todos los meses
+                    </option>
+                    {['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].map(mes => (
+                      <option key={mes} value={mes} className="bg-slate-900 text-white py-1">
+                        {mes}{cargandoPagosMes && filtroMes === mes ? ' …' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-sm pointer-events-none text-slate-400">
+                    {cargandoPagosMes ? 'progress_activity' : 'expand_more'}
                   </span>
                 </div>
               </div>
