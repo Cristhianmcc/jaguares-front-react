@@ -120,6 +120,24 @@ const html = `
                 </div>
 
                 <div class="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-xl">
+                    <h3 class="text-xl font-bold text-black dark:text-white mb-6 uppercase tracking-tight">Historial de Recaudación por Mes y Deporte</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="border-b-2 border-primary">
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Mes / Año</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Deporte</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Pagos Confirmados</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-text-muted dark:text-gray-400 uppercase tracking-wider">Total Recaudado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaDesgloseMensual">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-surface-dark rounded-xl p-6 shadow-xl">
                     <h3 class="text-xl font-bold text-black dark:text-white mb-6 uppercase tracking-tight">Detalle por Deporte</h3>
                     <div class="overflow-x-auto">
                         <table class="min-w-full">

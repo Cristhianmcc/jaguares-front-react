@@ -87,13 +87,14 @@ function renderizarInscripciones(inscripciones) {
               </h3>
               <p class="text-sm text-gray-600 dark:text-gray-400">DNI: ${ins.dni}</p>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${
-              ins.estado_pago === 'confirmado' 
-                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-            }">
-              ${ins.estado_pago === 'confirmado' ? 'Confirmado' : 'Pendiente'}
-            </span>
+            ${(() => {
+              const tienePend = ins.estado_pago === 'pendiente' || (ins.inscripciones_pendientes && parseInt(ins.inscripciones_pendientes) > 0);
+              return '<span class="px-3 py-1 rounded-full text-xs font-semibold ' + (
+                !tienePend 
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+              ) + '">' + (!tienePend ? 'Confirmado' : (ins.estado_pago === 'confirmado' ? 'Pendiente (Nuevo Deporte)' : 'Pendiente')) + '</span>';
+            })()}
           </div>
           
           <div class="grid grid-cols-2 gap-3 text-sm">
@@ -165,7 +166,7 @@ function renderizarInscripciones(inscripciones) {
             Eliminar Alumno
           </button>
           
-          ${ins.estado_pago === 'pendiente' ? `
+          ${(ins.estado_pago === 'pendiente' || (ins.inscripciones_pendientes && parseInt(ins.inscripciones_pendientes) > 0)) ? `
             <button onclick="confirmarPago('${ins.dni}')" 
                     class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
               <span class="material-symbols-outlined text-sm">check_circle</span>
