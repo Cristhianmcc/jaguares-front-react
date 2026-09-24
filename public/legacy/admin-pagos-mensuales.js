@@ -1033,10 +1033,14 @@ async function ejecutarConfirmarPago(pagoId, monto, observaciones, deportesPendi
     const API_BASE = getAPIBase();
     const token = getToken();
     try {
+        const pagoData = window._pagosData?.[pagoId] || {};
         const body = {};
         if (monto !== null && monto !== undefined) body.monto = monto;
         if (observaciones) body.observaciones = observaciones;
         if (deportesPendientes && deportesPendientes.length > 0) body.deportes_pendientes = deportesPendientes;
+        body.dni = pagoData.dni;
+        body.mes = pagoData.mes;
+        body.anio = pagoData.anio;
         const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/confirmar`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1106,7 +1110,7 @@ function abrirModalObservacionPago(pagoId, notaActual) {
                     </div>
                     <div>
                         <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${pagoId > 0 ? `Pago #${pagoId}` : 'Pendiente de pago'}</p>
                     </div>
                 </div>
             </div>
@@ -1139,13 +1143,25 @@ async function guardarObservacionPago(pagoId) {
     const btn = document.querySelector('#modalObservacionPago button:last-child');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
 
+    const pagoData = window._pagosData?.[pagoId] || {};
+    let montoToSend = parseFloat(pagoData.monto || 0);
+    if ((!montoToSend || montoToSend <= 0) && pagoData.deportes && pagoData.deportes.length > 0) {
+        montoToSend = pagoData.deportes.reduce((s, d) => s + parseFloat(d.precio || 0), 0);
+    }
+
     const API_BASE = getAPIBase();
     const token = getToken();
     try {
         const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/observaciones`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ observaciones: obs })
+            body: JSON.stringify({ 
+                observaciones: obs,
+                dni: pagoData.dni,
+                mes: pagoData.mes,
+                anio: pagoData.anio,
+                monto: montoToSend
+            })
         });
         const data = await response.json();
         document.getElementById('modalObservacionPago')?.remove();
@@ -1167,6 +1183,12 @@ function abrirModalEditarMonto(pagoId, montoActual) {
     const existente = document.getElementById('modalEditarMonto');
     if (existente) existente.remove();
 
+    const pagoData = window._pagosData?.[pagoId] || {};
+    let valMonto = typeof montoActual === 'number' ? montoActual : parseFloat(montoActual || 0);
+    if ((!valMonto || valMonto <= 0) && pagoData.deportes && pagoData.deportes.length > 0) {
+        valMonto = pagoData.deportes.reduce((s, d) => s + parseFloat(d.precio || 0), 0);
+    }
+
     const modal = document.createElement('div');
     modal.id = 'modalEditarMonto';
     modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
@@ -1179,13 +1201,13 @@ function abrirModalEditarMonto(pagoId, montoActual) {
                     </div>
                     <div>
                         <h3 class="text-lg font-black text-black dark:text-white uppercase">Editar Monto</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${pagoId > 0 ? `Pago #${pagoId}` : 'Pendiente de pago'}</p>
                     </div>
                 </div>
             </div>
             <div class="p-6">
                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nuevo monto (S/)</label>
-                <input type="number" id="inputEditarMonto" step="0.01" min="0" value="${montoActual.toFixed(2)}"
+                <input type="number" id="inputEditarMonto" step="0.01" min="0" value="${valMonto.toFixed(2)}"
                     class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-lg font-bold text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     placeholder="80.00">
                 <p class="text-xs text-gray-400 mt-2">Solo modifica el monto de este registro. No afecta el plan ni los precios futuros.</p>
@@ -1215,13 +1237,19 @@ async function guardarMontoPago(pagoId) {
     const btn = document.querySelector('#modalEditarMonto button:last-child');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
 
+    const pagoData = window._pagosData?.[pagoId] || {};
     const API_BASE = getAPIBase();
     const token = getToken();
     try {
         const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/monto`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ monto })
+            body: JSON.stringify({ 
+                monto,
+                dni: pagoData.dni,
+                mes: pagoData.mes,
+                anio: pagoData.anio
+            })
         });
         const data = await response.json();
         document.getElementById('modalEditarMonto')?.remove();
