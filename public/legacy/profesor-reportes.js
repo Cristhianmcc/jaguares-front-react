@@ -1,4 +1,4 @@
-﻿/**
+/**
  * JavaScript para Reportes de Asistencia del Profesor
  */
 
@@ -544,8 +544,14 @@ function crearGraficoTendencia(datosPorFecha) {
     }
     
     const fechas = datosPorFecha.map(d => {
+        if (!d.fecha) return '-';
+        const str = String(d.fecha).split('T')[0];
+        const partes = str.split('-');
+        if (partes.length === 3) {
+            return `${partes[2].padStart(2, '0')}/${partes[1].padStart(2, '0')}`;
+        }
         const fecha = new Date(d.fecha);
-        return fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+        return `${String(fecha.getUTCDate()).padStart(2, '0')}/${String(fecha.getUTCMonth() + 1).padStart(2, '0')}`;
     });
     
     const presentes = datosPorFecha.map(d => d.presentes);
