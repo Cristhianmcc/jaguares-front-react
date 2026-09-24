@@ -663,6 +663,89 @@ function cerrarModalDetalle() {
   if (modal) modal.remove();
 }
 
+// ==================== MODAL OBSERVACIONES DE ALUMNO ====================
+
+function abrirModalObservacion(dni, notaActual) {
+  const existente = document.getElementById('modalObservacionAlumno');
+  if (existente) existente.remove();
+
+  const textoLimpio = (!notaActual || notaActual === 'null' || notaActual === 'undefined') ? '' : notaActual;
+
+  const modal = document.createElement('div');
+  modal.id = 'modalObservacionAlumno';
+  modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 dark:border-gray-800">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-4">
+          <div class="size-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">edit_note</span>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación del Alumno</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">DNI: ${dni}</p>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nota u observación del alumno / pago</label>
+        <textarea id="inputObservacionAlumno" rows="4"
+          class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-black dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+          placeholder="Ej: Compromiso de pago, observaciones médicas, horarios...">${textoLimpio}</textarea>
+      </div>
+      <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+        <button onclick="document.getElementById('modalObservacionAlumno').remove()"
+          class="px-5 py-2.5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-bold uppercase text-sm">
+          Cancelar
+        </button>
+        <button onclick="guardarObservacionAlumno('${dni}')"
+          class="px-5 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-sm transition-colors flex items-center gap-2">
+          <span class="material-symbols-outlined text-lg">save</span>
+          Guardar
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  setTimeout(() => document.getElementById('inputObservacionAlumno')?.focus(), 100);
+}
+
+async function guardarObservacionAlumno(dni) {
+  const obs = document.getElementById('inputObservacionAlumno')?.value?.trim() || '';
+  const btn = document.querySelector('#modalObservacionAlumno button:last-child');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>';
+  }
+
+  const base = (typeof API_BASE !== 'undefined' && API_BASE) ? API_BASE : getOverrideApiBaseModal();
+  try {
+    const response = await fetch(`${base}/api/admin/alumnos/${dni}/notas`, {
+      method: 'PUT',
+      headers: getAuthHeadersInscripciones(),
+      body: JSON.stringify({ notas: obs })
+    });
+    const data = await response.json();
+    document.getElementById('modalObservacionAlumno')?.remove();
+    if (data.success) {
+      mostrarNotificacion('Observación guardada correctamente', 'success');
+      if (typeof cargarInscripciones === 'function') {
+        cargarInscripciones();
+      }
+    } else {
+      mostrarNotificacion(data.error || data.message || 'Error al guardar observación', 'error');
+    }
+  } catch (error) {
+    console.error('Error al guardar observación:', error);
+    mostrarNotificacion('Error de conexión al guardar observación', 'error');
+    document.getElementById('modalObservacionAlumno')?.remove();
+  }
+}
+
+window.abrirModalObservacion = abrirModalObservacion;
+window.guardarObservacionAlumno = guardarObservacionAlumno;
+
 /**
  * Verificar duplicados del número de operación directamente dentro del modal de detalle
  */
