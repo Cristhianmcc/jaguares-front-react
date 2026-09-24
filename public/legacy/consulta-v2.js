@@ -239,13 +239,13 @@ function mostrarPagoNoConfirmado(resultado) {
                 </div>
 
                 <!-- Información del pago -->
-                ${datosPago.codigo_operacion ? `
+                ${datosPago.numero_operacion ? `
                 <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-6">
                     <div class="flex items-center gap-3 mb-3">
                         <span class="material-symbols-outlined text-primary">confirmation_number</span>
-                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">Código de Operación</p>
+                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">Número de Operación</p>
                     </div>
-                    <p class="text-lg font-black text-black dark:text-white font-mono">${datosPago.codigo_operacion}</p>
+                    <p class="text-lg font-black text-black dark:text-white font-mono">${datosPago.numero_operacion}</p>
                 </div>
                 ` : ''}
 
@@ -281,8 +281,8 @@ function mostrarPagoNoConfirmado(resultado) {
                         <span class="material-symbols-outlined">upload</span>
                         <span>Subir Comprobante de Pago</span>
                     </button>
-                    ` : datosPago.codigo_operacion ? `
-                    <a href="confirmacion.html?codigo=${datosPago.codigo_operacion}" 
+                    ` : datosPago.numero_operacion ? `
+                    <a href="confirmacion.html?codigo=${datosPago.numero_operacion}" 
                        class="flex items-center justify-center gap-2 h-12 rounded-lg bg-gradient-to-r from-primary to-primary-dark text-black font-bold text-sm uppercase tracking-wider hover:brightness-110 transition-all shadow-lg shadow-primary/20">
                         <span class="material-symbols-outlined">upload</span>
                         <span>Subir Comprobante</span>
@@ -342,12 +342,12 @@ function renderizarEstado() {
                     <span class="px-3 py-1 rounded-full ${colorFondo} ${colorTexto} text-xs font-black uppercase tracking-wider">${estado}</span>
                 </div>
                 <p class="text-text-muted dark:text-gray-400 text-sm mb-3">${Mensaje}</p>
-                ${datosUsuario.pago.codigo ? `
+                ${datosUsuario.pago.numero_operacion ? `
                 <div class="flex items-center gap-2 mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <span class="material-symbols-outlined text-primary">confirmation_number</span>
                     <div>
-                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">Código de Operación</p>
-                        <p class="text-sm font-black text-black dark:text-white font-mono">${datosUsuario.pago.codigo}</p>
+                        <p class="text-xs text-text-muted dark:text-gray-400 font-bold uppercase">Número de Operación</p>
+                        <p class="text-sm font-black text-black dark:text-white font-mono">${datosUsuario.pago.numero_operacion}</p>
                     </div>
                 </div>
                 ` : ''}
