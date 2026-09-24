@@ -85,7 +85,10 @@ function renderizarInscripciones(inscripciones) {
               <h3 class="font-bold text-lg text-black dark:text-white">
                 ${ins.nombres} ${ins.apellidos}
               </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400">DNI: ${ins.dni}</p>
+              <div class="flex items-center gap-2">
+                <p class="text-sm text-gray-600 dark:text-gray-400 font-mono">DNI: ${ins.dni}</p>
+                ${ins.numero_operacion ? `<span class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded font-semibold text-xs font-mono">Op: ${ins.numero_operacion}</span>` : ''}
+              </div>
             </div>
             ${(() => {
               const tienePend = ins.estado_pago === 'pendiente' || (ins.inscripciones_pendientes && parseInt(ins.inscripciones_pendientes) > 0);
