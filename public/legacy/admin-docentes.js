@@ -1,4 +1,4 @@
-﻿/**
+/**
  * admin-docentes.js
  * Gesti�n de docentes y asignaciones de categor�as/deportes
  */
@@ -692,6 +692,18 @@ async function cargarDiasReporte() {
     }
 }
 
+function formatearFechaReporte(fecha) {
+    if (!fecha) return '-';
+    const str = String(fecha).split('T')[0];
+    const partes = str.split('-');
+    if (partes.length === 3) {
+        return `${parseInt(partes[2], 10)}/${parseInt(partes[1], 10)}/${partes[0]}`;
+    }
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return '-';
+    return `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`;
+}
+
 // Cargar reporte de asistencias
 async function cargarReporteAsistencias() {
     const fechaInicio = document.getElementById('reporte-fecha-inicio').value;
@@ -750,7 +762,7 @@ async function cargarReporteAsistencias() {
                     const colorPorc = porcAsist >= 80 ? 'text-green-500' : porcAsist >= 60 ? 'text-yellow-500' : 'text-red-500';
                     return `
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td class="px-4 py-3 text-sm">${new Date(row.fecha).toLocaleDateString('es-PE')}</td>
+                            <td class="px-4 py-3 text-sm">${formatearFechaReporte(row.fecha)}</td>
                             <td class="px-4 py-3 text-sm font-medium">${row.deporte}</td>
                             <td class="px-4 py-3 text-sm">
                                 <span class="px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded">${row.categoria || '-'}</span>
@@ -918,8 +930,7 @@ async function generarExcelAdmin(data) {
             cell.border    = allThin();
         };
 
-        const d = new Date(row.fecha);
-        const fechaStr = `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
+        const fechaStr = formatearFechaReporte(row.fecha);
 
         set(1, fechaStr,                      { h: 'center' });
         set(2, row.deporte);
