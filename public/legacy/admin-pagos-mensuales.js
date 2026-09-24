@@ -301,7 +301,8 @@ function renderizarPagos(pagos) {
             </div>
         ` : '';
 
-        const tieneComprobante = p.comprobante_url && typeof p.comprobante_url === 'string' && p.comprobante_url.trim() !== '' && p.comprobante_url !== '-' && p.comprobante_url !== 'null' && p.comprobante_url !== 'undefined';
+        const tieneFechaPago = p.fecha_pago && p.fecha_pago !== '-' && p.fecha_pago !== 'null';
+        const tieneComprobante = p.comprobante_url && typeof p.comprobante_url === 'string' && p.comprobante_url.trim() !== '' && p.comprobante_url !== '-' && p.comprobante_url !== 'null' && p.comprobante_url !== 'undefined' && (p.estado !== 'pendiente' || tieneFechaPago);
         const comprobanteBtn = tieneComprobante ? `
             <div class="flex items-center gap-1.5 flex-wrap">
                 <a href="${getDriveViewUrl(p.comprobante_url)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold transition-colors" title="Ver en Google Drive">
@@ -327,6 +328,11 @@ function renderizarPagos(pagos) {
             </div>
         ` : '';
 
+        let montoMostrar = parseFloat(p.monto || 0);
+        if ((!montoMostrar || montoMostrar <= 0) && p.deportes_inscritos && p.deportes_inscritos.length > 0) {
+            montoMostrar = p.deportes_inscritos.reduce((sum, d) => sum + parseFloat(d.precio || 0), 0);
+        }
+
         return `
             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                 <td class="px-4 py-3">
@@ -340,7 +346,7 @@ function renderizarPagos(pagos) {
                 </td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white capitalize font-semibold">${p.mes || ''}</td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white">${p['año'] || p.anio || ''}</td>
-                <td class="px-4 py-3 text-sm font-bold text-black dark:text-white">S/ ${parseFloat(p.monto || 0).toFixed(2)}</td>
+                <td class="px-4 py-3 text-sm font-bold text-black dark:text-white">S/ ${montoMostrar.toFixed(2)}</td>
                 <td class="px-4 py-3 text-sm text-black dark:text-white">
                     <div class="flex items-center gap-2">
                         <span>${p.telefono || p.telefono_apoderado || '-'}</span>
