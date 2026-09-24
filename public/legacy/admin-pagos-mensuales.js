@@ -1033,10 +1033,14 @@ async function ejecutarConfirmarPago(pagoId, monto, observaciones, deportesPendi
     const API_BASE = getAPIBase();
     const token = getToken();
     try {
+        const pagoData = window._pagosData?.[pagoId] || {};
         const body = {};
         if (monto !== null && monto !== undefined) body.monto = monto;
         if (observaciones) body.observaciones = observaciones;
         if (deportesPendientes && deportesPendientes.length > 0) body.deportes_pendientes = deportesPendientes;
+        body.dni = pagoData.dni;
+        body.mes = pagoData.mes;
+        body.anio = pagoData.anio;
         const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/confirmar`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1106,7 +1110,7 @@ function abrirModalObservacionPago(pagoId, notaActual) {
                     </div>
                     <div>
                         <h3 class="text-lg font-black text-black dark:text-white uppercase">Observación</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${pagoId > 0 ? `Pago #${pagoId}` : 'Pendiente de pago'}</p>
                     </div>
                 </div>
             </div>
@@ -1139,13 +1143,20 @@ async function guardarObservacionPago(pagoId) {
     const btn = document.querySelector('#modalObservacionPago button:last-child');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
 
+    const pagoData = window._pagosData?.[pagoId] || {};
     const API_BASE = getAPIBase();
     const token = getToken();
     try {
         const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/observaciones`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ observaciones: obs })
+            body: JSON.stringify({ 
+                observaciones: obs,
+                dni: pagoData.dni,
+                mes: pagoData.mes,
+                anio: pagoData.anio,
+                monto: pagoData.monto
+            })
         });
         const data = await response.json();
         document.getElementById('modalObservacionPago')?.remove();
@@ -1179,7 +1190,7 @@ function abrirModalEditarMonto(pagoId, montoActual) {
                     </div>
                     <div>
                         <h3 class="text-lg font-black text-black dark:text-white uppercase">Editar Monto</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Pago #${pagoId}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${pagoId > 0 ? `Pago #${pagoId}` : 'Pendiente de pago'}</p>
                     </div>
                 </div>
             </div>
@@ -1215,13 +1226,19 @@ async function guardarMontoPago(pagoId) {
     const btn = document.querySelector('#modalEditarMonto button:last-child');
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
 
+    const pagoData = window._pagosData?.[pagoId] || {};
     const API_BASE = getAPIBase();
     const token = getToken();
     try {
         const response = await fetch(`${API_BASE}/api/admin/pagos-mensuales/${pagoId}/monto`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ monto })
+            body: JSON.stringify({ 
+                monto,
+                dni: pagoData.dni,
+                mes: pagoData.mes,
+                anio: pagoData.anio
+            })
         });
         const data = await response.json();
         document.getElementById('modalEditarMonto')?.remove();
