@@ -1697,7 +1697,7 @@ async function ejecutarEliminarHorario(inscripcionId, horarioId) {
 
 async function abrirModalAgregarHorario(inscripcionId) {
     // Obtener nombre del deporte, categoría y plan desde los datos ya cargados
-    const horarioRef = datosUsuario?.horarios?.find(h => h.inscripcion_id === inscripcionId);
+    const horarioRef = datosUsuario?.horarios?.find(h => Number(h.inscripcion_id) === Number(inscripcionId));
     const deporteNombre = horarioRef?.deporte || 'el deporte';
     const categoria = horarioRef?.categoria || null;
     const plan = horarioRef?.plan || null;
@@ -1793,12 +1793,12 @@ async function cargarHorariosDisponibles(inscripcionId, deporteNombre, categoria
         }
 
         // Obtener los horarios ya inscritos en esta inscripción para excluirlos
-        const horariosInscritos = datosUsuario.horarios.filter(h => h.inscripcion_id === inscripcionId);
+        const horariosInscritos = (datosUsuario?.horarios || []).filter(h => Number(h.inscripcion_id) === Number(inscripcionId));
         const clavesInscritas = new Set(horariosInscritos.map(h => `${h.dia}-${h.hora_inicio}`));
 
         // Obtener horarios de OTROS deportes activos para detectar cruces
-        const horariosOtrosDeportes = datosUsuario.horarios.filter(h =>
-            h.inscripcion_id !== inscripcionId &&
+        const horariosOtrosDeportes = (datosUsuario?.horarios || []).filter(h =>
+            Number(h.inscripcion_id) !== Number(inscripcionId) &&
             (h.estado_inscripcion === 'activa' || !h.estado_inscripcion)
         );
 

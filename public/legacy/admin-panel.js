@@ -574,8 +574,9 @@ function renderizarTabla(inscritos) {
         }
 
         // Si alguna inscripción está pendiente, el alumno queda como pendiente
-
-        if (ins.estado_pago !== 'confirmado') entry.estado_pago = ins.estado_pago;
+        if (ins.estado === 'pendiente' || ins.estado_pago !== 'confirmado') {
+            entry.estado_pago = 'pendiente';
+        }
 
         // Si alguna inscripción está inactiva, marcar al alumno como inactivo
 
@@ -881,14 +882,12 @@ function actualizarEstadisticas(inscritos) {
     inscritos.forEach(i => {
 
         if (!porDni.has(i.dni)) {
-
-            porDni.set(i.dni, i);
-
+            porDni.set(i.dni, { ...i, estado_pago: (i.estado === 'pendiente' || i.estado_pago !== 'confirmado') ? 'pendiente' : i.estado_pago });
         } else {
-
             // Si alguna inscripción está pendiente, el alumno queda pendiente
-
-            if (i.estado_pago !== 'confirmado') porDni.get(i.dni).estado_pago = i.estado_pago;
+            if (i.estado === 'pendiente' || i.estado_pago !== 'confirmado') {
+                porDni.get(i.dni).estado_pago = 'pendiente';
+            }
 
             // Si alguna está inactiva, el alumno queda inactivo
 
