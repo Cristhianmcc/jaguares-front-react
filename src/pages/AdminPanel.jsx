@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 
 const html = `
     <header class="sticky top-0 z-50 border-b border-solid border-border-color bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm shadow-sm">
@@ -314,11 +314,38 @@ const html = `
                                     <p class="font-bold text-sm truncate" id="detalleDNI">-</p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                                <span class="material-symbols-outlined text-primary text-sm">person</span>
+                            <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg group">
+                                <span class="material-symbols-outlined text-primary text-sm flex-shrink-0">person</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Nombre Completo</p>
-                                    <p class="font-bold text-xs truncate" id="detalleNombre">-</p>
+                                    <p class="font-bold text-xs truncate" <!-- Vista normal -->
+                                    <div id="detalleNombreView" class="flex items-center gap-1">
+                                        <p class="font-bold text-xs truncate flex-1" id="detalleNombre">-</p>
+                                        <button onclick="activarEdicionNombre()" id="btnEditarNombre"
+                                            class="opacity-0 group-hover:opacity-100 p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all"
+                                            title="Editar nombre y apellidos">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <!-- Formulario inline (oculto por defecto) -->
+                                    <div id="detalleNombreEdit" class="hidden mt-1 space-y-1.5">
+                                        <input id="inlineEditNombres" type="text" maxlength="100" placeholder="Nombres"
+                                            class="w-full px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <input id="inlineEditApellidoPaterno" type="text" maxlength="100" placeholder="Apellido paterno"
+                                            class="w-full px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <input id="inlineEditApellidoMaterno" type="text" maxlength="100" placeholder="Apellido materno"
+                                            class="w-full px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <div class="flex gap-1.5 pt-0.5">
+                                            <button onclick="guardarEdicionNombre()" id="btnGuardarNombre"
+                                                class="flex-1 px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition flex items-center justify-center gap-1">
+                                                <span class="material-symbols-outlined text-sm">save</span> Guardar
+                                            </button>
+                                            <button onclick="cancelarEdicionNombre()"
+                                                class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs font-semibold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
