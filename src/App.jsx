@@ -13,6 +13,7 @@ import AdminDocentes from './pages/AdminDocentes.jsx';
 import AdminCrud from './pages/AdminCrud.jsx';
 import AdminReubicaciones from './pages/AdminReubicaciones.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import DashboardFinanciero from './pages/dashboard-financiero/DashboardFinanciero.jsx';
 import AdminLegacy from './pages/AdminLegacy.jsx';
 import SeleccionHorarios from './pages/SeleccionHorarios.jsx';
 import ProfesorDashboard from './pages/ProfesorDashboard.jsx';
@@ -54,6 +55,7 @@ export default function App() {
       ['/admin-crud', 'admin-crud'],
       ['/admin-reubicaciones', 'admin-reubicaciones'],
       ['/admin-dashboard', 'admin-dashboard'],
+      ['/admin-dashboard-legacy', 'admin-dashboard-legacy'],
       ['/admin', 'admin-legacy'],
       ['/seleccion-horarios', 'seleccion-horarios'],
       ['/profesor', 'profesor-dashboard'],
@@ -99,7 +101,8 @@ export default function App() {
     'admin-docentes': <AdminDocentes />,
     'admin-crud': <AdminCrud />,
     'admin-reubicaciones': <AdminReubicaciones />,
-    'admin-dashboard': <AdminDashboard />,
+    'admin-dashboard': <DashboardFinanciero />,
+    'admin-dashboard-legacy': <AdminDashboard />,
     'admin-payment-config': <AdminPaymentConfig />,
     'admin-pagos-mensuales': <AdminPagosMensuales />,
     'admin-carnets': <AdminCarnets />,
