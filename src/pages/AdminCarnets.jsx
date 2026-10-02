@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -473,6 +473,20 @@ export default function AdminCarnets() {
   // Estados del Escáner de Puerta
   const [dniEscaneo, setDniEscaneo] = useState('');
   const [resultadoEscaneo, setResultadoEscaneo] = useState(null);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+
+  // Sugerencias instantáneas mientras el usuario escribe en el escáner de puerta
+  const sugerenciasPuerta = useMemo(() => {
+    const q = (dniEscaneo || '').trim().toLowerCase();
+    if (!q || q.length < 2) return [];
+    if (/^\d{8,}$/.test(q)) return [];
+
+    return (alumnos || []).filter(a => {
+      const nombreCompleto = `${a.nombres || ''} ${a.apellidos || ''} ${a.apellido_paterno || ''} ${a.apellido_materno || ''}`.toLowerCase();
+      const dni = String(a.dni || '').toLowerCase();
+      return nombreCompleto.includes(q) || dni.includes(q);
+    }).slice(0, 6);
+  }, [dniEscaneo, alumnos]);
   const [modalPagoClase, setModalPagoClase] = useState({
     abierto: false,
     alumno: null,
@@ -603,9 +617,10 @@ export default function AdminCarnets() {
 
       if (e.key === 'Enter') {
         const codigoLeido = (barcodeBuffer || (inputScannerRef.current ? inputScannerRef.current.value : '')).trim();
-        if (codigoLeido.length >= 6) {
+        if (codigoLeido.length >= 2) {
           e.preventDefault();
           barcodeBuffer = '';
+          setMostrarSugerencias(false);
           setDniEscaneo(codigoLeido);
           procesarEscaneo(codigoLeido);
         }
@@ -815,12 +830,13 @@ export default function AdminCarnets() {
       dni = parts[parts.length - 1];
     }
 
-    dni = dni.replace(/[^0-9a-zA-Z]/g, '');
-    if (!dni || dni.length < 6) return;
+    dni = dni.trim();
+    if (!dni || dni.length < 2) return;
 
     setCargandoEscaneo(true);
+    setMostrarSugerencias(false);
     try {
-      const bodyData = { dni, forzar_ingreso: forzarIngreso };
+      const bodyData = { dni, busqueda: dni, forzar_ingreso: forzarIngreso };
       if (opcionesPagoClase) {
         bodyData.pago_clase = true;
         bodyData.monto_clase = opcionesPagoClase.monto || 15;
@@ -834,10 +850,34 @@ export default function AdminCarnets() {
       });
 
       if (!res.ok) {
+        if (res.status === 404) {
+          const errData = await res.json().catch(() => ({}));
+          emitirSonido('error');
+          setResultadoEscaneo({
+            success: false,
+            dni,
+            error: errData.error || `Alumno no encontrado en el sistema con "${dni}"`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          });
+          return;
+        }
         throw new Error(`Error en el servidor: HTTP ${res.status}`);
       }
 
       const data = await res.json();
+
+      if (data.coincidencias_multiples && Array.isArray(data.candidatos)) {
+        emitirSonido('error');
+        setResultadoEscaneo({
+          success: false,
+          coincidencias_multiples: true,
+          candidatos: data.candidatos,
+          dni,
+          error: data.mensaje || `Se encontraron múltiples alumnos con "${dni}"`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        });
+        return;
+      }
 
       if (data.success && data.alumno) {
         emitirSonido(data.activo ? 'exito' : 'error');
@@ -885,6 +925,7 @@ export default function AdminCarnets() {
     } finally {
       setCargandoEscaneo(false);
       setDniEscaneo('');
+      setMostrarSugerencias(false);
       // Esperar re-render de React antes de recuperar foco
       setTimeout(() => { if (inputScannerRef.current) inputScannerRef.current.focus(); }, 200);
     }
@@ -3359,54 +3400,101 @@ export default function AdminCarnets() {
                 </div>
               )}
 
-              <div className="mt-6 max-w-md mx-auto flex gap-2">
-                <div className="relative flex-1">
-                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
-                    barcode_reader
-                  </span>
-                  <input
-                    ref={inputScannerRef}
-                    type="text"
-                    value={dniEscaneo}
-                    onChange={(e) => setDniEscaneo(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        procesarEscaneo();
-                      }
-                    }}
-                    onBlur={() => {
-                      setTimeout(() => {
-                        if (activeTab === 'scanner' && !mostrarModalLogin && !modalPagoClase?.abierto) {
-                          const activeEl = document.activeElement;
-                          const esInteractivo = activeEl && (
-                            activeEl.tagName === 'BUTTON' ||
-                            (activeEl.tagName === 'INPUT' && activeEl !== inputScannerRef.current) ||
-                            activeEl.tagName === 'SELECT' ||
-                            activeEl.closest?.('button')
-                          );
-                          if (!esInteractivo) {
-                            inputScannerRef.current?.focus();
-                          }
+              <div className="mt-6 max-w-md mx-auto relative">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
+                      barcode_reader
+                    </span>
+                    <input
+                      ref={inputScannerRef}
+                      type="text"
+                      value={dniEscaneo}
+                      onChange={(e) => {
+                        setDniEscaneo(e.target.value);
+                        setMostrarSugerencias(true);
+                      }}
+                      onFocus={() => setMostrarSugerencias(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          setMostrarSugerencias(false);
+                          procesarEscaneo();
+                        } else if (e.key === 'Escape') {
+                          setMostrarSugerencias(false);
                         }
-                      }, 120);
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setMostrarSugerencias(false), 250);
+                        setTimeout(() => {
+                          if (activeTab === 'scanner' && !mostrarModalLogin && !modalPagoClase?.abierto) {
+                            const activeEl = document.activeElement;
+                            const esInteractivo = activeEl && (
+                              activeEl.tagName === 'BUTTON' ||
+                              (activeEl.tagName === 'INPUT' && activeEl !== inputScannerRef.current) ||
+                              activeEl.tagName === 'SELECT' ||
+                              activeEl.closest?.('button')
+                            );
+                            if (!esInteractivo) {
+                              inputScannerRef.current?.focus();
+                            }
+                          }
+                        }, 260);
+                      }}
+                      placeholder="Pase el carnet, o escriba DNI, Nombres o Apellidos..."
+                      className="w-full px-12 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold focus:outline-none focus:border-amber-500 tracking-wider text-center placeholder:text-slate-400 placeholder:text-xs sm:placeholder:text-sm placeholder:font-normal placeholder:text-center"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMostrarSugerencias(false);
+                      procesarEscaneo();
                     }}
-                    placeholder="Pase el carnet por el lector de barras..."
-                    className="w-full px-12 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold focus:outline-none focus:border-amber-500 tracking-wider text-center placeholder:text-center"
-                    autoFocus
-                  />
+                    disabled={cargandoEscaneo}
+                    className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-sm transition-all shadow-md flex items-center justify-center disabled:opacity-50 flex-shrink-0"
+                  >
+                    {cargandoEscaneo ? (
+                      <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+                    ) : (
+                      'Validar'
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={() => procesarEscaneo()}
-                  disabled={cargandoEscaneo}
-                  className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl text-sm transition-all shadow-md flex items-center justify-center disabled:opacity-50"
-                >
-                  {cargandoEscaneo ? (
-                    <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                  ) : (
-                    'Validar'
-                  )}
-                </button>
+
+                {mostrarSugerencias && sugerenciasPuerta.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-900 border-2 border-amber-500/70 rounded-2xl shadow-2xl overflow-hidden z-30 animate-in fade-in-50 duration-150">
+                    <div className="px-3.5 py-1.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between text-[11px] font-bold text-amber-500">
+                      <span>Coincidencias encontradas ({sugerenciasPuerta.length})</span>
+                      <span className="text-[10px] text-slate-400">Clic para validar acceso</span>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      {sugerenciasPuerta.map((sug) => (
+                        <div
+                          key={sug.dni}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setMostrarSugerencias(false);
+                            procesarEscaneo(sug.dni);
+                          }}
+                          className="px-4 py-2.5 hover:bg-amber-500/10 cursor-pointer flex items-center justify-between gap-3 text-left transition-colors"
+                        >
+                          <div>
+                            <p className="font-black text-sm text-slate-900 dark:text-white leading-tight">
+                              {sug.nombres} {sug.apellidos || `${sug.apellido_paterno || ''} ${sug.apellido_materno || ''}`}
+                            </p>
+                            <p className="text-xs text-slate-400 font-mono mt-0.5">
+                              DNI: <span className="font-bold text-amber-500">{sug.dni}</span> {sug.deporte ? `• ${limpiarTexto(sug.deporte)}` : ''}
+                            </p>
+                          </div>
+                          <span className="material-symbols-outlined text-amber-500 text-lg">
+                            touch_app
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3538,13 +3626,53 @@ export default function AdminCarnets() {
                       </div>
                     )}
                   </div>
+                ) : resultadoEscaneo.coincidencias_multiples ? (
+                  <div className="py-2 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-2xl">group</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-base text-slate-900 dark:text-white">
+                          Se encontraron {resultadoEscaneo.candidatos?.length} alumnos
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Haz clic sobre el alumno para validar su ingreso inmediatamente:
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                      {resultadoEscaneo.candidatos?.map((cand) => (
+                        <button
+                          key={cand.alumno_id || cand.dni}
+                          onClick={() => procesarEscaneo(cand.dni)}
+                          disabled={cargandoEscaneo}
+                          className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-amber-500 dark:hover:border-amber-500 text-left transition-all shadow-sm group hover:scale-[1.01]"
+                        >
+                          <div>
+                            <p className="font-black text-sm text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
+                              {cand.nombreCompleto || `${cand.nombres || ''} ${cand.apellidos || ''}`}
+                            </p>
+                            <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                              DNI: {cand.dni}
+                            </span>
+                          </div>
+                          <span className="material-symbols-outlined text-slate-400 group-hover:text-amber-500 transition-colors">
+                            chevron_right
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-4">
                     <span className="material-symbols-outlined text-4xl text-rose-500 mb-2">error</span>
                     <h3 className="font-bold text-base text-rose-700 dark:text-rose-300">
                       {resultadoEscaneo.error}
                     </h3>
-                    <p className="text-xs text-slate-500 font-mono mt-1">DNI buscado: {resultadoEscaneo.dni}</p>
+                    <p className="text-xs text-slate-500 font-mono mt-1">
+                      {resultadoEscaneo.dni ? `Búsqueda: ${resultadoEscaneo.dni}` : ''}
+                    </p>
                   </div>
                 )}
               </div>

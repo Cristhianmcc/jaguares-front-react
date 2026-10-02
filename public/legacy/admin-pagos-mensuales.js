@@ -314,23 +314,28 @@ function renderizarPagos(pagos) {
             </div>
         ` : '<span class="text-xs text-gray-400">-</span>';
 
-        // Desglose de deportes inscritos
+        // Desglose de deportes inscritos (solo mostrar deportes activos)
         const deportesHTML = (p.deportes_inscritos && p.deportes_inscritos.length > 0) ? `
             <div class="mt-1.5 flex flex-wrap gap-1">
-                ${p.deportes_inscritos.map(d => {
-                    const isCancelada = String(d.estado || '').toLowerCase() === 'cancelada';
-                    return `
-                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${isCancelada ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'} text-[10px] font-semibold">
-                            ${d.deporte} <span class="${isCancelada ? 'text-red-600' : 'text-blue-500'}">S/${parseFloat(d.precio || 0).toFixed(2)}</span>${isCancelada ? ' (Cancelada)' : ''}
-                        </span>
-                    `;
-                }).join('')}
+                ${p.deportes_inscritos
+                    // Ocultar deportes cancelados a pedido del cliente (eliminar este .filter si se desea volver a mostrar):
+                    .filter(d => String(d.estado || '').toLowerCase() !== 'cancelada')
+                    .map(d => {
+                        const isCancelada = String(d.estado || '').toLowerCase() === 'cancelada';
+                        return `
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${isCancelada ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300' : 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'} text-[10px] font-semibold">
+                                ${d.deporte} <span class="${isCancelada ? 'text-red-600' : 'text-blue-500'}">S/${parseFloat(d.precio || 0).toFixed(2)}</span>${isCancelada ? ' (Cancelada)' : ''}
+                            </span>
+                        `;
+                    }).join('')}
             </div>
         ` : '';
 
         let montoMostrar = parseFloat(p.monto || 0);
         if ((!montoMostrar || montoMostrar <= 0) && p.deportes_inscritos && p.deportes_inscritos.length > 0) {
-            montoMostrar = p.deportes_inscritos.reduce((sum, d) => sum + parseFloat(d.precio || 0), 0);
+            montoMostrar = p.deportes_inscritos
+                .filter(d => String(d.estado || '').toLowerCase() !== 'cancelada')
+                .reduce((sum, d) => sum + parseFloat(d.precio || 0), 0);
         }
 
         return `
