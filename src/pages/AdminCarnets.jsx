@@ -565,6 +565,31 @@ export default function AdminCarnets() {
     cargarPagosMes();
   }, [filtroMes, filtroDeporte]);
 
+  // Mantener el cursor/foco permanentemente en el input del escáner
+  useEffect(() => {
+    if (activeTab !== 'scanner') return;
+
+    const enfocar = () => {
+      if (mostrarModalLogin || modalPagoClase?.abierto) return;
+      if (inputScannerRef.current && document.activeElement !== inputScannerRef.current) {
+        const el = document.activeElement;
+        const estaEnInteractivo = el && (
+          el.tagName === 'BUTTON' ||
+          (el.tagName === 'INPUT' && el !== inputScannerRef.current) ||
+          el.tagName === 'TEXTAREA' ||
+          el.tagName === 'SELECT'
+        );
+        if (!estaEnInteractivo) {
+          inputScannerRef.current.focus();
+        }
+      }
+    };
+
+    enfocar();
+    const t = setTimeout(enfocar, 150);
+    return () => clearTimeout(t);
+  }, [activeTab, cargandoEscaneo, resultadoEscaneo, mostrarModalLogin, modalPagoClase?.abierto]);
+
   useEffect(() => {
     if (activeTab !== 'scanner') return;
 
@@ -901,7 +926,8 @@ export default function AdminCarnets() {
       setCargandoEscaneo(false);
       setDniEscaneo('');
       setMostrarSugerencias(false);
-      if (inputScannerRef.current) inputScannerRef.current.focus();
+      // Esperar re-render de React antes de recuperar foco
+      setTimeout(() => { if (inputScannerRef.current) inputScannerRef.current.focus(); }, 200);
     }
   };
 
@@ -3319,7 +3345,15 @@ export default function AdminCarnets() {
 
         {/* PESTAÑA 2: CONTROL DE PUERTA / ESCÁNER EN TIEMPO REAL */}
         {activeTab === 'scanner' && (
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div 
+            className="max-w-4xl mx-auto space-y-6"
+            onClick={(e) => {
+              const tag = e.target.tagName;
+              if (tag !== 'BUTTON' && tag !== 'INPUT' && tag !== 'A' && tag !== 'SELECT' && !e.target.closest('button')) {
+                inputScannerRef.current?.focus();
+              }
+            }}
+          >
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm text-center">
               <div className="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
                 <span className="material-symbols-outlined text-3xl">barcode_reader</span>
@@ -3369,7 +3403,7 @@ export default function AdminCarnets() {
               <div className="mt-6 max-w-md mx-auto relative">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
+                    <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none">
                       barcode_reader
                     </span>
                     <input
@@ -3381,19 +3415,34 @@ export default function AdminCarnets() {
                         setMostrarSugerencias(true);
                       }}
                       onFocus={() => setMostrarSugerencias(true)}
-                      onBlur={() => {
-                        setTimeout(() => setMostrarSugerencias(false), 250);
-                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
+                          e.preventDefault();
                           setMostrarSugerencias(false);
                           procesarEscaneo();
                         } else if (e.key === 'Escape') {
                           setMostrarSugerencias(false);
                         }
                       }}
+                      onBlur={() => {
+                        setTimeout(() => setMostrarSugerencias(false), 250);
+                        setTimeout(() => {
+                          if (activeTab === 'scanner' && !mostrarModalLogin && !modalPagoClase?.abierto) {
+                            const activeEl = document.activeElement;
+                            const esInteractivo = activeEl && (
+                              activeEl.tagName === 'BUTTON' ||
+                              (activeEl.tagName === 'INPUT' && activeEl !== inputScannerRef.current) ||
+                              activeEl.tagName === 'SELECT' ||
+                              activeEl.closest?.('button')
+                            );
+                            if (!esInteractivo) {
+                              inputScannerRef.current?.focus();
+                            }
+                          }
+                        }, 260);
+                      }}
                       placeholder="Pase el carnet, o escriba DNI, Nombres o Apellidos..."
-                      className="w-full px-10 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold focus:outline-none focus:border-amber-500 tracking-wider text-center placeholder:text-slate-400 placeholder:text-xs sm:placeholder:text-sm placeholder:font-normal"
+                      className="w-full px-12 py-3 bg-slate-50 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl text-base font-bold focus:outline-none focus:border-amber-500 tracking-wider text-center placeholder:text-slate-400 placeholder:text-xs sm:placeholder:text-sm placeholder:font-normal placeholder:text-center"
                       autoFocus
                     />
                   </div>
