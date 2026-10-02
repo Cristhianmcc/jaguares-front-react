@@ -318,11 +318,11 @@ const html = `
                                 <span class="material-symbols-outlined text-primary text-sm flex-shrink-0">person</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Nombre Completo</p>
-                                    <p class="font-bold text-xs truncate" <!-- Vista normal -->
+                                    <!-- Vista normal -->
                                     <div id="detalleNombreView" class="flex items-center gap-1">
                                         <p class="font-bold text-xs truncate flex-1" id="detalleNombre">-</p>
                                         <button onclick="activarEdicionNombre()" id="btnEditarNombre"
-                                            class="opacity-0 group-hover:opacity-100 p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all"
                                             title="Editar nombre y apellidos">
                                             <span class="material-symbols-outlined text-sm">edit</span>
                                         </button>
