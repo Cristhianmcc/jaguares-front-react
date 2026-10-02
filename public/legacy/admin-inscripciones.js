@@ -380,7 +380,18 @@ function mostrarModalDetalleInscripcion(data) {
             </div>
             <div>
               <p class="text-xs text-gray-500 dark:text-gray-400">Apellidos</p>
-              <p class="font-semibold text-black dark:text-white">${usuario.apellidos}</p>
+              <div class="flex items-center gap-1">
+                <p class="font-semibold text-black dark:text-white flex-1" id="mdl_apellidos">${usuario.apellidos}</p>
+                <button onclick="activarEdicionModalNombre()" class="p-0.5 text-amber-500 hover:bg-amber-50 rounded" title="Editar apellidos"><span class="material-symbols-outlined text-sm">edit</span></button>
+              </div>
+              <div id="edit_mdl_apellidos" class="hidden mt-1 space-y-1">
+                <input id="input_mdl_ap_paterno" type="text" maxlength="100" placeholder="Ap. paterno" class="w-full px-2 py-1 text-xs rounded-lg border border-amber-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <input id="input_mdl_ap_materno" type="text" maxlength="100" placeholder="Ap. materno" class="w-full px-2 py-1 text-xs rounded-lg border border-amber-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <div class="flex gap-1">
+                  <button onclick="guardarApellidosModal()" class="flex-1 px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg"><span class="material-symbols-outlined text-sm">save</span></button>
+                  <button onclick="document.getElementById('edit_mdl_apellidos').classList.add('hidden')" class="px-2 py-1 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100"><span class="material-symbols-outlined text-sm">close</span></button>
+                </div>
+              </div>
             </div>
             <div>
               <p class="text-xs text-gray-500 dark:text-gray-400">Fecha de Nacimiento</p>
@@ -408,7 +419,15 @@ function mostrarModalDetalleInscripcion(data) {
             </div>
             <div class="col-span-2">
               <p class="text-xs text-gray-500 dark:text-gray-400">Email</p>
-              <p class="font-semibold text-black dark:text-white">${usuario.email || 'N/A'}</p>
+              <div class="flex items-center gap-1">
+                <p class="font-semibold text-black dark:text-white flex-1 text-sm" id="mdl_email">${usuario.email || 'N/A'}</p>
+                <button onclick="activarEdicionModal('mdl_email','email','Email')" class="p-0.5 text-amber-500 hover:bg-amber-50 rounded" title="Editar email"><span class="material-symbols-outlined text-sm">edit</span></button>
+              </div>
+              <div id="edit_mdl_email" class="hidden mt-1 flex gap-1">
+                <input id="input_mdl_email" type="email" maxlength="150" class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <button onclick="guardarEdicionModal('email','mdl_email')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg"><span class="material-symbols-outlined text-sm">save</span></button>
+                <button onclick="cancelarEdicionModal('mdl_email')" class="px-2 py-1 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100"><span class="material-symbols-outlined text-sm">close</span></button>
+              </div>
             </div>
           </div>
         </div>
@@ -680,6 +699,60 @@ function mostrarModalDetalleInscripcion(data) {
 }
 
 // ==================== EDICION INLINE EN MODAL DETALLE INSCRIPCION ====================
+function activarEdicionModalNombre() {
+  // Mostrar los inputs de ap. paterno y materno pre-cargados
+  const editDiv = document.getElementById('edit_mdl_apellidos');
+  const el = document.getElementById('mdl_apellidos');
+  if (!editDiv || !el) return;
+
+  const apellidos = (el.textContent || '').trim().split(' ');
+  document.getElementById('input_mdl_ap_paterno').value = apellidos[0] || '';
+  document.getElementById('input_mdl_ap_materno').value = apellidos.slice(1).join(' ') || '';
+
+  // Usar datos en memoria si están disponibles
+  if (window._datosAlumnoActual && window._datosAlumnoActual.alumno) {
+    const al = window._datosAlumnoActual.alumno;
+    if (al.apellido_paterno) document.getElementById('input_mdl_ap_paterno').value = al.apellido_paterno;
+    if (al.apellido_materno) document.getElementById('input_mdl_ap_materno').value = al.apellido_materno;
+  }
+
+  editDiv.classList.remove('hidden');
+  document.getElementById('input_mdl_ap_paterno').focus();
+}
+
+async function guardarApellidosModal() {
+  const dni = window._dniEdicionActual;
+  if (!dni) return;
+
+  const ap = document.getElementById('input_mdl_ap_paterno').value.trim();
+  const am = document.getElementById('input_mdl_ap_materno').value.trim();
+  const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+  const token = session.token || '';
+
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/alumnos/${dni}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ apellido_paterno: ap, apellido_materno: am })
+    });
+    const data = await response.json();
+    if (data.success) {
+      const el = document.getElementById('mdl_apellidos');
+      if (el) el.textContent = (ap + ' ' + am).trim();
+      document.getElementById('edit_mdl_apellidos').classList.add('hidden');
+      if (window._datosAlumnoActual && window._datosAlumnoActual.alumno) {
+        window._datosAlumnoActual.alumno.apellido_paterno = ap;
+        window._datosAlumnoActual.alumno.apellido_materno = am;
+        window._datosAlumnoActual.alumno.apellidos = (ap + ' ' + am).trim();
+      }
+      mostrarNotificacion('Apellidos actualizados', 'success');
+    } else {
+      mostrarNotificacion(data.error || 'Error al actualizar', 'error');
+    }
+  } catch (err) {
+    mostrarNotificacion('Error de conexion', 'error');
+  }
+}
 function activarEdicionModal(elementId, campo, label) {
   const el = document.getElementById(elementId);
   const editDiv = document.getElementById('edit_' + elementId);
