@@ -1,4 +1,4 @@
-// ==================== GESTI�"N DE INSCRIPCIONES Y PAGOS ====================
+﻿// ==================== GESTI�"N DE INSCRIPCIONES Y PAGOS ====================
 
 // Helper para obtener headers con autenticación
 function getAuthHeadersInscripciones() {
@@ -337,6 +337,11 @@ function mostrarModalDetalleInscripcion(data) {
   console.log('Inscripciones con estados:', data.inscripciones?.map(i => ({ deporte: i.deporte, estado: i.estado_inscripcion })));
   
   const usuario = data.alumno; // Cambiar de data.usuario a data.alumno para consistencia con Google Sheets
+  // Sincronizar con funciones de edicion inline del admin-panel
+  if (typeof window !== 'undefined') {
+    window._dniEdicionActual = data.alumno.dni;
+    window._datosAlumnoActual = data;
+  }
   const inscripciones = data.inscripciones;
   const resumen = data.resumen;
   
@@ -363,7 +368,15 @@ function mostrarModalDetalleInscripcion(data) {
             </div>
             <div>
               <p class="text-xs text-gray-500 dark:text-gray-400">Nombres</p>
-              <p class="font-semibold text-black dark:text-white">${usuario.nombres}</p>
+              <div class="flex items-center gap-1">
+                <p class="font-semibold text-black dark:text-white flex-1" id="mdl_nombres">${usuario.nombres}</p>
+                <button onclick="activarEdicionModal('mdl_nombres','nombres','Nombres')" class="p-0.5 text-amber-500 hover:bg-amber-50 rounded" title="Editar"><span class="material-symbols-outlined text-sm">edit</span></button>
+              </div>
+              <div id="edit_mdl_nombres" class="hidden mt-1 flex gap-1">
+                <input id="input_mdl_nombres" type="text" class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <button onclick="guardarEdicionModal('nombres','mdl_nombres')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg"><span class="material-symbols-outlined text-sm">save</span></button>
+                <button onclick="cancelarEdicionModal('mdl_nombres')" class="px-2 py-1 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100"><span class="material-symbols-outlined text-sm">close</span></button>
+              </div>
             </div>
             <div>
               <p class="text-xs text-gray-500 dark:text-gray-400">Apellidos</p>
@@ -383,7 +396,15 @@ function mostrarModalDetalleInscripcion(data) {
             </div>
             <div>
               <p class="text-xs text-gray-500 dark:text-gray-400">Teléfono</p>
-              <p class="font-semibold text-black dark:text-white">${usuario.telefono || 'N/A'}</p>
+              <div class="flex items-center gap-1">
+                <p class="font-semibold text-black dark:text-white flex-1" id="mdl_telefono">${usuario.telefono || 'N/A'}</p>
+                <button onclick="activarEdicionModal('mdl_telefono','telefono','Teléfono')" class="p-0.5 text-amber-500 hover:bg-amber-50 rounded" title="Editar"><span class="material-symbols-outlined text-sm">edit</span></button>
+              </div>
+              <div id="edit_mdl_telefono" class="hidden mt-1 flex gap-1">
+                <input id="input_mdl_telefono" type="text" maxlength="20" class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                <button onclick="guardarEdicionModal('telefono','mdl_telefono')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs rounded-lg"><span class="material-symbols-outlined text-sm">save</span></button>
+                <button onclick="cancelarEdicionModal('mdl_telefono')" class="px-2 py-1 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100"><span class="material-symbols-outlined text-sm">close</span></button>
+              </div>
             </div>
             <div class="col-span-2">
               <p class="text-xs text-gray-500 dark:text-gray-400">Email</p>
@@ -658,6 +679,77 @@ function mostrarModalDetalleInscripcion(data) {
   modal.dataset.dni = (data.alumno && data.alumno.dni) || data.dni || '';
 }
 
+// ==================== EDICION INLINE EN MODAL DETALLE INSCRIPCION ====================
+function activarEdicionModal(elementId, campo, label) {
+  const el = document.getElementById(elementId);
+  const editDiv = document.getElementById('edit_' + elementId);
+  const input = document.getElementById('input_' + elementId);
+  if (!el || !editDiv || !input) return;
+
+  // Cerrar otros abiertos
+  document.querySelectorAll('[id^="edit_mdl_"]').forEach(d => {
+    if (d.id !== 'edit_' + elementId) d.classList.add('hidden');
+  });
+
+  const valorActual = el.textContent.trim();
+  input.value = (valorActual === 'N/A' || valorActual === '-' || valorActual === '') ? '' : valorActual;
+  input.placeholder = label;
+  editDiv.classList.remove('hidden');
+  input.focus();
+
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') guardarEdicionModal(campo, elementId);
+    if (e.key === 'Escape') cancelarEdicionModal(elementId);
+  };
+}
+
+function cancelarEdicionModal(elementId) {
+  const d = document.getElementById('edit_' + elementId);
+  if (d) d.classList.add('hidden');
+}
+
+async function guardarEdicionModal(campo, elementId) {
+  const dni = window._dniEdicionActual;
+  if (!dni) {
+    console.error('No hay DNI actual para editar');
+    return;
+  }
+
+  const input = document.getElementById('input_' + elementId);
+  const el = document.getElementById(elementId);
+  if (!input || !el) return;
+
+  const valor = input.value.trim();
+  const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+  const token = session.token || '';
+
+  try {
+    const body = {};
+    body[campo] = valor;
+
+    const response = await fetch(`${API_BASE}/api/admin/alumnos/${dni}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      el.textContent = valor || 'N/A';
+      cancelarEdicionModal(elementId);
+      // Actualizar datos en memoria global si existe
+      if (window._datosAlumnoActual && window._datosAlumnoActual.alumno) {
+        window._datosAlumnoActual.alumno[campo] = valor;
+      }
+      mostrarNotificacion('Campo actualizado correctamente', 'success');
+    } else {
+      mostrarNotificacion(data.error || 'Error al actualizar', 'error');
+    }
+  } catch (err) {
+    console.error('Error al guardar campo en modal:', err);
+    mostrarNotificacion('Error de conexion', 'error');
+  }
+}
 function cerrarModalDetalle() {
   const modal = document.getElementById('modalDetalleInscripcion');
   if (modal) modal.remove();
