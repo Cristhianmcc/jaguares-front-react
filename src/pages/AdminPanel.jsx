@@ -371,7 +371,26 @@ const html = `
                                 <span class="material-symbols-outlined text-primary text-sm">phone</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Teléfono</p>
-                                    <p class="font-bold text-sm truncate" id="detalleTelefono">-</p>
+                                    <div class="flex items-center gap-1">
+                                        <p class="font-bold text-sm truncate" id="detalleTelefono">-</p>
+                                        <button onclick="activarEdicionCampo('telefono','detalleTelefono','Teléfono')"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all flex-shrink-0"
+                                            title="Editar Teléfono">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <div id="edit_detalleTelefono" class="hidden mt-1 flex gap-1">
+                                        <input id="input_detalleTelefono" type="text" maxlength="150" placeholder="Teléfono"
+                                            class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <button onclick="guardarCampoInline('telefono','detalleTelefono')"
+                                            class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                        </button>
+                                        <button onclick="cancelarCampoInline('detalleTelefono')"
+                                            class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <span class="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -385,21 +404,78 @@ const html = `
                                 <span class="material-symbols-outlined text-primary text-sm">home</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Dirección</p>
-                                    <p class="font-bold text-xs truncate" id="detalleDireccion">-</p>
+                                    <div class="flex items-center gap-1">
+                                        <p class="font-bold text-xs truncate" id="detalleDireccion">-</p>
+                                        <button onclick="activarEdicionCampo('direccion','detalleDireccion','Dirección')"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all flex-shrink-0"
+                                            title="Editar Dirección">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <div id="edit_detalleDireccion" class="hidden mt-1 flex gap-1">
+                                        <input id="input_detalleDireccion" type="text" maxlength="150" placeholder="Dirección"
+                                            class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <button onclick="guardarCampoInline('direccion','detalleDireccion')"
+                                            class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                        </button>
+                                        <button onclick="cancelarCampoInline('detalleDireccion')"
+                                            class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <span class="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
                                 <span class="material-symbols-outlined text-primary text-sm">family_restroom</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Apoderado</p>
-                                    <p class="font-bold text-xs truncate" id="detalleApoderado">-</p>
+                                    <div class="flex items-center gap-1">
+                                        <p class="font-bold text-xs truncate" id="detalleApoderado">-</p>
+                                        <button onclick="activarEdicionCampo('apoderado','detalleApoderado','Apoderado')"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all flex-shrink-0"
+                                            title="Editar Apoderado">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <div id="edit_detalleApoderado" class="hidden mt-1 flex gap-1">
+                                        <input id="input_detalleApoderado" type="text" maxlength="150" placeholder="Apoderado"
+                                            class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <button onclick="guardarCampoInline('apoderado','detalleApoderado')"
+                                            class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                        </button>
+                                        <button onclick="cancelarCampoInline('detalleApoderado')"
+                                            class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <span class="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
                                 <span class="material-symbols-outlined text-primary text-sm">contact_phone</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Tel. Apoderado</p>
-                                    <p class="font-bold text-sm truncate" id="detalleTelefonoApoderado">-</p>
+                                    <div class="flex items-center gap-1">
+                                        <p class="font-bold text-sm truncate" id="detalleTelefonoApoderado">-</p>
+                                        <button onclick="activarEdicionCampo('telefono_apoderado','detalleTelefonoApoderado','Tel. Apoderado')"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all flex-shrink-0"
+                                            title="Editar Tel. Apoderado">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <div id="edit_detalleTelefonoApoderado" class="hidden mt-1 flex gap-1">
+                                        <input id="input_detalleTelefonoApoderado" type="text" maxlength="150" placeholder="Tel. Apoderado"
+                                            class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <button onclick="guardarCampoInline('telefono_apoderado','detalleTelefonoApoderado')"
+                                            class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                        </button>
+                                        <button onclick="cancelarCampoInline('detalleTelefonoApoderado')"
+                                            class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <span class="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -411,14 +487,52 @@ const html = `
                                 <span class="material-symbols-outlined text-primary text-sm">medical_services</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Seguro</p>
-                                    <p class="font-bold text-xs truncate" id="detalleSeguroTipo">-</p>
+                                    <div class="flex items-center gap-1">
+                                        <p class="font-bold text-xs truncate" id="detalleSeguroTipo">-</p>
+                                        <button onclick="activarEdicionCampo('seguro_tipo','detalleSeguroTipo','Seguro')"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all flex-shrink-0"
+                                            title="Editar Seguro">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <div id="edit_detalleSeguroTipo" class="hidden mt-1 flex gap-1">
+                                        <input id="input_detalleSeguroTipo" type="text" maxlength="150" placeholder="Seguro"
+                                            class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <button onclick="guardarCampoInline('seguro_tipo','detalleSeguroTipo')"
+                                            class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                        </button>
+                                        <button onclick="cancelarCampoInline('detalleSeguroTipo')"
+                                            class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <span class="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
                                 <span class="material-symbols-outlined text-primary text-sm">health_and_safety</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-xs text-text-muted">Condición Médica</p>
-                                    <p class="font-bold text-xs truncate" id="detalleCondicionMedica">-</p>
+                                    <div class="flex items-center gap-1">
+                                        <p class="font-bold text-xs truncate" id="detalleCondicionMedica">-</p>
+                                        <button onclick="activarEdicionCampo('condicion_medica','detalleCondicionMedica','Condición médica')"
+                                            class="p-0.5 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded transition-all flex-shrink-0"
+                                            title="Editar Condición médica">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                    </div>
+                                    <div id="edit_detalleCondicionMedica" class="hidden mt-1 flex gap-1">
+                                        <input id="input_detalleCondicionMedica" type="text" maxlength="150" placeholder="Condición médica"
+                                            class="flex-1 px-2 py-1 text-xs rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition" />
+                                        <button onclick="guardarCampoInline('condicion_medica','detalleCondicionMedica')"
+                                            class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
+                                            <span class="material-symbols-outlined text-sm">save</span>
+                                        </button>
+                                        <button onclick="cancelarCampoInline('detalleCondicionMedica')"
+                                            class="px-2 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                                            <span class="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
