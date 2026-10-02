@@ -5,6 +5,23 @@ import EditableText from '../EditableText.jsx';
 
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '';
 
+const formatFotoUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('/uploads/')) {
+    return `${API_BASE}${trimmed}`;
+  }
+  if (trimmed.includes('drive.google.com/thumbnail') || trimmed.includes('lh3.googleusercontent.com')) {
+    return trimmed;
+  }
+  const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  }
+  return trimmed;
+};
+
 const fallbackRanking = [
   { rank: 1, name: "Valentina Lopez", discipline: "Futbol Femenino", points: 2840 },
   { rank: 2, name: "Matias Gonzalez", discipline: "Basquet", points: 2650 },
@@ -163,8 +180,24 @@ const PodiumCard = ({ student, position, isActive, isChampionBurst }) => {
             transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
-        <div className={`relative flex h-20 w-20 items-center justify-center rounded-full ${podiumTheme[position].badge} font-display text-2xl text-primary-foreground md:h-24 md:w-24`}>
-          {student.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+        <div className={`relative flex h-20 w-20 items-center justify-center rounded-full ${podiumTheme[position].badge} font-display text-2xl text-primary-foreground md:h-24 md:w-24 overflow-hidden border-2 border-white/40 shadow-xl`}>
+          {student.foto ? (
+            <img
+              src={student.foto}
+              alt={student.name}
+              crossOrigin="anonymous"
+              className="h-full w-full object-cover rounded-full"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div
+            className={`h-full w-full items-center justify-center font-display text-2xl text-primary-foreground ${student.foto ? 'hidden' : 'flex'}`}
+          >
+            {student.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+          </div>
         </div>
         <span className={`absolute -bottom-1 -right-1 rounded-full bg-background/85 px-2 py-0.5 text-xs font-semibold ${podiumTheme[position].medalText}`}>{medalLabels[position]}</span>
         {position === 1 && isChampionBurst && (
@@ -230,7 +263,8 @@ const GlowRanking = ({ headingData = {}, onUpdateHeading }) => {
       rank: index + 1,
       name: formatName(r.nombre_completo || r.nombre_corto || r.name),
       discipline: r.deporte || r.categoria || r.discipline || "General",
-      points: Number(r.puntaje_global ?? r.puntos ?? r.points ?? 0)
+      points: Number(r.puntaje_global ?? r.puntos ?? r.points ?? 0),
+      foto: formatFotoUrl(r.foto_url || r.foto_carnet_url || r.foto || '')
     }));
   }, [ranking]);
 
@@ -331,8 +365,27 @@ const GlowRanking = ({ headingData = {}, onUpdateHeading }) => {
               className={`grid grid-cols-[60px_1fr_1fr_100px] items-center gap-4 px-6 py-5 transition-colors hover:bg-secondary/30 md:grid-cols-[80px_1fr_1fr_120px] ${index < (top3.length === 3 ? restTop10.length : noPodiumTop10.length) - 1 ? "border-b border-border/50" : ""}`}
             >
               <span className="pl-2 font-display text-xl text-muted-foreground">{student.rank}</span>
-              <p className="font-semibold">{student.name}</p>
-              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">{student.discipline}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary overflow-hidden border border-border">
+                  {student.foto ? (
+                    <img
+                      src={student.foto}
+                      alt={student.name}
+                      crossOrigin="anonymous"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <span className={`text-xs font-bold text-muted-foreground ${student.foto ? 'hidden' : 'flex'}`}>
+                    {student.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <p className="font-semibold truncate">{student.name}</p>
+              </div>
+              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground justify-self-start">{student.discipline}</span>
               <span className="text-right font-display text-2xl text-gradient">{student.points}</span>
             </motion.div>
           ))}
