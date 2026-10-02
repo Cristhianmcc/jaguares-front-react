@@ -1,4 +1,4 @@
-/**
+﻿/**
 
  * JavaScript para el Panel de Administración
 
@@ -787,6 +787,174 @@ function irAPaginaLista(pagina) {
     document.getElementById('tablaContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+
+// ==================== EDICION INLINE GENERICA DE CAMPOS ====================
+function activarEdicionCampo(campo, elementId, placeholder) {
+    // Cerrar cualquier otro campo que esté abierto
+    document.querySelectorAll('[id^="edit_detalle"]').forEach(el => {
+        if (!el.classList.contains('hidden') && el.id !== 'edit_' + elementId) {
+            el.classList.add('hidden');
+        }
+    });
+
+    const el = document.getElementById(elementId);
+    const editDiv = document.getElementById('edit_' + elementId);
+    const input = document.getElementById('input_' + elementId);
+    if (!el || !editDiv || !input) return;
+
+    // Pre-cargar valor actual
+    const valorActual = el.textContent.trim();
+    input.value = (valorActual === 'No registrado' || valorActual === '-') ? '' : valorActual;
+    input.placeholder = placeholder;
+
+    editDiv.classList.remove('hidden');
+    input.focus();
+
+    // Guardar con Enter
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') guardarCampoInline(campo, elementId);
+        if (e.key === 'Escape') cancelarCampoInline(elementId);
+    };
+}
+
+function cancelarCampoInline(elementId) {
+    const editDiv = document.getElementById('edit_' + elementId);
+    if (editDiv) editDiv.classList.add('hidden');
+}
+
+async function guardarCampoInline(campo, elementId) {
+    if (!_dniEdicionActual) return;
+
+    const input = document.getElementById('input_' + elementId);
+    const el = document.getElementById(elementId);
+    if (!input || !el) return;
+
+    const valor = input.value.trim();
+
+    const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+        ? window.API_BASE_OVERRIDE
+        : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? '' : 'https://api.jaguarescar.com');
+
+    const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+    const token = session.token || '';
+
+    try {
+        const body = {};
+        body[campo] = valor;
+
+        const response = await fetch(`${API_BASE}/api/admin/alumnos/${_dniEdicionActual}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Actualizar el texto en pantalla inmediatamente
+            el.textContent = valor || 'No registrado';
+
+            // Actualizar datos en memoria
+            if (_datosAlumnoActual && _datosAlumnoActual.alumno) {
+                _datosAlumnoActual.alumno[campo] = valor;
+            }
+
+            cancelarCampoInline(elementId);
+            mostrarNotificacion('Exito', 'Campo actualizado correctamente', 'success');
+        } else {
+            mostrarNotificacion('Error', data.error || 'Error al actualizar', 'error');
+        }
+    } catch (err) {
+        console.error('Error al guardar campo:', err);
+        mostrarNotificacion('Error', 'Error de conexion', 'error');
+    }
+}
+// ==================== EDICION INLINE DE NOMBRE EN PANEL DETALLE ====================
+// DNI del alumno actualmente visible en el panel de detalle
+let _dniEdicionActual = null;
+let _datosAlumnoActual = null;
+
+function activarEdicionNombre() {
+    const viewDiv = document.getElementById('detalleNombreView');
+    const editDiv = document.getElementById('detalleNombreEdit');
+    if (!viewDiv || !editDiv || !_datosAlumnoActual) return;
+
+    const alumno = _datosAlumnoActual.alumno;
+    document.getElementById('inlineEditNombres').value = alumno.nombres || '';
+    document.getElementById('inlineEditApellidoPaterno').value = alumno.apellido_paterno || '';
+    document.getElementById('inlineEditApellidoMaterno').value = alumno.apellido_materno || '';
+
+    viewDiv.classList.add('hidden');
+    editDiv.classList.remove('hidden');
+    document.getElementById('inlineEditNombres').focus();
+}
+
+function cancelarEdicionNombre() {
+    document.getElementById('detalleNombreView').classList.remove('hidden');
+    document.getElementById('detalleNombreEdit').classList.add('hidden');
+}
+
+async function guardarEdicionNombre() {
+    if (!_dniEdicionActual) return;
+
+    const nombres = document.getElementById('inlineEditNombres').value.trim();
+    const apellidoPaterno = document.getElementById('inlineEditApellidoPaterno').value.trim();
+    const apellidoMaterno = document.getElementById('inlineEditApellidoMaterno').value.trim();
+
+    if (!nombres) {
+        mostrarNotificacion('Error', 'El campo Nombres no puede estar vacio', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btnGuardarNombre');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined text-sm">progress_activity</span> Guardando...'; }
+
+    try {
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? '' : 'https://api.jaguarescar.com');
+
+        const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+        const token = session.token || '';
+
+        const response = await fetch(`${API_BASE}/api/admin/alumnos/${_dniEdicionActual}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ nombres, apellido_paterno: apellidoPaterno, apellido_materno: apellidoMaterno })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Actualizar la vista inline sin recargar toda la pagina
+            const nombreCompleto = `${nombres} ${apellidoPaterno} ${apellidoMaterno}`.trim();
+            document.getElementById('detalleNombre').textContent = nombreCompleto;
+
+            // Actualizar datos en memoria para proximas ediciones
+            if (_datosAlumnoActual) {
+                _datosAlumnoActual.alumno.nombres = nombres;
+                _datosAlumnoActual.alumno.apellido_paterno = apellidoPaterno;
+                _datosAlumnoActual.alumno.apellido_materno = apellidoMaterno;
+                _datosAlumnoActual.alumno.apellidos = `${apellidoPaterno} ${apellidoMaterno}`.trim();
+            }
+
+            cancelarEdicionNombre();
+            mostrarNotificacion('Exito', 'Datos del alumno actualizados correctamente', 'success');
+
+            // Refrescar tabla en segundo plano para que al cerrar el detalle se vea actualizado
+            setTimeout(() => cargarInscritos(), 600);
+        } else {
+            mostrarNotificacion('Error', data.error || 'Error al actualizar los datos', 'error');
+        }
+    } catch (err) {
+        console.error('Error al guardar edicion de alumno:', err);
+        mostrarNotificacion('Error', 'Error de conexion al guardar los datos', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-sm">save</span> Guardar'; }
+    }
+}
 function eliminarAlumnoCompleto(dni, nombre) {
 
     const modal = document.getElementById('modalEliminarAlumno');
@@ -1404,6 +1572,17 @@ function mostrarDetalleUsuario(data) {
 
 
     
+
+    // Guardar referencia del alumno actual para edicion inline
+    _dniEdicionActual = data.alumno.dni;
+    _datosAlumnoActual = data;
+    // Ocultar formulario inline si estaba abierto
+    const _ve = document.getElementById('detalleNombreView');
+    const _ee = document.getElementById('detalleNombreEdit');
+    if (_ve) _ve.classList.remove('hidden');
+    if (_ee) _ee.classList.add('hidden');
+    // Ocultar todos los campos genericos inline
+    document.querySelectorAll('[id^="edit_detalle"]').forEach(el => el.classList.add('hidden'));
 
     // Datos personales
 
