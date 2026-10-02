@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import * as htmlToImage from 'html-to-image';
 import { jsPDF } from 'jspdf';
