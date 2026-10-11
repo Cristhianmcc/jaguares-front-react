@@ -735,10 +735,13 @@ async function cargarReporteAsistencias() {
             const stats = data.estadisticas || {};
             const presentes = parseInt(stats.total_presentes) || 0;
             const ausentes = parseInt(stats.total_ausentes) || 0;
+            const puerta = parseInt(stats.total_puerta) || 0;
             const total = presentes + ausentes;
             const porcentaje = total > 0 ? ((presentes / total) * 100).toFixed(1) : 0;
             
             document.getElementById('reporte-presentes').textContent = presentes;
+            const elPuerta = document.getElementById('reporte-puerta');
+            if (elPuerta) elPuerta.textContent = puerta;
             document.getElementById('reporte-ausentes').textContent = ausentes;
             document.getElementById('reporte-total').textContent = total;
             document.getElementById('reporte-porcentaje').textContent = porcentaje + '%';
@@ -771,6 +774,9 @@ async function cargarReporteAsistencias() {
                             <td class="px-4 py-3 text-sm font-mono text-gray-600 dark:text-gray-400">${row.hora_inicio || '-'} – ${row.hora_fin || '-'}</td>
                             <td class="px-4 py-3 text-center">
                                 <span class="px-2 py-1 bg-green-100 text-green-700 rounded font-bold">${row.total_presentes}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded font-bold">${row.total_puerta || 0}</span>
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <span class="px-2 py-1 bg-red-100 text-red-700 rounded font-bold">${row.total_ausentes}</span>
@@ -858,7 +864,7 @@ async function generarExcelAdmin(data) {
     const fechaLabel = `${filtros.fecha_inicio} al ${filtros.fecha_fin}`;
     const totalCols  = 9; // Fecha | Deporte | Categoría | Día | Horario | Alumno | DNI | Asistencia | —
     // We'll use 8 data cols
-    const NCOLS = 8;
+    const NCOLS = 9;
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'JAGUARES';
@@ -891,8 +897,9 @@ async function generarExcelAdmin(data) {
     // Fila 3: Fecha generación + total
     ws.mergeCells(3, 1, 3, NCOLS);
     const presentes = rows.filter(r => r.presente == 1).length;
+    const conPuerta = rows.filter(r => r.asistencia_puerta == 1 || r.asistencia_puerta === true || r.asistencia_puerta === '1').length;
     const r3 = ws.getCell(3, 1);
-    r3.value     = `Generado: ${new Date().toLocaleDateString('es-ES')}   │   Total registros: ${rows.length}   │   Presentes: ${presentes}   │   Ausentes: ${rows.length - presentes}`;
+    r3.value     = `Generado: ${new Date().toLocaleDateString('es-ES')}   │   Total registros: ${rows.length}   │   Presentes Docente: ${presentes}   │   Puerta QR: ${conPuerta}   │   Ausentes: ${rows.length - presentes}`;
     r3.font      = { name: 'Calibri', size: 10, italic: true, color: { argb: '4B5563' } };
     r3.fill      = fill(C.grayLight);
     r3.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -901,7 +908,7 @@ async function generarExcelAdmin(data) {
     ws.getRow(4).height = 6; // separador
 
     // Fila 5: Encabezados
-    const headers = ['Fecha', 'Deporte', 'Categoría', 'Día', 'Horario', 'Alumno', 'DNI', 'Asistencia'];
+    const headers = ['Fecha', 'Deporte', 'Categoría', 'Día', 'Horario', 'Alumno', 'DNI', 'Asistencia Docente', 'Puerta (Lector QR)'];
     const headerRow = ws.getRow(5);
     headerRow.height = 26;
     headers.forEach((txt, i) => {
@@ -947,10 +954,19 @@ async function generarExcelAdmin(data) {
             bg:  presente ? (par ? C.greenLightBg : C.greenBg) : (par ? C.redLightBg : C.redBg),
             fg:  presente ? C.greenFg : C.redFg,
         });
+
+        const tienePuerta = row.asistencia_puerta === 1 || row.asistencia_puerta === true || row.asistencia_puerta === '1';
+        const textoPuerta = tienePuerta ? ('Puerta OK' + (row.hora_puerta ? ` (${row.hora_puerta})` : '')) : 'Sin Puerta';
+        set(9, textoPuerta, {
+            h: 'center',
+            bold: tienePuerta,
+            bg:  tienePuerta ? (par ? C.greenLightBg : C.greenBg) : bgFila,
+            fg:  tienePuerta ? C.greenFg : '64748B',
+        });
     });
 
     // Anchos de columna
-    [10, 20, 14, 9, 14, 38, 12, 12].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+    [10, 20, 14, 9, 14, 38, 12, 16, 16].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 
     // Descargar
     const buffer = await workbook.xlsx.writeBuffer();
@@ -1243,16 +1259,19 @@ async function cargarAlumnosClase(horarioIds, fechaInicio, fechaFin) {
 
             // --- Tabla resumen ---
             const asistPorAlumno = {};
-            alumnos.forEach(a => { asistPorAlumno[a.alumno_id] = { presentes: 0, ausentes: 0 }; });
+            alumnos.forEach(a => { asistPorAlumno[a.alumno_id] = { presentes: 0, ausentes: 0, puerta: 0 }; });
             asistencias.forEach(a => {
                 if (asistPorAlumno[a.alumno_id]) {
                     if (a.presente == 1) asistPorAlumno[a.alumno_id].presentes++;
                     else asistPorAlumno[a.alumno_id].ausentes++;
+                    if (a.asistencia_puerta == 1 || a.asistencia_puerta === true || a.asistencia_puerta === '1') {
+                        asistPorAlumno[a.alumno_id].puerta++;
+                    }
                 }
             });
 
             tabla.innerHTML = alumnos.map((a, idx) => {
-                const stats = asistPorAlumno[a.alumno_id] || { presentes: 0, ausentes: 0 };
+                const stats = asistPorAlumno[a.alumno_id] || { presentes: 0, ausentes: 0, puerta: 0 };
                 const total = stats.presentes + stats.ausentes;
                 const porc = total > 0 ? ((stats.presentes / total) * 100).toFixed(0) : '-';
                 const colorPorc = porc === '-' ? 'text-gray-400' : (porc >= 80 ? 'text-green-600' : porc >= 60 ? 'text-yellow-600' : 'text-red-600');
@@ -1263,6 +1282,9 @@ async function cargarAlumnosClase(horarioIds, fechaInicio, fechaFin) {
                     <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">${a.dni || '-'}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-sm">${stats.presentes} <span class="font-normal text-xs text-green-600">/ ${totalClases}</span></span>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded font-bold text-sm">${stats.puerta} <span class="font-normal text-xs text-emerald-600">/ ${totalClases}</span></span>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-sm">${stats.ausentes}</span>
@@ -1302,6 +1324,7 @@ function renderizarDetallePorFecha(fechasUnicas, alumnos, asistencias) {
         const asistFecha = asistencias.filter(a => a.fecha === fechaRaw);
         const presentes = asistFecha.filter(a => a.presente == 1);
         const ausentes = asistFecha.filter(a => a.presente == 0);
+        const puertaOk = asistFecha.filter(a => a.asistencia_puerta == 1 || a.asistencia_puerta === true || a.asistencia_puerta === '1');
         const totalReg = asistFecha.length;
         const porcFecha = totalReg > 0 ? Math.round((presentes.length / totalReg) * 100) : 0;
         const colorPorc = porcFecha >= 80 ? 'text-green-600' : porcFecha >= 60 ? 'text-yellow-600' : 'text-red-600';
@@ -1310,8 +1333,18 @@ function renderizarDetallePorFecha(fechasUnicas, alumnos, asistencias) {
         const alumnoMap = {};
         alumnos.forEach(a => { alumnoMap[a.alumno_id] = a.nombre_completo; });
 
-        const presentesList = presentes.map(p => alumnoMap[p.alumno_id] || 'Desconocido');
-        const ausentesList = ausentes.map(p => alumnoMap[p.alumno_id] || 'Desconocido');
+        const formatItemAlumno = (asistItem) => {
+            const nom = alumnoMap[asistItem.alumno_id] || 'Desconocido';
+            const tieneP = asistItem.asistencia_puerta == 1 || asistItem.asistencia_puerta === true || asistItem.asistencia_puerta === '1';
+            const horaP = asistItem.hora_puerta ? ` (${asistItem.hora_puerta})` : '';
+            const badgeP = tieneP
+                ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">✓ Puerta OK${horaP}</span>`
+                : `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-gray-400 dark:text-gray-500">Sin Puerta</span>`;
+            return `<div class="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0"><span class="text-sm font-medium text-gray-700 dark:text-gray-300">${nom}</span>${badgeP}</div>`;
+        };
+
+        const presentesList = presentes.map(formatItemAlumno);
+        const ausentesList = ausentes.map(formatItemAlumno);
 
         return `
         <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -1325,9 +1358,10 @@ function renderizarDetallePorFecha(fechasUnicas, alumnos, asistencias) {
                         <p class="text-xs text-gray-500">${totalReg} alumno${totalReg !== 1 ? 's' : ''} registrado${totalReg !== 1 ? 's' : ''}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">${presentes.length} ✓</span>
-                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">${ausentes.length} ✗</span>
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold" title="Asistencia Docente">${presentes.length} Pres.</span>
+                    <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded text-xs font-bold" title="Lector Puerta">${puertaOk.length} Puerta</span>
+                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold" title="Ausencias Docente">${ausentes.length} Aus.</span>
                     <span class="font-bold text-sm ${colorPorc}">${porcFecha}%</span>
                     <span class="material-symbols-outlined text-gray-400 transition-transform" id="icon-fecha-${fIdx}">expand_more</span>
                 </div>
@@ -1337,20 +1371,20 @@ function renderizarDetallePorFecha(fechasUnicas, alumnos, asistencias) {
                     <div>
                         <p class="text-xs font-bold uppercase text-green-600 mb-2 flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">check_circle</span>
-                            Presentes (${presentes.length})
+                            Docente: Presentes (${presentes.length})
                         </p>
                         ${presentesList.length > 0
-                            ? presentesList.map(n => `<p class="text-sm text-gray-700 dark:text-gray-300 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">${n}</p>`).join('')
+                            ? presentesList.join('')
                             : '<p class="text-sm text-gray-400 italic">Ninguno</p>'
                         }
                     </div>
                     <div>
                         <p class="text-xs font-bold uppercase text-red-600 mb-2 flex items-center gap-1">
                             <span class="material-symbols-outlined text-sm">cancel</span>
-                            Ausentes (${ausentes.length})
+                            Docente: Ausentes (${ausentes.length})
                         </p>
                         ${ausentesList.length > 0
-                            ? ausentesList.map(n => `<p class="text-sm text-gray-700 dark:text-gray-300 py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">${n}</p>`).join('')
+                            ? ausentesList.join('')
                             : '<p class="text-sm text-gray-400 italic">Ninguno</p>'
                         }
                     </div>

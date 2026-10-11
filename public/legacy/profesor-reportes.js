@@ -618,9 +618,10 @@ function renderizarTablaAlumnos(datosAlumnos) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td class="px-4 py-3 text-sm text-text-main dark:text-white">${alumno.nombre_completo}</td>
-            <td class="px-4 py-3 text-sm text-green-600 font-semibold">${alumno.total_presentes}</td>
-            <td class="px-4 py-3 text-sm text-red-600 font-semibold">${alumno.total_ausentes}</td>
-            <td class="px-4 py-3 text-sm font-bold ${porcentaje >= 80 ? 'text-green-600' : porcentaje >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+            <td class="px-4 py-3 text-center text-sm text-green-600 font-semibold">${alumno.total_presentes}</td>
+            <td class="px-4 py-3 text-center text-sm font-bold text-emerald-600 dark:text-emerald-400">${alumno.total_puerta || 0}</td>
+            <td class="px-4 py-3 text-center text-sm text-red-600 font-semibold">${alumno.total_ausentes}</td>
+            <td class="px-4 py-3 text-center text-sm font-bold ${porcentaje >= 80 ? 'text-green-600' : porcentaje >= 60 ? 'text-yellow-600' : 'text-red-600'}">
                 ${porcentaje}%
             </td>
         `;
