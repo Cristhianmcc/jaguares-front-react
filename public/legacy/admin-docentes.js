@@ -643,6 +643,51 @@ function configurarFechasReporte() {
     document.getElementById('reporte-fecha-fin').value = fechaHoy;
 }
 
+// Botones de acceso rápido para rango de fechas
+function aplicarRangoFecha(tipo) {
+    const hoyStr = getFechaLocalPeru();
+    const [anio, mes, dia] = hoyStr.split('-');
+    const fi = document.getElementById('reporte-fecha-inicio');
+    const ff = document.getElementById('reporte-fecha-fin');
+    if (!fi || !ff) return;
+
+    if (tipo === 'hoy') {
+        fi.value = hoyStr;
+        ff.value = hoyStr;
+    } else if (tipo === 'ayer') {
+        const d = new Date(Date.UTC(parseInt(anio, 10), parseInt(mes, 10) - 1, parseInt(dia, 10) - 1));
+        const ayerStr = d.toISOString().split('T')[0];
+        fi.value = ayerStr;
+        ff.value = ayerStr;
+    } else if (tipo === 'semana') {
+        const d = new Date(Date.UTC(parseInt(anio, 10), parseInt(mes, 10) - 1, parseInt(dia, 10)));
+        const dayOfWeek = d.getUTCDay(); // 0 Dom, 1 Lun, ...
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(d);
+        monday.setUTCDate(d.getUTCDate() + diffToMonday);
+        fi.value = monday.toISOString().split('T')[0];
+        ff.value = hoyStr;
+    } else if (tipo === 'mes') {
+        fi.value = `${anio}-${mes}-01`;
+        ff.value = hoyStr;
+    }
+    cargarReporteAsistencias();
+}
+window.aplicarRangoFecha = aplicarRangoFecha;
+
+function obtenerDiaDeFecha(fechaStr) {
+    if (!fechaStr) return '';
+    const str = String(fechaStr).split('T')[0];
+    const partes = str.split('-');
+    if (partes.length === 3) {
+        const d = new Date(Date.UTC(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10)));
+        const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        return dias[d.getUTCDay()];
+    }
+    return '';
+}
+window.obtenerDiaDeFecha = obtenerDiaDeFecha;
+
 // Cargar categorías cuando cambia el deporte en el filtro de reporte
 async function cargarCategoriasReporte() {
     const deporteId = document.getElementById('reporte-deporte').value;
@@ -736,14 +781,20 @@ async function cargarReporteAsistencias() {
             const presentes = parseInt(stats.total_presentes) || 0;
             const ausentes = parseInt(stats.total_ausentes) || 0;
             const puerta = parseInt(stats.total_puerta) || 0;
-            const total = presentes + ausentes;
-            const porcentaje = total > 0 ? ((presentes / total) * 100).toFixed(1) : 0;
+            const puertaPendiente = stats.total_puerta_pendiente != null 
+                ? parseInt(stats.total_puerta_pendiente) 
+                : Math.max(0, puerta - presentes);
+            const total = presentes + ausentes + puertaPendiente;
+            const porcentaje = total > 0 ? (((presentes + puertaPendiente) / total) * 100).toFixed(1) : 0;
             
             document.getElementById('reporte-presentes').textContent = presentes;
             const elPuerta = document.getElementById('reporte-puerta');
             if (elPuerta) elPuerta.textContent = puerta;
+            const elPuertaPend = document.getElementById('reporte-puerta-pendiente');
+            if (elPuertaPend) elPuertaPend.textContent = puertaPendiente;
             document.getElementById('reporte-ausentes').textContent = ausentes;
-            document.getElementById('reporte-total').textContent = total;
+            const elTotal = document.getElementById('reporte-total');
+            if (elTotal) elTotal.textContent = total;
             document.getElementById('reporte-porcentaje').textContent = porcentaje + '%';
             
             // Tabla
@@ -759,30 +810,55 @@ async function cargarReporteAsistencias() {
                 sinReporte?.classList.add('hidden');
                 document.getElementById('btn-exportar-excel')?.removeAttribute('disabled');
                 tabla.innerHTML = detalle.map(row => {
-                    const porcAsist = row.total_registros > 0 
-                        ? ((row.total_presentes / row.total_registros) * 100).toFixed(1) 
+                    const diaFecha = obtenerDiaDeFecha(row.fecha);
+                    const diaHorario = row.dia ? row.dia.charAt(0).toUpperCase() + row.dia.slice(1).toLowerCase() : '';
+                    let diaBadge = diaFecha || diaHorario || '-';
+                    if (diaFecha && diaHorario && diaFecha.toLowerCase() !== diaHorario.toLowerCase()) {
+                        diaBadge = `<span>${diaFecha}</span> <span class="text-[11px] text-gray-400 block font-normal">(Horario ${diaHorario.slice(0,3)})</span>`;
+                    }
+
+                    const presentesFila = parseInt(row.total_presentes) || 0;
+                    const puertaFila = parseInt(row.total_puerta) || 0;
+                    const ausentesFila = parseInt(row.total_ausentes) || 0;
+                    const totalReg = parseInt(row.total_registros) || (presentesFila + ausentesFila);
+
+                    const soloPuerta = presentesFila === 0 && puertaFila > 0;
+                    const porcAsist = totalReg > 0 
+                        ? (((presentesFila + (soloPuerta ? puertaFila : 0)) / totalReg) * 100).toFixed(1) 
                         : 0;
                     const colorPorc = porcAsist >= 80 ? 'text-green-500' : porcAsist >= 60 ? 'text-yellow-500' : 'text-red-500';
+
+                    const deporteLimpio = String(row.deporte || '')
+                        .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol')
+                        .replace(/BÃ¡squet/gi, 'Básquet')
+                        .replace(/VÃ³ley/gi, 'Vóley');
+
                     return `
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td class="px-4 py-3 text-sm">${formatearFechaReporte(row.fecha)}</td>
-                            <td class="px-4 py-3 text-sm font-medium">${row.deporte}</td>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <td class="px-4 py-3 text-sm font-medium font-mono">${formatearFechaReporte(row.fecha)}</td>
+                            <td class="px-4 py-3 text-sm font-bold">${deporteLimpio}</td>
                             <td class="px-4 py-3 text-sm">
                                 <span class="px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded">${row.categoria || '-'}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm capitalize">${row.dia ? row.dia.charAt(0) + row.dia.slice(1).toLowerCase() : '-'}</td>
-                            <td class="px-4 py-3 text-sm font-mono text-gray-600 dark:text-gray-400">${row.hora_inicio || '-'} – ${row.hora_fin || '-'}</td>
+                            <td class="px-4 py-3 text-sm font-semibold">${diaBadge}</td>
+                            <td class="px-4 py-3 text-sm font-mono text-gray-600 dark:text-gray-400 whitespace-nowrap">${row.hora_inicio || '-'} – ${row.hora_fin || '-'}</td>
                             <td class="px-4 py-3 text-center">
-                                <span class="px-2 py-1 bg-green-100 text-green-700 rounded font-bold">${row.total_presentes}</span>
+                                <span class="px-2.5 py-1 bg-green-100 dark:bg-emerald-950/60 text-green-800 dark:text-emerald-300 rounded-full font-bold text-xs">${presentesFila}</span>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <span class="px-2 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded font-bold">${row.total_puerta || 0}</span>
+                                <span class="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded-full font-bold text-xs">${puertaFila}</span>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <span class="px-2 py-1 bg-red-100 text-red-700 rounded font-bold">${row.total_ausentes}</span>
+                                ${soloPuerta 
+                                    ? `<span class="px-2 py-0.5 rounded text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 font-semibold border border-amber-300/40" title="Ingresaron por puerta, lista docente pendiente">Docente pend.</span>`
+                                    : `<span class="px-2.5 py-1 bg-red-100 dark:bg-rose-950/60 text-red-700 dark:text-rose-300 rounded-full font-bold text-xs">${ausentesFila}</span>`
+                                }
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <span class="font-bold ${colorPorc}">${porcAsist}%</span>
+                                ${soloPuerta 
+                                    ? `<span class="px-2 py-1 bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded text-xs font-bold">Puerta OK</span>`
+                                    : `<span class="font-bold ${colorPorc}">${porcAsist}%</span>`
+                                }
                             </td>
                         </tr>
                     `;
@@ -898,8 +974,11 @@ async function generarExcelAdmin(data) {
     ws.mergeCells(3, 1, 3, NCOLS);
     const presentes = rows.filter(r => r.presente == 1).length;
     const conPuerta = rows.filter(r => r.asistencia_puerta == 1 || r.asistencia_puerta === true || r.asistencia_puerta === '1').length;
+    const puertaPendiente = rows.filter(r => (r.asistencia_puerta == 1 || r.asistencia_puerta === true || r.asistencia_puerta === '1') && r.presente != 1).length;
+    const sinAsist = rows.filter(r => r.presente != 1 && !(r.asistencia_puerta == 1 || r.asistencia_puerta === true || r.asistencia_puerta === '1')).length;
+
     const r3 = ws.getCell(3, 1);
-    r3.value     = `Generado: ${new Date().toLocaleDateString('es-ES')}   │   Total registros: ${rows.length}   │   Presentes Docente: ${presentes}   │   Puerta QR: ${conPuerta}   │   Ausentes: ${rows.length - presentes}`;
+    r3.value     = `Generado: ${new Date().toLocaleDateString('es-ES')}   │   Total registros: ${rows.length}   │   Presentes Docente: ${presentes}   │   Puerta QR: ${conPuerta}   │   Puerta (Pendiente Docente): ${puertaPendiente}   │   Sin Asistencia: ${sinAsist}`;
     r3.font      = { name: 'Calibri', size: 10, italic: true, color: { argb: '4B5563' } };
     r3.fill      = fill(C.grayLight);
     r3.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -938,24 +1017,46 @@ async function generarExcelAdmin(data) {
         };
 
         const fechaStr = formatearFechaReporte(row.fecha);
+        const diaFecha = obtenerDiaDeFecha(row.fecha);
+        const diaMostrar = diaFecha || (row.dia ? row.dia.charAt(0).toUpperCase() + row.dia.slice(1).toLowerCase() : '-');
+
+        const deporteLimpioExcel = String(row.deporte || '')
+            .replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol')
+            .replace(/BÃ¡squet/gi, 'Básquet')
+            .replace(/VÃ³ley/gi, 'Vóley');
 
         set(1, fechaStr,                      { h: 'center' });
-        set(2, row.deporte);
+        set(2, deporteLimpioExcel);
         set(3, row.categoria,                 { h: 'center' });
-        set(4, row.dia,                       { h: 'center' });
+        set(4, diaMostrar,                    { h: 'center' });
         set(5, `${row.hora_inicio}–${row.hora_fin}`, { h: 'center' });
         set(6, row.alumno.trim());
         set(7, row.dni,                       { h: 'center' });
 
         const presente = row.presente == 1;
-        set(8, presente ? 'Presente' : 'Ausente', {
+        const tienePuerta = row.asistencia_puerta === 1 || row.asistencia_puerta === true || row.asistencia_puerta === '1';
+
+        let textoDocente = 'Ausente';
+        let bgDocente = par ? C.redLightBg : C.redBg;
+        let fgDocente = C.redFg;
+
+        if (presente) {
+            textoDocente = 'Presente';
+            bgDocente = par ? C.greenLightBg : C.greenBg;
+            fgDocente = C.greenFg;
+        } else if (tienePuerta) {
+            textoDocente = 'Pendiente Docente';
+            bgDocente = 'FEF3C7'; // ámbar suave
+            fgDocente = 'B45309'; // texto ámbar
+        }
+
+        set(8, textoDocente, {
             h: 'center',
             bold: true,
-            bg:  presente ? (par ? C.greenLightBg : C.greenBg) : (par ? C.redLightBg : C.redBg),
-            fg:  presente ? C.greenFg : C.redFg,
+            bg:  bgDocente,
+            fg:  fgDocente,
         });
 
-        const tienePuerta = row.asistencia_puerta === 1 || row.asistencia_puerta === true || row.asistencia_puerta === '1';
         const textoPuerta = tienePuerta ? ('Puerta OK' + (row.hora_puerta ? ` (${row.hora_puerta})` : '')) : 'Sin Puerta';
         set(9, textoPuerta, {
             h: 'center',
