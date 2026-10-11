@@ -883,12 +883,15 @@ export default function AdminCarnets() {
         emitirSonido(data.activo ? 'exito' : 'error');
 
         const esExcepcion = data.aviso === 'INGRESO AUTORIZADO POR ADMINISTRACIÓN' || (data.estado_original === 'inactiva' && data.activo);
+        const esPagoClaseResultado = data.es_pago_clase !== undefined
+          ? !!data.es_pago_clase
+          : (data.activo && opcionesPagoClase ? true : false);
 
         const nuevoResultado = {
           success: true,
           activo: data.activo,
           es_excepcion: esExcepcion,
-          es_pago_clase: data.es_pago_clase || (opcionesPagoClase ? true : false),
+          es_pago_clase: esPagoClaseResultado,
           monto_pago_clase: data.monto_pago_clase || (opcionesPagoClase ? opcionesPagoClase.monto : null),
           metodo_pago_clase: data.metodo_pago_clase || (opcionesPagoClase ? opcionesPagoClase.metodo : null),
           aviso: data.aviso,
