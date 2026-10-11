@@ -52,26 +52,35 @@ async function manejarImagenSeleccionada(event, tipo) {
       if (textoSpan) textoSpan.textContent = 'Comprimiendo...';
     }
 
-    // Comprimir con Canvas: máx 1024px, calidad JPEG 75% (~200KB sin importar el tamaño original)
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const img = new Image();
-        img.onload = function () {
-          let w = img.width, h = img.height;
-          if (w > 1024) { h = Math.round(h * 1024 / w); w = 1024; }
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.75));
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    // Comprimir imagen evitando fondos negros o problemas en móviles
+    const base64 = typeof window.comprimirImagenExif === 'function'
+      ? await window.comprimirImagenExif(file, 1024, 0.75)
+      : await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+              let max = 1024;
+              let w = img.width, h = img.height;
+              if (w > max || h > max) {
+                if (w > h) { h = Math.round(h * max / w); w = max; }
+                else { w = Math.round(w * max / h); h = max; }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, w, h);
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.75));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
     if (tipo === 'dni_frontal') imagenDNIFrontal = base64;
     else if (tipo === 'dni_reverso') imagenDNIReverso = base64;

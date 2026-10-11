@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import '../styles/consulta.css';
 import '../styles/animations.css';
 
@@ -367,6 +367,7 @@ export default function Consulta() {
         }
 
         await loadScript('/legacy/api-service-v2.js');
+        await loadScript('/legacy/image-compress.js');
         await loadScript('/legacy/consulta-v2.js');
         await loadScript('/legacy/mobile-menu.js');
         if (typeof window.inicializarConsulta === 'function') {

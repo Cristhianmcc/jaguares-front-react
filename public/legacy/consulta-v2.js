@@ -942,30 +942,27 @@ function previsualizarComprobanteInactivo(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-        mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
-        return;
-    }
-
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = function () {
-        URL.revokeObjectURL(url);
-        const maxW = 1024;
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        window._base64Inactivo = canvas.toDataURL('image/jpeg', 0.75);
-        document.getElementById('imgComprobanteInactivo').src = window._base64Inactivo;
-        document.getElementById('nombreArchivoInactivo').textContent = file.name;
-        document.getElementById('iconoSubidaInactivo').classList.add('hidden');
-        document.getElementById('previewComprobanteInactivo').classList.remove('hidden');
-        document.getElementById('btnSubirComprobanteInactivo').disabled = false;
-    };
-    img.onerror = function () { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
-    img.src = url;
+    // Comprimir con corrección EXIF (resuelve imágenes negras en iPhone/Android)
+    window.comprimirImagenExif(file, 1200, 0.80)
+        .then(function(base64) {
+            window._base64Inactivo = base64;
+            document.getElementById('imgComprobanteInactivo').src = base64;
+            document.getElementById('nombreArchivoInactivo').textContent = file.name;
+            document.getElementById('iconoSubidaInactivo').classList.add('hidden');
+            document.getElementById('previewComprobanteInactivo').classList.remove('hidden');
+            document.getElementById('btnSubirComprobanteInactivo').disabled = false;
+        })
+        .catch(function(err) {
+            if (err && err.message === 'HEIC_NO_SOPORTADO') {
+                mostrarNotificacion(
+                    'Tu foto está en formato HEIC (iPhone). Por favor toma una captura de pantalla del comprobante y súbela.',
+                    'error'
+                );
+            } else {
+                mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+            }
+            event.target.value = '';
+        });
 }
 
 /**
@@ -1206,27 +1203,24 @@ function previsualizarComprobante(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-        mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
-        return;
-    }
-
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = function () {
-        URL.revokeObjectURL(url);
-        const maxW = 1024;
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        window._base64Tardio = canvas.toDataURL('image/jpeg', 0.75);
-        document.getElementById('imgPreview').src = window._base64Tardio;
-        document.getElementById('previsualizacionComprobante').classList.remove('hidden');
-    };
-    img.onerror = function () { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
-    img.src = url;
+    // Comprimir con corrección EXIF (resuelve imágenes negras en iPhone/Android)
+    window.comprimirImagenExif(file, 1200, 0.80)
+        .then(function(base64) {
+            window._base64Tardio = base64;
+            document.getElementById('imgPreview').src = base64;
+            document.getElementById('previsualizacionComprobante').classList.remove('hidden');
+        })
+        .catch(function(err) {
+            if (err && err.message === 'HEIC_NO_SOPORTADO') {
+                mostrarNotificacion(
+                    'Tu foto está en formato HEIC (iPhone). Por favor toma una captura de pantalla del comprobante y súbela.',
+                    'error'
+                );
+            } else {
+                mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+            }
+            event.target.value = '';
+        });
 }
 
 async function subirComprobanteTardio() {
@@ -1443,29 +1437,37 @@ function previsualizarPagoMensual(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-        mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
-        return;
+    if (typeof window.comprimirImagenExif === 'function') {
+        window.comprimirImagenExif(file, 1200, 0.80)
+            .then(function(base64) {
+                window._base64Mensual = base64;
+                document.getElementById('imgPagoMensual').src = base64;
+                document.getElementById('nombreArchivoPago').textContent = file.name;
+                document.getElementById('iconoSubidaMensual').classList.add('hidden');
+                document.getElementById('previewPagoMensual').classList.remove('hidden');
+            })
+            .catch(function(err) {
+                if (err && err.message === 'HEIC_NO_SOPORTADO') {
+                    mostrarNotificacion(
+                        'Tu foto está en formato HEIC (iPhone). Por favor toma una captura de pantalla del comprobante y súbela.',
+                        'error'
+                    );
+                } else {
+                    mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+                }
+                event.target.value = '';
+            });
+    } else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            window._base64Mensual = e.target.result;
+            document.getElementById('imgPagoMensual').src = e.target.result;
+            document.getElementById('nombreArchivoPago').textContent = file.name;
+            document.getElementById('iconoSubidaMensual').classList.add('hidden');
+            document.getElementById('previewPagoMensual').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
     }
-
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = function () {
-        URL.revokeObjectURL(url);
-        const maxW = 1024;
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        window._base64Mensual = canvas.toDataURL('image/jpeg', 0.75);
-        document.getElementById('imgPagoMensual').src = window._base64Mensual;
-        document.getElementById('nombreArchivoPago').textContent = file.name;
-        document.getElementById('iconoSubidaMensual').classList.add('hidden');
-        document.getElementById('previewPagoMensual').classList.remove('hidden');
-    };
-    img.onerror = function () { URL.revokeObjectURL(url); mostrarNotificacion('Error al leer la imagen', 'error'); };
-    img.src = url;
 }
 
 /**

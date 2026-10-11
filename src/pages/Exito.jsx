@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import '../styles/animations.css';
 
 const html = `
@@ -101,6 +101,7 @@ export default function EÉxito() {
       try {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
         await loadScript('/legacy/api-service.js');
+        await loadScript('/legacy/image-compress.js');
         await loadScript('/legacy/exito.js');
         await loadScript('/legacy/mobile-menu.js');
         if (typeof window.cargarDatosExito === 'function') {
