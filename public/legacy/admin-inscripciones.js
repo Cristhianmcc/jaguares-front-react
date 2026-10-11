@@ -2080,16 +2080,18 @@ function mostrarDetalleDiaAsistencia(fecha, registros) {
             </div>
             ${registros.map(r => {
                 const tienePuerta = r.asistencia_puerta === 1 || r.asistencia_puerta === true || r.asistencia_puerta === '1';
+                const esPagoClase = (r.observaciones || '').toLowerCase().includes('pago por clase');
                 return `
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f3f4f6;font-size:13px;gap:8px;flex-wrap:wrap;">
                     <div>
                         <span style="color:#1e293b;font-weight:700;">${r.deporte}${r.categoria ? ` · ${r.categoria}` : ''}</span>
                         <div style="font-size:11px;color:#64748b;">${r.dia || ''} ${r.hora_inicio ? r.hora_inicio + ' - ' + r.hora_fin : ''}</div>
+                        ${esPagoClase && r.observaciones ? `<div style="font-size:10px;color:#7e22ce;font-weight:700;margin-top:2px;">🎟️ ${r.observaciones}</div>` : ''}
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;">
                         <!-- Docente -->
-                        <span style="padding:3px 9px;border-radius:9999px;font-size:11px;font-weight:800;background:${r.presente ? '#dcfce7' : '#fee2e2'};color:${r.presente ? '#15803d' : '#dc2626'};border:1px solid ${r.presente ? '#86efac' : '#fca5a5'};">
-                            ${r.presente ? '✓ Docente: Presente' : '✗ Docente: Ausente'}
+                        <span style="padding:3px 9px;border-radius:9999px;font-size:11px;font-weight:800;background:${r.presente ? '#dcfce7' : (esPagoClase ? '#f3e8ff' : '#fee2e2')};color:${r.presente ? '#15803d' : (esPagoClase ? '#7e22ce' : '#dc2626')};border:1px solid ${r.presente ? '#86efac' : (esPagoClase ? '#d8b4fe' : '#fca5a5')};">
+                            ${r.presente ? '✓ Docente: Presente' : (esPagoClase ? '🎟️ Pago por Clase' : '✗ Docente: Ausente')}
                         </span>
                         <!-- Puerta -->
                         <span style="padding:3px 9px;border-radius:9999px;font-size:11px;font-weight:800;background:${tienePuerta ? '#10b981' : '#f1f5f9'};color:${tienePuerta ? '#ffffff' : '#64748b'};border:1px solid ${tienePuerta ? '#059669' : '#cbd5e1'};">
