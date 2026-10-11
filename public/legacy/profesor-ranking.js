@@ -69,6 +69,7 @@ function setMesActual() {
  */
 function inicializarEventos() {
     document.getElementById('filtroDeporte').addEventListener('change', onDeporteChange);
+    document.getElementById('filtroCategoria').addEventListener('change', onCategoriaChange);
     document.getElementById('btnCargarRanking').addEventListener('click', cargarRanking);
     document.getElementById('btnRecalcularAsistencias').addEventListener('click', recalcularAsistencias);
     document.getElementById('btnCancelarBonus').addEventListener('click', cerrarModalBonus);
@@ -133,7 +134,13 @@ async function cargarDeportesProfesor() {
 async function onDeporteChange() {
     const deporteId = document.getElementById('filtroDeporte').value;
     const selectCategoria = document.getElementById('filtroCategoria');
+    const selectHorario = document.getElementById('filtroHorario');
     
+    if (selectHorario) {
+        selectHorario.innerHTML = '<option value="">Primero seleccione categoría</option>';
+        selectHorario.disabled = true;
+    }
+
     if (!deporteId) {
         selectCategoria.innerHTML = '<option value="">Primero seleccione deporte</option>';
         selectCategoria.disabled = true;
@@ -148,12 +155,12 @@ async function onDeporteChange() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (!response.ok) throw new Error('Error al cargar categorí­as');
+        if (!response.ok) throw new Error('Error al cargar categorías');
         
         const data = await response.json();
         const categorias = data.categorias || [];
         
-        selectCategoria.innerHTML = '<option value="">Seleccione categorí­a...</option>';
+        selectCategoria.innerHTML = '<option value="">Seleccione categoría...</option>';
         categorias.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat;
@@ -164,8 +171,58 @@ async function onDeporteChange() {
         selectCategoria.disabled = false;
         
     } catch (error) {
-        console.error('Error cargando categorí­as:', error);
+        console.error('Error cargando categorías:', error);
         selectCategoria.innerHTML = '<option value="">Error al cargar</option>';
+    }
+}
+
+/**
+ * Cuando cambia la categoría seleccionada - cargar turnos/horarios del profesor
+ */
+async function onCategoriaChange() {
+    const deporteId = document.getElementById('filtroDeporte').value;
+    const categoria = document.getElementById('filtroCategoria').value;
+    const selectHorario = document.getElementById('filtroHorario');
+    if (!selectHorario) return;
+
+    if (!categoria) {
+        selectHorario.innerHTML = '<option value="">Primero seleccione categoría</option>';
+        selectHorario.disabled = true;
+        return;
+    }
+
+    selectHorario.innerHTML = '<option value="">Cargando turnos...</option>';
+    selectHorario.disabled = true;
+
+    try {
+        const session = localStorage.getItem('adminSession');
+        const { token } = JSON.parse(session);
+
+        const response = await fetch(`${API_BASE}/api/profesor/horarios-categoria?deporte_id=${deporteId}&categoria=${encodeURIComponent(categoria)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Error al cargar turnos');
+
+        const data = await response.json();
+        const horarios = data.horarios || [];
+
+        selectHorario.innerHTML = '<option value="">Todos mis turnos</option>';
+        horarios.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h.horario_id;
+            const diaFmt = (h.dia || '').charAt(0) + (h.dia || '').slice(1).toLowerCase();
+            const inicio = (h.hora_inicio || '').slice(0, 5);
+            const fin = (h.hora_fin || '').slice(0, 5);
+            opt.textContent = `${diaFmt} ${inicio} - ${fin}`;
+            selectHorario.appendChild(opt);
+        });
+
+        selectHorario.disabled = false;
+    } catch (error) {
+        console.error('Error cargando horarios del turno:', error);
+        selectHorario.innerHTML = '<option value="">Todos mis turnos</option>';
+        selectHorario.disabled = false;
     }
 }
 
@@ -175,6 +232,7 @@ async function onDeporteChange() {
 async function cargarRanking() {
     const deporteId = document.getElementById('filtroDeporte').value;
     const categoria = document.getElementById('filtroCategoria').value;
+    const horarioId = document.getElementById('filtroHorario')?.value;
     const mes = document.getElementById('filtroMes').value;
     
     if (!deporteId) {
@@ -190,6 +248,9 @@ async function cargarRanking() {
         let url = `${API_BASE}/api/profesor/ranking?deporte_id=${deporteId}&mes=${mes}&t=${cacheBust}`;
         if (categoria) {
             url += `&categoria=${encodeURIComponent(categoria)}`;
+        }
+        if (horarioId) {
+            url += `&horario_id=${encodeURIComponent(horarioId)}`;
         }
         
         const response = await fetch(url, {
@@ -493,6 +554,7 @@ async function confirmarRecalcular() {
     cerrarModalRecalcular();
     const deporteId = document.getElementById('filtroDeporte').value;
     const categoria = document.getElementById('filtroCategoria').value;
+    const horarioId = document.getElementById('filtroHorario')?.value || null;
     const mes = parseInt(document.getElementById('filtroMes').value);
     const anio = new Date().getFullYear();
     const btn = document.getElementById('btnRecalcularAsistencias');
@@ -505,7 +567,7 @@ async function confirmarRecalcular() {
         const response = await fetch(`${API_BASE}/api/profesor/ranking/calcular-asistencias`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deporte_id: deporteId, categoria: categoria || null, mes, anio })
+            body: JSON.stringify({ deporte_id: deporteId, categoria: categoria || null, horario_id: horarioId || null, mes, anio })
         });
         if (!response.ok) throw new Error('Error al recalcular');
         const result = await response.json();
