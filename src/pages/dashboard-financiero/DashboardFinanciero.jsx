@@ -351,7 +351,11 @@ export default function DashboardFinanciero() {
                 rotulo={`Cobrado de ${mesActualLima().toLowerCase()}`}
                 clave="ingresosMes"
                 valor={soles(r.ingresosMes)}
-                pie={r.pendienteMes > 0 ? `${soles(r.pendienteMes)} por confirmar` : 'Mensualidades del mes + matrículas nuevas'}
+                pie={
+                  r.matriculasMes > 0
+                    ? `Mensualidades ${soles(r.mensualidadesMes)} + Matrículas ${soles(r.matriculasMes)}${r.pendienteMes > 0 ? ` · ${soles(r.pendienteMes)} por confirmar` : ''}`
+                    : (r.pendienteMes > 0 ? `${soles(r.pendienteMes)} por confirmar` : 'Mensualidades del mes')
+                }
               />
               <Cifra rotulo="Cobrado acumulado" clave="totalIngresos" valor={soles(r.totalIngresos)} pie="Matrículas + mensualidades, desde el inicio" />
               <Cifra rotulo="Alumnos activos" valor={numero(r.alumnosActivos)} pie={`${numero(r.inscripcionesActivas)} inscripciones activas`} />
