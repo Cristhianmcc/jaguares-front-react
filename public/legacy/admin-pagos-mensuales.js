@@ -595,18 +595,27 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
                 const fechaFormato = _fd && _fd.length === 3 ? `${_fd[2]}/${_fd[1]}/${_fd[0]}` : '-';
                 const tienePuerta = asist.asistencia_puerta === 1 || asist.asistencia_puerta === true || asist.asistencia_puerta === '1';
 
+                const _diaFecha = _fd && _fd.length === 3 ? (() => {
+                    const d = new Date(Date.UTC(parseInt(_fd[0], 10), parseInt(_fd[1], 10) - 1, parseInt(_fd[2], 10)));
+                    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    return dias[d.getUTCDay()];
+                })() : null;
+                const diaFinal = _diaFecha ? (_diaFecha + (asist.dia && asist.dia.toLowerCase() !== _diaFecha.toLowerCase() ? ` <span class="text-[10px] text-gray-400 font-normal">(${asist.dia.slice(0,3)})</span>` : '')) : (asist.dia || '-');
+
                 return `
                 <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-zinc-800/60 transition-colors">
                     <td class="px-3 md:px-4 py-2.5 font-mono font-medium">${fechaFormato}</td>
                     <td class="px-3 md:px-4 py-2.5 font-bold text-gray-900 dark:text-white">${String(asist.deporte || '').replace(/FÃºtbol|FÃ°tbol|F\uFFFDtbol/gi, 'Fútbol').replace(/BÃ¡squet/gi, 'Básquet').replace(/VÃ³ley/gi, 'Vóley')}</td>
                     <td class="px-3 md:px-4 py-2.5 text-gray-600 dark:text-gray-300">${asist.categoria || '-'}</td>
-                    <td class="px-3 md:px-4 py-2.5 text-gray-600 dark:text-gray-300">${asist.dia || '-'}</td>
+                    <td class="px-3 md:px-4 py-2.5 text-gray-600 dark:text-gray-300 font-semibold">${diaFinal}</td>
                     <td class="px-3 md:px-4 py-2.5 whitespace-nowrap text-gray-500 dark:text-gray-400 font-mono text-xs">${asist.hora_inicio || '-'} - ${asist.hora_fin || '-'}</td>
                     <!-- Asistencia Docente -->
                     <td class="px-3 md:px-4 py-2.5 whitespace-nowrap">
                         ${asist.presente 
                             ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-500/30"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>✓ Presente</span>' 
-                            : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-500/30"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>✗ Ausente</span>'}
+                            : (tienePuerta 
+                                ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-500/30"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>⏳ Pendiente Docente</span>'
+                                : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-500/30"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>✗ Ausente</span>')}
                     </td>
                     <!-- Asistencia Puerta (Lector QR) -->
                     <td class="px-3 md:px-4 py-2.5 whitespace-nowrap">

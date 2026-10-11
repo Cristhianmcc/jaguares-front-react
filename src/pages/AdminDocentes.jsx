@@ -244,10 +244,30 @@ const html = `
             <!-- Panel de Reportes de Asistencia -->
             <div id="panel-asistencias" class="tab-panel hidden">
                 <div class="bg-white dark:bg-surface-dark rounded-xl shadow-md p-6 mb-6">
-                    <h2 class="text-lg font-bold text-black dark:text-white mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined text-primary">filter_list</span>
-                        Filtros de Reporte
-                    </h2>
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <h2 class="text-lg font-bold text-black dark:text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary">filter_list</span>
+                            Filtros de Reporte
+                        </h2>
+                        <!-- Botones de Acceso Rápido de Fecha -->
+                        <div class="flex flex-wrap items-center gap-1.5 bg-gray-100 dark:bg-[#202020] p-1.5 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-800">
+                            <span class="text-gray-500 dark:text-gray-400 px-2 flex items-center gap-1 font-semibold">
+                                <span class="material-symbols-outlined text-sm text-amber-500">bolt</span> Rango:
+                            </span>
+                            <button type="button" onclick="aplicarRangoFecha('hoy')" class="px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 text-primary shadow-xs hover:bg-primary hover:text-white transition-all cursor-pointer font-bold">
+                                📅 Hoy
+                            </button>
+                            <button type="button" onclick="aplicarRangoFecha('ayer')" class="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-zinc-800 transition-all cursor-pointer font-bold">
+                                Ayer
+                            </button>
+                            <button type="button" onclick="aplicarRangoFecha('semana')" class="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-zinc-800 transition-all cursor-pointer font-bold">
+                                Esta Semana
+                            </button>
+                            <button type="button" onclick="aplicarRangoFecha('mes')" class="px-3 py-1.5 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-zinc-800 transition-all cursor-pointer font-bold">
+                                Este Mes
+                            </button>
+                        </div>
+                    </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                         <div>
@@ -277,11 +297,11 @@ const html = `
                             </select>
                         </div>
                         <div class="flex flex-col sm:flex-row sm:items-end gap-2">
-                            <button onclick="cargarReporteAsistencias()" class="w-full sm:w-auto flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-bold uppercase tracking-wide rounded-lg transition-all flex items-center justify-center gap-2">
+                            <button onclick="cargarReporteAsistencias()" class="w-full sm:w-auto flex-1 py-3 bg-primary hover:bg-primary-dark text-white font-bold uppercase tracking-wide rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm">
                                 <span class="material-symbols-outlined">search</span>
                                 Generar Reporte
                             </button>
-                            <button onclick="exportarExcel()" id="btn-exportar-excel" class="w-full sm:w-auto py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled title="Exportar a Excel">
+                            <button onclick="exportarExcel()" id="btn-exportar-excel" class="w-full sm:w-auto py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" disabled title="Exportar a Excel">
                                 <span class="material-symbols-outlined">download</span>
                                 <span class="hidden sm:inline">Excel</span>
                             </button>
@@ -299,17 +319,17 @@ const html = `
                         <p class="text-3xl font-black text-emerald-600" id="reporte-puerta">0</p>
                         <p class="text-xs text-text-muted uppercase">Puerta (Lector QR)</p>
                     </div>
+                    <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-amber-500">
+                        <p class="text-3xl font-black text-amber-500" id="reporte-puerta-pendiente">0</p>
+                        <p class="text-xs text-text-muted uppercase">Puerta (Pendiente Docente)</p>
+                    </div>
                     <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-red-500">
                         <p class="text-3xl font-black text-red-500" id="reporte-ausentes">0</p>
-                        <p class="text-xs text-text-muted uppercase">Ausentes (Docente)</p>
-                    </div>
-                    <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-blue-500">
-                        <p class="text-3xl font-black text-blue-500" id="reporte-total">0</p>
-                        <p class="text-xs text-text-muted uppercase">Total Registros</p>
+                        <p class="text-xs text-text-muted uppercase">Sin Asistencia</p>
                     </div>
                     <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-primary">
                         <p class="text-3xl font-black text-primary" id="reporte-porcentaje">0%</p>
-                        <p class="text-xs text-text-muted uppercase">% Asist. Docente</p>
+                        <p class="text-xs text-text-muted uppercase">% Asistencia General</p>
                     </div>
                 </div>
 
