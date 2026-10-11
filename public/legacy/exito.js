@@ -1,4 +1,4 @@
-﻿﻿/**
+/**
  * Script para la página de éxito
  */
 
@@ -701,50 +701,43 @@ let capturaSeleccionada = null;
  */
 function handleCapturaPago(event) {
     const file = event.target.files[0];
-    
     if (!file) return;
-    
-    // Validar que sea una imagen
-    if (!file.type.startsWith('image/')) {
-        Utils.mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
-        return;
-    }
-    
-    // Comprimir con Canvas: máx 1024px, JPEG 75% — sin límite de tamaño
-    const img = new Image();
-    const url = URL.createObjectURL(file);
 
-    img.onload = function() {
-        URL.revokeObjectURL(url);
-        const maxW = 1024;
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-
-        const base64 = canvas.toDataURL('image/jpeg', 0.75);
-
-        capturaSeleccionada = {
-            nombre: file.name,
-            tipo: 'image/jpeg',
-            base64: base64
+    if (typeof window.comprimirImagenExif === 'function') {
+        window.comprimirImagenExif(file, 1200, 0.80)
+            .then(function(base64) {
+                capturaSeleccionada = {
+                    nombre: file.name,
+                    tipo: 'image/jpeg',
+                    base64: base64
+                };
+                mostrarPreviewCaptura(base64, file.name);
+                subirCapturaAlServidor();
+            })
+            .catch(function(err) {
+                if (err && err.message === 'HEIC_NO_SOPORTADO') {
+                    Utils.mostrarNotificacion(
+                        'Tu foto está en formato HEIC (iPhone). Por favor toma una captura de pantalla del comprobante y súbela.',
+                        'error'
+                    );
+                } else {
+                    Utils.mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+                }
+                event.target.value = '';
+            });
+    } else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            capturaSeleccionada = {
+                nombre: file.name,
+                tipo: 'image/jpeg',
+                base64: e.target.result
+            };
+            mostrarPreviewCaptura(e.target.result, file.name);
+            subirCapturaAlServidor();
         };
-
-        mostrarPreviewCaptura(base64, file.name);
-
-        // Intentar subir automáticamente
-        subirCapturaAlServidor();
-    };
-
-    img.onerror = function() {
-        URL.revokeObjectURL(url);
-        Utils.mostrarNotificacion('Error al leer la imagen', 'error');
-    };
-
-    img.src = url;
+        reader.readAsDataURL(file);
+    }
 }
 
 /**
@@ -893,60 +886,51 @@ let comprobanteEfectivo = null;
  */
 function handleComprobanteBanco(event, banco) {
     const file = event.target.files[0];
-    
     if (!file) return;
-    
-    // Validar que sea una imagen
-    if (!file.type.startsWith('image/')) {
-        Utils.mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
-        return;
-    }
-    
-    // Comprimir imagen con Canvas (acepta cualquier tamaño)
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    
-    img.onload = function() {
-        URL.revokeObjectURL(url);
-        const maxW = 1024;
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        
-        const base64 = canvas.toDataURL('image/jpeg', 0.75);
-        
-        const comprobante = {
-            nombre: file.name,
-            tipo: 'image/jpeg',
-            base64: base64,
-            banco: banco
+
+    if (typeof window.comprimirImagenExif === 'function') {
+        window.comprimirImagenExif(file, 1200, 0.80)
+            .then(function(base64) {
+                const comprobante = {
+                    nombre: file.name,
+                    tipo: 'image/jpeg',
+                    base64: base64,
+                    banco: banco
+                };
+                if (banco === 'BBVA') comprobanteBBVA = comprobante;
+                else if (banco === 'BCP') comprobanteBCP = comprobante;
+                else if (banco === 'Efectivo') comprobanteEfectivo = comprobante;
+                mostrarPreviewComprobanteBanco(base64, banco);
+                subirComprobanteBancoAlServidor(comprobante);
+            })
+            .catch(function(err) {
+                if (err && err.message === 'HEIC_NO_SOPORTADO') {
+                    Utils.mostrarNotificacion(
+                        'Tu foto está en formato HEIC (iPhone). Por favor toma una captura de pantalla del comprobante y súbela.',
+                        'error'
+                    );
+                } else {
+                    Utils.mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+                }
+                event.target.value = '';
+            });
+    } else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const comprobante = {
+                nombre: file.name,
+                tipo: 'image/jpeg',
+                base64: e.target.result,
+                banco: banco
+            };
+            if (banco === 'BBVA') comprobanteBBVA = comprobante;
+            else if (banco === 'BCP') comprobanteBCP = comprobante;
+            else if (banco === 'Efectivo') comprobanteEfectivo = comprobante;
+            mostrarPreviewComprobanteBanco(e.target.result, banco);
+            subirComprobanteBancoAlServidor(comprobante);
         };
-        
-        // Guardar según el banco
-        if (banco === 'BBVA') {
-            comprobanteBBVA = comprobante;
-        } else if (banco === 'BCP') {
-            comprobanteBCP = comprobante;
-        } else if (banco === 'Efectivo') {
-            comprobanteEfectivo = comprobante;
-        }
-        
-        mostrarPreviewComprobanteBanco(base64, banco);
-        
-        // Intentar subir automáticamente
-        subirComprobanteBancoAlServidor(comprobante);
-    };
-    
-    img.onerror = function() {
-        URL.revokeObjectURL(url);
-        Utils.mostrarNotificacion('Error al leer la imagen', 'error');
-    };
-    
-    img.src = url;
+        reader.readAsDataURL(file);
+    }
 }
 
 /**

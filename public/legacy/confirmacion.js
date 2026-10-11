@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script para la pgina de confirmación
  */
 
@@ -1513,23 +1513,25 @@ function copiarCuentaConf(numeroCuenta, event) {
 }
 
 function procesarImagenConf(file, onSuccess) {
-    if (!file || !file.type.startsWith('image/')) {
-        Utils.mostrarNotificacion('Por favor selecciona una imagen válida', 'error');
-        return;
+    if (!file) return;
+    if (typeof window.comprimirImagenExif === 'function') {
+        window.comprimirImagenExif(file, 1200, 0.80)
+            .then(function(base64) { onSuccess(base64, file.name); })
+            .catch(function(err) {
+                if (err && err.message === 'HEIC_NO_SOPORTADO') {
+                    Utils.mostrarNotificacion(
+                        'Tu foto está en formato HEIC (iPhone). Por favor toma una captura de pantalla del comprobante y súbela.',
+                        'error'
+                    );
+                } else {
+                    Utils.mostrarNotificacion('Error al procesar la imagen. Intenta con otra foto.', 'error');
+                }
+            });
+    } else {
+        var reader = new FileReader();
+        reader.onload = function(e) { onSuccess(e.target.result, file.name); };
+        reader.readAsDataURL(file);
     }
-    var img = new Image();
-    var url = URL.createObjectURL(file);
-    img.onload = function() {
-        URL.revokeObjectURL(url);
-        var maxW = 1024, w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        var canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        onSuccess(canvas.toDataURL('image/jpeg', 0.75), file.name);
-    };
-    img.onerror = function() { URL.revokeObjectURL(url); Utils.mostrarNotificacion('Error al leer la imagen', 'error'); };
-    img.src = url;
 }
 
 function handleCapturaPagoConf(event) {
