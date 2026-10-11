@@ -392,9 +392,13 @@ function renderizarAlumnos() {
         div.className = 'flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors';
         
         const presente = alumno.asistencia_registrada ? alumno.presente : true; // Por defecto marcar presente
+
+        // CONTROL DE PUERTA EN VISTA DOCENTE (Desactivado temporalmente a petición de administración
+        // para que los profesores llamen lista presencial y no se confíen copiando el escáner de puerta.
+        // Para reactivar en el futuro, descomentar este bloque y agregar ${badgePuerta} en el div.innerHTML):
+        /*
         const puertaRegistrada = alumno.asistencia_puerta === 1 || alumno.asistencia_puerta === true || alumno.asistencia_puerta === '1';
         const horaPuerta = alumno.hora_puerta ? ` (${alumno.hora_puerta})` : '';
-
         const badgePuerta = puertaRegistrada
             ? `<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 font-black text-xs shadow-xs select-none" title="Ingreso verificado en puerta${horaPuerta}">
                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block ring-2 ring-emerald-500/30"></span>
@@ -404,6 +408,7 @@ function renderizarAlumnos() {
                  <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 inline-block"></span>
                  <span class="text-[10px] uppercase tracking-wider">Sin Puerta</span>
                </div>`;
+        */
 
         div.innerHTML = `
             <div class="flex items-center gap-4">
@@ -432,7 +437,7 @@ function renderizarAlumnos() {
                            ${presente ? 'checked' : ''}
                            class="w-6 h-6 rounded border-gray-300 text-green-600 focus:ring-green-500">
                 </label>
-                ${badgePuerta}
+                <!-- \${badgePuerta} /* Descomentar si se reactiva el badge de puerta para docentes */ -->
             </div>
         `;
         

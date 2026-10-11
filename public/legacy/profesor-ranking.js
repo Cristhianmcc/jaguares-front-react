@@ -1,4 +1,4 @@
-﻿/**
+/**
  * JavaScript para Gestií³n de Ranking
  */
 
@@ -73,6 +73,18 @@ function inicializarEventos() {
     document.getElementById('btnRecalcularAsistencias').addEventListener('click', recalcularAsistencias);
     document.getElementById('btnCancelarBonus').addEventListener('click', cerrarModalBonus);
     document.getElementById('btnGuardarBonus').addEventListener('click', guardarBonus);
+    
+    // Listener en vivo para el input de bonus
+    const inputBonus = document.getElementById('inputPuntosBonus');
+    if (inputBonus) {
+        inputBonus.addEventListener('input', actualizarPreviewBonus);
+        inputBonus.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                guardarBonus();
+            }
+        });
+    }
     
     // Cerrar modal al hacer clic fuera
     document.getElementById('modalBonus').addEventListener('click', (e) => {
@@ -313,17 +325,83 @@ function escapeHtml(text) {
 
 function ajustarBonus(delta) {
     const input = document.getElementById('inputPuntosBonus');
-    input.value = (parseInt(input.value) || 0) + delta;
+    if (!input) return;
+    const valorActual = parseInt(input.value) || 0;
+    input.value = valorActual + delta;
+    actualizarPreviewBonus();
+}
+
+function actualizarPreviewBonus() {
+    const input = document.getElementById('inputPuntosBonus');
+    const previewBox = document.getElementById('previewBonusBox');
+    const previewActual = document.getElementById('previewActual');
+    const previewDelta = document.getElementById('previewDelta');
+    const previewNuevoTotal = document.getElementById('previewNuevoTotal');
+    const btnGuardar = document.getElementById('btnGuardarBonus');
+    
+    if (!input) return;
+    
+    const delta = parseInt(input.value) || 0;
+    const base = bonusActualSeleccionado || 0;
+    const nuevoTotal = Math.max(0, base + delta);
+    
+    if (previewActual) previewActual.textContent = base;
+    if (previewNuevoTotal) previewNuevoTotal.textContent = nuevoTotal;
+    
+    if (previewDelta) {
+        if (delta > 0) {
+            previewDelta.textContent = `+${delta} (Sumar)`;
+            previewDelta.className = 'text-green-600 font-bold';
+        } else if (delta < 0) {
+            previewDelta.textContent = `${delta} (Descontar)`;
+            previewDelta.className = 'text-red-600 font-bold';
+        } else {
+            previewDelta.textContent = '0 (Sin cambio)';
+            previewDelta.className = 'text-gray-500 font-bold';
+        }
+    }
+    
+    if (previewBox) {
+        if (delta > 0) {
+            previewBox.className = 'mt-3 p-3 rounded-lg border text-center transition-all bg-green-50 dark:bg-green-950/40 border-green-300 dark:border-green-800';
+        } else if (delta < 0) {
+            previewBox.className = 'mt-3 p-3 rounded-lg border text-center transition-all bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800';
+        } else {
+            previewBox.className = 'mt-3 p-3 rounded-lg border text-center transition-all bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700';
+        }
+    }
+    
+    if (btnGuardar) {
+        if (delta > 0) {
+            btnGuardar.textContent = `Guardar (+${delta} pts)`;
+        } else if (delta < 0) {
+            btnGuardar.textContent = `Guardar (${delta} pts)`;
+        } else {
+            btnGuardar.textContent = 'Guardar Puntos';
+        }
+    }
 }
 
 function abrirModalBonus(alumnoId, nombre, puntosActuales) {
     alumnoSeleccionado = alumnoId;
     bonusActualSeleccionado = parseInt(puntosActuales) || 0;
     document.getElementById('modalAlumnoNombre').textContent = nombre;
-    document.getElementById('inputPuntosBonus').value = bonusActualSeleccionado;
     document.getElementById('bonusActualLabel').textContent = bonusActualSeleccionado;
+    
+    // Iniciar con 0 para que cualquier número ingresado sume/reste al puntaje actual
+    const input = document.getElementById('inputPuntosBonus');
+    if (input) {
+        input.value = '';
+    }
     document.getElementById('inputMotivo').value = '';
+    
+    actualizarPreviewBonus();
     document.getElementById('modalBonus').classList.remove('hidden');
+    
+    // Focus automático en el input
+    setTimeout(() => {
+        if (input) input.focus();
+    }, 100);
 }
 
 /**
@@ -340,12 +418,26 @@ function cerrarModalBonus() {
 async function guardarBonus() {
     if (!alumnoSeleccionado) return;
     
-    const puntosFinal = parseInt(document.getElementById('inputPuntosBonus').value) || 0;
+    const delta = parseInt(document.getElementById('inputPuntosBonus').value) || 0;
+    if (delta === 0) {
+        mostrarToast('Ingresa los puntos a sumar o restar (+/-)', 'error');
+        return;
+    }
+    
+    // El nuevo total es el puntaje actual + la cantidad que el docente digitó
+    const puntosFinal = Math.max(0, bonusActualSeleccionado + delta);
     const motivo = document.getElementById('inputMotivo').value.trim();
     const deporteId = document.getElementById('filtroDeporte').value;
     const categoria = document.getElementById('filtroCategoria').value;
     const mes = parseInt(document.getElementById('filtroMes').value);
     const anio = new Date().getFullYear();
+    
+    const btnGuardar = document.getElementById('btnGuardarBonus');
+    const textoOriginal = btnGuardar ? btnGuardar.textContent : 'Guardar';
+    if (btnGuardar) {
+        btnGuardar.disabled = true;
+        btnGuardar.textContent = 'Guardando...';
+    }
     
     try {
         const session = localStorage.getItem('adminSession');
@@ -370,21 +462,23 @@ async function guardarBonus() {
         
         if (!response.ok) throw new Error('Error al guardar bonus');
         
-        const diff = puntosFinal - bonusActualSeleccionado;
-        const msg = diff > 0
-            ? `+${diff} puntos bonus asignados`
-            : diff < 0
-            ? `${diff} puntos bonus descontados`
-            : 'Bonus actualizado sin cambios';
+        const msg = delta > 0
+            ? `+${delta} puntos bonus asignados correctamente (Nuevo total: ${puntosFinal} pts)`
+            : `${delta} puntos bonus descontados (Nuevo total: ${puntosFinal} pts)`;
         mostrarToast(msg);
         cerrarModalBonus();
         
-        // Recargar ranking
+        // Recargar ranking inmediatamente
         cargarRanking();
         
     } catch (error) {
         console.error('Error guardando bonus:', error);
         mostrarToast('Error al guardar puntos', 'error');
+    } finally {
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = textoOriginal;
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import '../styles/animations.css';
 
 const html = `
@@ -290,14 +290,18 @@ const html = `
                 </div>
 
                 <!-- Estadísticas generales -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                     <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-green-500">
                         <p class="text-3xl font-black text-green-500" id="reporte-presentes">0</p>
-                        <p class="text-xs text-text-muted uppercase">Presentes</p>
+                        <p class="text-xs text-text-muted uppercase">Presentes (Docente)</p>
+                    </div>
+                    <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-emerald-500">
+                        <p class="text-3xl font-black text-emerald-600" id="reporte-puerta">0</p>
+                        <p class="text-xs text-text-muted uppercase">Puerta (Lector QR)</p>
                     </div>
                     <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-red-500">
                         <p class="text-3xl font-black text-red-500" id="reporte-ausentes">0</p>
-                        <p class="text-xs text-text-muted uppercase">Ausentes</p>
+                        <p class="text-xs text-text-muted uppercase">Ausentes (Docente)</p>
                     </div>
                     <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-blue-500">
                         <p class="text-3xl font-black text-blue-500" id="reporte-total">0</p>
@@ -305,7 +309,7 @@ const html = `
                     </div>
                     <div class="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-md border-l-4 border-primary">
                         <p class="text-3xl font-black text-primary" id="reporte-porcentaje">0%</p>
-                        <p class="text-xs text-text-muted uppercase">% Asistencia</p>
+                        <p class="text-xs text-text-muted uppercase">% Asist. Docente</p>
                     </div>
                 </div>
 
@@ -320,8 +324,9 @@ const html = `
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Categoría</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Día</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Horario</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Presentes</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Ausentes</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Docente (Pres.)</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Puerta (QR)</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Docente (Aus.)</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">% Asistencia</th>
                                 </tr>
                             </thead>
@@ -546,8 +551,9 @@ const html = `
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">#</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Alumno</th>
                                     <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">DNI</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Asistencias</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">Faltas</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-400">Docente (Asist.)</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Puerta (Lector QR)</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">Faltas</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">% Asist.</th>
                                 </tr>
                             </thead>
