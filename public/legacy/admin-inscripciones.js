@@ -1526,10 +1526,13 @@ async function cargarEstadisticasInscripciones() {
           <p class="text-xs text-green-600 dark:text-green-400 mb-1">Pagos Confirmados</p>
           <p class="text-2xl font-bold text-green-700 dark:text-green-300">${confirmados}</p>
         </div>
+        <!-- Card Ingresos Totales deshabilitada para evitar inconsistencias con el Panel de Finanzas -->
+        <!--
         <div class="bg-primary/10 rounded-lg p-4">
           <p class="text-xs text-primary mb-1">Ingresos Totales</p>
           <p class="text-2xl font-bold text-primary">S/ ${stats.ingresos_confirmados.toFixed(2)}</p>
         </div>
+        -->
       `;
     }
   } catch (error) {

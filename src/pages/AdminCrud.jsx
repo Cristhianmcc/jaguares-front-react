@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import '../styles/animations.css';
 
 const html = `
@@ -303,7 +303,7 @@ const html = `
                     </div>
 
                     <!-- Estad?sticas -->
-                    <div id="estadisticasInscripciones" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div id="estadisticasInscripciones" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <!-- Se cargan dinámicamente -->
                     </div>
 

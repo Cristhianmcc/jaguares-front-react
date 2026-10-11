@@ -136,9 +136,20 @@ async function consultarPorDNI(dni) {
             return;
         }
 
-        // Solo mostrar error en consola si NO es 403
+        // Si es un error 404, el alumno no existe en el sistema
+        if (error.response && error.response.status === 404) {
+            mostrarNotificacion(error.response.data?.error ? `${error.response.data.error}. Verifique el DNI ingresado.` : `No se encontró ningún alumno con el DNI "${dni}". Verifique el número ingresado.`, 'error');
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = `
+                <span>Consultar Estado</span>
+                <span class="material-symbols-outlined">search</span>
+            `;
+            return;
+        }
+
+        // Solo mostrar error en consola si NO es 403 ni 404
         console.error('Error al consultar:', error);
-        mostrarNotificacion('Error al consultar. Intente nuevamente.', 'error');
+        mostrarNotificacion(error.message || 'Error al consultar. Intente nuevamente.', 'error');
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = `
             <span>Consultar Estado</span>
