@@ -1,4 +1,4 @@
-﻿// ==================== GESTI�"N DE INSCRIPCIONES Y PAGOS ====================
+// ==================== GESTI�"N DE INSCRIPCIONES Y PAGOS ====================
 
 // Helper para obtener headers con autenticación
 function getAuthHeadersInscripciones() {
@@ -522,6 +522,8 @@ function mostrarModalDetalleInscripcion(data) {
                     categoria: ins.categoria || 'Sin categoría',
                     plan: ins.plan || 'Económico',
                     precio: ins.precio,
+                    matricula_pagada: ins.matricula_pagada,
+                    matricula_monto: ins.matricula_monto,
                     estado_inscripcion: ins.estado_inscripcion || 'activa',
                     icono: ins.icono || 'sports',
                     horarios: []
@@ -568,6 +570,20 @@ function mostrarModalDetalleInscripcion(data) {
                 }
                 
                 const tieneMultiples = dep.horarios.length > 1;
+                const matriculaCobrada = Number(dep.matricula_pagada) === 1;
+                const matriculaMonto = parseFloat(dep.matricula_monto || 20).toFixed(2);
+                const matriculaBadge = `
+                  <button type="button" 
+                          id="btnMatricula_${dep.inscripcion_id}"
+                          data-monto="${matriculaMonto}"
+                          onclick="toggleMatriculaInscripcionModal(${dep.inscripcion_id}, ${matriculaCobrada ? 0 : 1}, '${usuario.dni}')"
+                          class="px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${matriculaCobrada ? 'bg-green-100 hover:bg-green-200 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800' : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'}"
+                          title="${matriculaCobrada ? 'Clic para exonerar / marcar como NO cobrada' : 'Clic para marcar como COBRADA'}">
+                    <span class="material-symbols-outlined" style="font-size:14px;">${matriculaCobrada ? 'check_circle' : 'cancel'}</span>
+                    <span>${matriculaCobrada ? `Matrícula S/ ${matriculaMonto}` : 'Sin Matrícula'}</span>
+                  </button>
+                `;
+
                 const horariosHTML = dep.horarios.map(h => {
                   const esUltimoH = !tieneMultiples;
                   const btnLabel  = esUltimoH ? '⚠ Cancelar Inscripción' : '✕ Quitar';
@@ -643,7 +659,8 @@ function mostrarModalDetalleInscripcion(data) {
                           <p class="text-xs text-gray-500 font-medium">${limpiarTextoModal(dep.plan)} | S/ ${parseFloat(dep.precio || 0).toFixed(2)}</p>
                         </div>
                       </div>
-                      <div class="flex items-center gap-2">
+                      <div class="flex flex-wrap items-center gap-2">
+                        ${matriculaBadge}
                         ${estadoBadge}
                         ${botonAccesoEspecial}
                       </div>
@@ -693,9 +710,78 @@ function mostrarModalDetalleInscripcion(data) {
     </div>
   `;
   
+  const modalAnterior = document.getElementById('modalDetalleInscripcion');
+  if (modalAnterior) {
+    modalAnterior.remove();
+  }
+
   document.body.appendChild(modal);
 
   modal.dataset.dni = (data.alumno && data.alumno.dni) || data.dni || '';
+}
+
+/**
+ * Alternar cobro de matrícula para una inscripción específica (Cobrada / Exonerada)
+ */
+async function toggleMatriculaInscripcionModal(inscripcionId, nuevoEstado, dni) {
+  const btn = document.getElementById(`btnMatricula_${inscripcionId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  }
+  try {
+    const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+    const token = session.token || '';
+    
+    const response = await fetch(`${API_BASE}/api/admin/inscripciones/${inscripcionId}/matricula`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ matricula_pagada: nuevoEstado })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      const cobrada = (nuevoEstado === 1);
+      mostrarNotificacion(
+        cobrada ? 'Matrícula marcada como PAGADA' : 'Matrícula marcada como EXONERADA / NO COBRADA',
+        'success'
+      );
+
+      // Actualizar botón de inmediato en el DOM
+      if (btn) {
+        const monto = btn.dataset.monto || '20.00';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.className = `px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${cobrada ? 'bg-green-100 hover:bg-green-200 text-green-800 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800' : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'}`;
+        btn.title = cobrada ? 'Clic para exonerar / marcar como NO cobrada' : 'Clic para marcar como COBRADA';
+        btn.setAttribute('onclick', `toggleMatriculaInscripcionModal(${inscripcionId}, ${cobrada ? 0 : 1}, '${dni}')`);
+        btn.innerHTML = `
+          <span class="material-symbols-outlined" style="font-size:14px;">${cobrada ? 'check_circle' : 'cancel'}</span>
+          <span>${cobrada ? `Matrícula S/ ${monto}` : 'Sin Matrícula'}</span>
+        `;
+      }
+
+      if (typeof cargarInscripciones === 'function') {
+        cargarInscripciones();
+      }
+    } else {
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+      mostrarNotificacion('Error: ' + (data.error || 'No se pudo actualizar'), 'error');
+    }
+  } catch (error) {
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+    console.error('Error al actualizar matrícula:', error);
+    mostrarNotificacion('Error de conexión al actualizar matrícula', 'error');
+  }
 }
 
 // ==================== EDICION INLINE EN MODAL DETALLE INSCRIPCION ====================
@@ -1092,14 +1178,54 @@ function cerrarModalConfirmacion() {
  * Confirmar pago de un usuario
  */
 function confirmarPago(dni) {
+  const alumno = (inscripcionesData || []).find(a => String(a.dni) === String(dni));
+  const listaDeportes = alumno?.deportes_inscritos 
+    ? alumno.deportes_inscritos.split(', ').map(d => d.trim()).filter(Boolean) 
+    : [];
+
+  let camposMatricula = '';
+  if (listaDeportes.length > 0) {
+    camposMatricula = `
+      <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-left">
+        <p class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2">Matrículas a cobrar por deporte:</p>
+        <div class="space-y-2">
+          ${listaDeportes.map((dep, idx) => `
+            <label class="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/80">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" name="checkMatDeporte" value="${dep}" checked onchange="actualizarTotalMatriculaModal()" class="w-4 h-4 text-green-600 rounded focus:ring-green-500 cursor-pointer">
+                <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${dep}</span>
+              </div>
+              <span class="text-xs font-black text-green-600 dark:text-green-400">+S/ 20.00</span>
+            </label>
+          `).join('')}
+        </div>
+        <div class="mt-2.5 pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-xs">
+          <span class="text-gray-500 dark:text-gray-400">Total matrícula a cobrar:</span>
+          <span id="labelTotalMatriculaModal" class="font-black text-primary text-sm">S/ ${(listaDeportes.length * 20).toFixed(2)}</span>
+        </div>
+        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Desmarca los deportes cuya matrícula no fue pagada o fue exonerada.</p>
+      </div>
+    `;
+  } else {
+    camposMatricula = `
+      <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-left">
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-800 dark:text-gray-200">
+          <input type="checkbox" id="checkCobrarMatricula" checked class="w-4 h-4 text-green-600 rounded focus:ring-green-500 cursor-pointer">
+          <span>Cobrar Matrícula (+S/ 20 por deporte)</span>
+        </label>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-6">Desmarca si el alumno NO pagó matrícula o está exonerado.</p>
+      </div>
+    `;
+  }
+
   mostrarModalConfirmacion({
     titulo: 'Confirmar Pago',
-    subtitulo: `DNI: ${dni}`,
+    subtitulo: `DNI: ${dni}${alumno ? ` - ${alumno.nombres} ${alumno.apellidos}` : ''}`,
     icon: 'payments',
     iconBg: 'bg-green-100 dark:bg-green-900/30',
     iconColor: 'text-green-600 dark:text-green-400',
-    Mensaje: 'Se activarán todas las inscripciones del alumno y se registrará el pago como <strong>monto completo</strong>.',
-    campos: '', // TODO: saldo/deuda parcial — restaurar campos de monto y número de operación
+    Mensaje: 'Se activarán las inscripciones del alumno y se registrará el pago.',
+    campos: camposMatricula,
     btnTexto: 'Confirmar Pago',
     btnIcon: 'check_circle',
     btnClass: 'bg-green-600 hover:bg-green-700',
@@ -1107,10 +1233,31 @@ function confirmarPago(dni) {
   });
 }
 
+function actualizarTotalMatriculaModal() {
+  const checks = document.querySelectorAll('input[name="checkMatDeporte"]');
+  let count = 0;
+  checks.forEach(c => { if (c.checked) count++; });
+  const label = document.getElementById('labelTotalMatriculaModal');
+  if (label) {
+    label.textContent = `S/ ${(count * 20).toFixed(2)}`;
+  }
+}
+
 async function ejecutarConfirmacionPago(dni) {
-  // TODO: saldo/deuda parcial — restaurar cuando se implemente
-  // const monto = document.getElementById('montoPago')?.value;
-  // const numeroOp = document.getElementById('numeroOperacion')?.value;
+  const checks = document.querySelectorAll('input[name="checkMatDeporte"]');
+  let deportesMatricula = [];
+  let matriculaPagada = 1;
+
+  if (checks.length > 0) {
+    checks.forEach(c => {
+      if (c.checked) deportesMatricula.push(c.value);
+    });
+    matriculaPagada = deportesMatricula.length > 0 ? 1 : 0;
+  } else {
+    const checkSingle = document.getElementById('checkCobrarMatricula');
+    matriculaPagada = checkSingle ? (checkSingle.checked ? 1 : 0) : 1;
+  }
+
   const monto = null;
   const numeroOp = null;
   
@@ -1127,7 +1274,9 @@ async function ejecutarConfirmacionPago(dni) {
       headers: getAuthHeadersInscripciones(),
       body: JSON.stringify({
         monto_pago: monto ? parseFloat(monto) : null,
-        numero_operacion: numeroOp || null
+        numero_operacion: numeroOp || null,
+        matricula_pagada: matriculaPagada,
+        deportes_matricula: deportesMatricula
       })
     });
     
@@ -2627,6 +2776,7 @@ window.cerrarPanelAccesoEspecialModal = cerrarPanelAccesoEspecialModal;
 window.cargarHorariosParaPanelModal = cargarHorariosParaPanelModal;
 window.ejecutarAgregarHorarioEspecialModal = ejecutarAgregarHorarioEspecialModal;
 window.quitarHorarioEspecialModal = quitarHorarioEspecialModal;
+window.toggleMatriculaInscripcionModal = toggleMatriculaInscripcionModal;
 
 // Alias para redundancia
 window.togglePanelAccesoEspecial = typeof togglePanelAccesoEspecial !== 'undefined' ? togglePanelAccesoEspecial : togglePanelAccesoEspecialModal;
