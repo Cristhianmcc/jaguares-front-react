@@ -1,4 +1,4 @@
-﻿/**
+/**
  * JavaScript para Gestión de Datos (CRUD) - Sistema Completo
  * Administración de Deportes, Horarios, Categorías y Calendario Semanal
  */
@@ -165,6 +165,26 @@ async function cargarCalendario() {
         loading.classList.add('hidden');
     }
 }
+
+async function sincronizarCuposActivos() {
+    try {
+        mostrarToast('Sincronizando cupos y liberando inactivos...', 'info');
+        const response = await fetch(`${API_BASE}/api/admin/reparar-cupos`, {
+            headers: getAuthHeaders()
+        });
+        const data = await response.json();
+        if (data.success) {
+            mostrarToast(data.message || 'Cupos sincronizados correctamente', 'success');
+            await cargarCalendario();
+        } else {
+            mostrarToast(data.error || 'Error al sincronizar cupos', 'error');
+        }
+    } catch (e) {
+        console.error('Error al sincronizar cupos:', e);
+        mostrarToast('Error de conexión al sincronizar cupos', 'error');
+    }
+}
+window.sincronizarCuposActivos = sincronizarCuposActivos;
 
 function renderizarCalendario() {
     const grid = document.getElementById('calendarioGrid');

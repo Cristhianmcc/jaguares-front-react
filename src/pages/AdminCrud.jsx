@@ -99,6 +99,10 @@ const html = `
                                 <span class="material-symbols-outlined">update</span>
                                 Actualizar Rango
                             </button>
+                            <button onclick="sincronizarCuposActivos()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2" title="Recalcular cupos reales liberando vacantes de alumnos inactivos">
+                                <span class="material-symbols-outlined">sync</span>
+                                Sincronizar Cupos
+                            </button>
                             <button onclick="abrirModalHorarioRapido()" class="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2">
                                 <span class="material-symbols-outlined">add</span>
                                 Nuevo Horario
