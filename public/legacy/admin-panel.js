@@ -1,4 +1,4 @@
-﻿/**
+/**
 
  * JavaScript para el Panel de Administración
 
@@ -1569,6 +1569,10 @@ function mostrarDetalleUsuario(data) {
         btnReactivar.classList.toggle('hidden', !esInactivo);
         btnReactivar.setAttribute('data-dni', data.alumno.dni);
     }
+    const btnLimpiar = document.getElementById('btnLimpiarHorariosDetalle');
+    if (btnLimpiar) {
+        btnLimpiar.setAttribute('data-dni', data.alumno.dni);
+    }
 
 
     
@@ -2136,6 +2140,53 @@ function reactivarDesdeDetalle() {
     const btn = document.getElementById('btnReactivarDetalle');
     const dni = btn ? btn.getAttribute('data-dni') : null;
     if (dni) reactivarUsuario(dni);
+}
+
+async function limpiarHorariosFantasma() {
+    const btn = document.getElementById('btnDesactivarDetalle');
+    const dni = btn ? btn.getAttribute('data-dni') : null;
+    if (!dni) return;
+
+    const btnLimpiar = document.getElementById('btnLimpiarHorariosDetalle');
+    if (btnLimpiar) {
+        btnLimpiar.disabled = true;
+        btnLimpiar.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">progress_activity</span> Limpiando...';
+    }
+
+    try {
+        const API_BASE = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
+            ? window.API_BASE_OVERRIDE
+            : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || /^192\.168\./.test(window.location.hostname) || /^10\./.test(window.location.hostname) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(window.location.hostname))
+                ? ''
+                : 'https://api.jaguarescar.com');
+        const session = JSON.parse(localStorage.getItem('adminSession') || '{}');
+        const token = session.token || '';
+
+        const response = await fetch(`${API_BASE}/api/admin/limpiar-horarios-cancelados/${dni}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.eliminados === 0) {
+                mostrarNotificacion('Este alumno no tiene horarios duplicados', 'info');
+            } else {
+                mostrarNotificacion(data.message, 'success');
+                buscarPorDNI(dni); // Refrescar vista de detalle
+            }
+        } else {
+            mostrarNotificacion('Error: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error al limpiar horarios fantasma:', error);
+        mostrarNotificacion('Error de conexión', 'error');
+    } finally {
+        if (btnLimpiar) {
+            btnLimpiar.disabled = false;
+            btnLimpiar.innerHTML = '<span class="material-symbols-outlined text-sm">auto_fix_high</span> Limpiar duplicados';
+        }
+    }
 }
 
 // Función para reactivar una inscripción individual cancelada

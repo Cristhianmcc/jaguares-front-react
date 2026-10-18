@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 const html = `
     <header class="sticky top-0 z-50 border-b border-solid border-border-color bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-sm shadow-sm">
@@ -296,6 +296,10 @@ const html = `
                             <button id="btnReactivarDetalle" onclick="reactivarDesdeDetalle()" class="hidden px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-xs transition-colors flex items-center gap-1" title="Reactivar usuario">
                                 <span class="material-symbols-outlined text-sm">check_circle</span>
                                 Reactivar
+                            </button>
+                            <button id="btnLimpiarHorariosDetalle" onclick="limpiarHorariosFantasma()" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-xs transition-colors flex items-center gap-1" title="Eliminar horarios duplicados de inscripciones canceladas">
+                                <span class="material-symbols-outlined text-sm">auto_fix_high</span>
+                                Limpiar duplicados
                             </button>
                             <button onclick="cerrarDetalleUsuario()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                                 <span class="material-symbols-outlined">close</span>

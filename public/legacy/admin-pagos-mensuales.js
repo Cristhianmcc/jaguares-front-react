@@ -620,9 +620,9 @@ async function abrirModalAsistenciasAlumno(dni, nombreCompleto) {
                         ${asist.presente 
                             ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-500/30"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>✓ Presente</span>' 
                             : ((asist.observaciones || '').toLowerCase().includes('pago por clase')
-                                ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-500/30"><span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>🎟️ Pago por Clase</span>'
+                                ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-500/30"><span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>Pago por Clase</span>'
                                 : (tienePuerta 
-                                    ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-500/30"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>⏳ Pendiente Docente</span>'
+                                    ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-500/30"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Pendiente Docente</span>'
                                     : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-500/30"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>✗ Ausente</span>'))}
                     </td>
                     <!-- Asistencia Puerta (Lector QR) -->
