@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Script para selección de horarios con cronograma por deportes
  * Nueva versin con Restricción de horarios a la misma hora
  */
@@ -10,6 +10,7 @@ let deporteActual = null;
 let horariosPorDeporte = {}; // Almacena el bloque horario seleccionado por cada deporte
 let añoNacimientoGlobal = null; // Guardar el año para filtrar horarios
 let horariosExistentesAlumno = []; // Horarios de inscripciones activas previas (para validar cruces)
+let deportesInscritosActivos = new Set(); // Deportes donde el alumno ya tiene inscripción activa
 
 const API_BASE_GLOBAL = (window.API_BASE_OVERRIDE && !window.API_BASE_OVERRIDE.includes('%VITE_API_BASE%'))
     ? window.API_BASE_OVERRIDE
@@ -218,15 +219,17 @@ async function initSeleccionHorariosNew() {
             const res = await fetch(`${API_BASE_GLOBAL}/api/consultar/${encodeURIComponent(dni)}`);
             const data = await res.json();
             if (data.success && data.horarios && data.horarios.length > 0) {
-                horariosExistentesAlumno = data.horarios
-                    .filter(h => h.estado_inscripcion === 'activa')
-                    .map(h => ({
-                        deporte: h.deporte,
-                        dia: (h.dia || '').toUpperCase().trim(),
-                        hora_inicio: h.hora_inicio,
-                        hora_fin: h.hora_fin
-                    }));
+                const horariosActivos = data.horarios.filter(h => h.estado_inscripcion === 'activa');
+                horariosExistentesAlumno = horariosActivos.map(h => ({
+                    deporte: h.deporte,
+                    dia: (h.dia || '').toUpperCase().trim(),
+                    hora_inicio: h.hora_inicio,
+                    hora_fin: h.hora_fin
+                }));
+                // Registrar deportes con inscripción activa para deshabilitar su card
+                deportesInscritosActivos = new Set(horariosActivos.map(h => (h.deporte || '').toLowerCase().trim()));
                 console.log('📋 Horarios existentes del alumno para validar cruces:', horariosExistentesAlumno);
+                console.log('🚫 Deportes ya inscritos (activos):', [...deportesInscritosActivos]);
             }
         } catch (e) {
             console.warn('⚠️ No se pudieron cargar horarios existentes:', e.message);
@@ -422,7 +425,6 @@ function renderizarDeportes(deportes) {
     container.innerHTML = deportes.map(deporte => {
         const icono = ICONOS_DEPORTES[deporte.nombre] || 'sports';
         const totalHorarios = deporte.horarios.length;
-        
         return `
             <div onclick="seleccionarDeporte('${deporte.nombre}')" 
                  class="sport-card cursor-pointer bg-white dark:bg-surface-dark rounded-xl border-2 border-border-light dark:border-border-dark p-5 shadow-card hover:shadow-card-hover hover:border-primary transition-all"
@@ -435,9 +437,16 @@ function renderizarDeportes(deportes) {
                         <h3 class="font-black text-base uppercase text-text-main dark:text-white tracking-tight">${deporte.nombre}</h3>
                         <p class="text-xs text-text-muted dark:text-gray-400 mt-1">${totalHorarios} horarios disponibles</p>
                     </div>
-                    <button class="w-full px-4 py-2 bg-black dark:bg-primary text-white dark:text-black rounded-lg font-bold text-sm uppercase tracking-wide hover:brightness-110 transition-all">
-                        Ver Cronograma
+                    ${yaInscrito ? `
+                    <div class="w-full px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-bold text-xs uppercase tracking-wide text-center flex items-center justify-center gap-1">
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        Inscrito (agregar otro turno)
+                    </div>
+                    ` : `
+                    <button class="w-full px-4 py-2 bg-gradient-to-r from-primary to-primary-dark text-black rounded-lg font-bold text-sm uppercase tracking-wide hover:brightness-110 transition-all shadow-btn">
+                        Ver Horarios
                     </button>
+                    `}
                 </div>
             </div>
         `;
