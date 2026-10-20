@@ -331,12 +331,15 @@ function renderizarPagos(pagos) {
             </div>
         ` : '';
 
-        let montoMostrar = parseFloat(p.monto || 0);
-        if ((!montoMostrar || montoMostrar <= 0) && p.deportes_inscritos && p.deportes_inscritos.length > 0) {
+        let montoMostrar = (p.monto !== null && p.monto !== undefined && !isNaN(parseFloat(p.monto))) ? parseFloat(p.monto) : null;
+        // Solo calcular desde deportes si es una fila virtual sin pago (p.es_sin_pago) y no tiene monto asignado,
+        // o si montoMostrar es null/undefined. Si es 0 explícito en registro real, se muestra S/ 0.00.
+        if ((montoMostrar === null || (p.es_sin_pago && montoMostrar === 0)) && p.deportes_inscritos && p.deportes_inscritos.length > 0) {
             montoMostrar = p.deportes_inscritos
                 .filter(d => String(d.estado || '').toLowerCase() !== 'cancelada')
                 .reduce((sum, d) => sum + parseFloat(d.precio || 0), 0);
         }
+        if (montoMostrar === null) montoMostrar = 0;
 
         return `
             <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -1172,10 +1175,12 @@ async function guardarObservacionPago(pagoId) {
     if (btn) { btn.disabled = true; btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div><span>Guardando...</span>'; }
 
     const pagoData = window._pagosData?.[pagoId] || {};
-    let montoToSend = parseFloat(pagoData.monto || 0);
-    if ((!montoToSend || montoToSend <= 0) && pagoData.deportes && pagoData.deportes.length > 0) {
+    let montoToSend = (pagoData.monto !== null && pagoData.monto !== undefined && !isNaN(parseFloat(pagoData.monto))) ? parseFloat(pagoData.monto) : null;
+    // Solo si es un registro virtual sin pago previo y sin monto, sugerir la suma de los deportes
+    if (pagoId < 0 && (montoToSend === null || montoToSend === 0) && pagoData.deportes && pagoData.deportes.length > 0) {
         montoToSend = pagoData.deportes.reduce((s, d) => s + parseFloat(d.precio || 0), 0);
     }
+    if (montoToSend === null) montoToSend = 0;
 
     const API_BASE = getAPIBase();
     const token = getToken();
@@ -1212,10 +1217,12 @@ function abrirModalEditarMonto(pagoId, montoActual) {
     if (existente) existente.remove();
 
     const pagoData = window._pagosData?.[pagoId] || {};
-    let valMonto = typeof montoActual === 'number' ? montoActual : parseFloat(montoActual || 0);
-    if ((!valMonto || valMonto <= 0) && pagoData.deportes && pagoData.deportes.length > 0) {
+    let valMonto = (montoActual !== null && montoActual !== undefined && !isNaN(parseFloat(montoActual))) ? parseFloat(montoActual) : null;
+    // Solo si es un registro virtual (pagoId < 0) y sin monto, sugerir la suma de deportes
+    if (pagoId < 0 && (valMonto === null || valMonto === 0) && pagoData.deportes && pagoData.deportes.length > 0) {
         valMonto = pagoData.deportes.reduce((s, d) => s + parseFloat(d.precio || 0), 0);
     }
+    if (valMonto === null) valMonto = 0;
 
     const modal = document.createElement('div');
     modal.id = 'modalEditarMonto';
