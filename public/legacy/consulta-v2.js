@@ -521,8 +521,8 @@ function renderizarHorarios() {
             </div>
         `).join('');
 
-        // Botón agregar día (solo para inscripciones activas)
-        const botonAgregarDia = !esSuspendido && !esPendiente ? `
+        // Botón agregar día (solo para inscripciones activas con menos de 3 días)
+        const botonAgregarDia = (!esSuspendido && !esPendiente && totalDiasDeporte < 3) ? `
             <button onclick="abrirModalAgregarHorario(${deporte.inscripcion_id})"
                     class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold uppercase transition-all">
                 <span class="material-symbols-outlined text-sm">add_circle</span>

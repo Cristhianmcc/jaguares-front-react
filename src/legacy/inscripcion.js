@@ -338,12 +338,14 @@ async function verificarYaMostrarModal(dni) {
             </div>
           </div>
           <div class="flex flex-col sm:flex-row gap-2 mt-6">
-            <button type="button" onclick="permitirOtroDeporte('${dni}')" 
-               class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all text-center text-sm">
+            <a href="/inscripcion?dni=${encodeURIComponent(dni)}&nuevo_deporte=1"
+               class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all text-center text-sm flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-base">sports</span>
               Inscribirme en otro deporte
-            </button>
-            <a href="/consulta?dni=${dni}" 
-               class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all text-center text-sm">
+            </a>
+            <a href="/consulta?dni=${encodeURIComponent(dni)}" 
+               class="flex-1 px-4 py-2.5 bg-primary hover:brightness-110 text-white rounded-lg font-semibold transition-all text-center text-sm flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-base">search</span>
               Ver mi inscripción
             </a>
             <button onclick="document.getElementById('modalYaInscrito').remove()" 
@@ -397,14 +399,24 @@ async function buscarDNI() {
     if (resConsultar.ok) {
       const dataConsultar = await resConsultar.json();
       if (dataConsultar.success && dataConsultar.alumno) {
+        const esNuevoDeporte = new URLSearchParams(window.location.search).get('nuevo_deporte') === '1';
+
+        // Si no viene con ?nuevo_deporte=1, verificar si ya tiene inscripciones registradas y bloquear re-inscripción
+        if (!esNuevoDeporte) {
+          const yaInscrito = await verificarYaMostrarModal(dni);
+          if (yaInscrito) {
+            dniValidado = false;
+            helper.textContent = 'Este alumno ya cuenta con inscripción registrada. Consulta tu estado.';
+            helper.className = 'text-sm text-red-600 mt-1 font-semibold';
+            return;
+          }
+        }
+
         autocompletarFormulario(dataConsultar.alumno);
         dniValidado = true;
         helper.textContent = '✓ Alumno encontrado. Datos autocompletados.';
         helper.className = 'text-sm text-green-600 mt-1 font-semibold';
         getUtils().mostrarNotificacion('¡Alumno encontrado! Datos autocompletados.', 'success');
-
-        // Si ya tiene inscripciones activas, mostrar modal informativo con opción de deporte adicional
-        await verificarYaMostrarModal(dni);
         return;
       }
     }
@@ -467,9 +479,13 @@ async function handleSubmit(e) {
   const tipoDoc = document.getElementById('tipo_documento')?.value || 'DNI';
 
   // Verificar si ya está inscrito antes de continuar (solo DNI peruano)
-  if (tipoDoc === 'DNI' && getUtils().validarDNI(dni)) {
+  const esNuevoDeporteSubmit = new URLSearchParams(window.location.search).get('nuevo_deporte') === '1';
+  if (tipoDoc === 'DNI' && getUtils().validarDNI(dni) && !esNuevoDeporteSubmit) {
     const yaInscrito = await verificarYaMostrarModal(dni);
-    if (yaInscrito) return;
+    if (yaInscrito) {
+      getUtils().mostrarNotificacion('Este DNI ya tiene una inscripción activa o registrada. Ingresa a Consulta para ver tu estado.', 'warning');
+      return;
+    }
   }
 
   const fechaVal = document.getElementById('fecha_nacimiento').value;
