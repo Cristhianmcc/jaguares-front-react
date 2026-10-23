@@ -425,6 +425,8 @@ function renderizarDeportes(deportes) {
     container.innerHTML = deportes.map(deporte => {
         const icono = ICONOS_DEPORTES[deporte.nombre] || 'sports';
         const totalHorarios = deporte.horarios.length;
+        // Verificar si el alumno ya tiene inscripción activa en este deporte
+        const yaInscrito = deportesInscritosActivos && deportesInscritosActivos.has((deporte.nombre || '').toLowerCase().trim());
         return `
             <div onclick="seleccionarDeporte('${deporte.nombre}')" 
                  class="sport-card cursor-pointer bg-white dark:bg-surface-dark rounded-xl border-2 border-border-light dark:border-border-dark p-5 shadow-card hover:shadow-card-hover hover:border-primary transition-all"
